@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+                   "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<refentry>
+<refmeta>
+<refentrytitle>soulfind</refentrytitle>
+<manvolnum>1</manvolnum>
+</refmeta>
+<refnamediv id='name'>
+<refname>Soulfind</refname>
+<refpurpose>Soulseek server software</refpurpose>
+</refnamediv>
+<!-- body begins here -->
+<refsynopsisdiv id='synopsis'>
+<cmdsynopsis>
+  <command>soulfind</command>
+  	<arg choice='opt'><replaceable>database-path</replaceable></arg>
+	<arg choice='opt'>--deamon</arg>
+</cmdsynopsis>
+</refsynopsisdiv>
+
+
+<refsect1 id='description'><title>Description</title>
+<para><command>Soulfind</command> is a server program for the Soulseek filesharing network.</para>
+
+<para>This server is mostly compatible with the official one, and can be used at least by the three Linux clients : Museek, Nicotine and PySLSK.</para>
+</refsect1>
+
+<refsect1 id='options'><title>Options</title>
+<variablelist remap='IP'>
+  <varlistentry>
+  <term><option><replaceable>database-path</replaceable></option></term>
+  <listitem>
+    <para>Path to the <emphasis>sqlite3</emphasis> database, will be created if it doesn't exist (default: <filename>/var/db/soulfind/soulfind.db</filename>)</para> 
+  </listitem>
+  </varlistentry>
+  <varlistentry>
+  <term><option>-d</option>, <option>--daemon</option></term>
+  <listitem>
+    <para>Immediately fork in the background, to run as a daemon.</para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1 id='differences'><title>Soulfind vs. official Soulseek server</title>
+<para>Soulfind has a few differences with the official, non-distributed, server. The most important of them is of course that Soulfind is GPL :)</para>
+<para><emphasis>Distributed searches</emphasis> are not implemented (yet). First because they are probably a big piece of work, then because they will only be needed for really big networks, and finally because they are causing quite a few problems on the official network at the moment.</para>
+<para>Almost all <emphasis>unicode characters</emphasis> are allowed for usernames and chatrooms, except for known non-printing characters, or characters that look the same (e.g.: non-breaking space, thin space, zero-width joiner).</para>
+</refsect1>
+
+<refsect1 id='bugs'><title>Reporting bugs</title>
+<para>Report bugs to <email>soulfind@seeschloss.org</email>.</para>
+</refsect1>
+
+<refsect1 id='seealso'><title>See also</title>
+<para><citerefentry><refentrytitle>soulsetup</refentrytitle><manvolnum>1</manvolnum></citerefentry></para>
+</refsect1>
+
+<refsect1 id='author'><title>Author</title>
+<para>SeeSchloss <email>seeschloss@seeschloss.org</email></para>
+</refsect1>
+</refentry>

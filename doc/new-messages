@@ -1,0 +1,6 @@
+ServerInfo : 1789
+	int    : Number of fields that will be sent
+	string : Name of the field
+	string : Value
+	string : Name of the field
+	...

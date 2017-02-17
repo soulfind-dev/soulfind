@@ -1,0 +1,21 @@
+To compile Soulfind under Windows(r)(c)(tm), first install
+the DMD compiler by following the instructions at :
+http://www.digitalmars.com/d/dcompiler.html
+
+If you did not install DMD in C:\DMD, you will have to edit
+the file Makefile.win and replace "\dmd\lib\ws2_32.lib"
+with the actual path to your ws2_32.lib file.
+
+Once DMD is installed and the correct environment variables
+have been set, open a console window, cd to the Soulfind
+directory and then type "make -f Makefile.win".
+
+A "bin" directory should have been created, with soulfind.exe
+and soulsetup.exe. Before running them, you should first copy
+the file "win\sqlite.dll" either to c:\windows or to the bin
+directory.
+
+If you have a problem, you can always contact me at
+seeschloss@seeschloss.org (another solution would be to use a
+better operating system of course, since we all know Windows
+is not meant to run servers).

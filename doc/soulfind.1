@@ -1,0 +1,31 @@
+.TH soulfind 1   
+.\" auto-generated from soulfind.xml by docbook2manxml $Revision: 1.6 $ 
+.SH NAME
+Soulfind \- Soulseek server software
+.SH SYNOPSIS
+\fBsoulfind\fR
+[\fB\fIdatabase-path\fB\fR]
+[\fB--deamon\fR]
+.SH DESCRIPTION
+\fBSoulfind\fR is a server program for the Soulseek filesharing network\&.
+.PP
+This server is mostly compatible with the official one, and can be used at least by the three Linux clients : Museek, Nicotine and PySLSK\&.
+.SH OPTIONS
+.TP 
+\fB\fIdatabase-path\fB\fR
+Path to the \fBsqlite3\fR database, will be created if it doesn\&'t exist (default: \fI/var/db/soulfind/soulfind\&.db\fR)
+.TP 
+\fB-d\fR, \fB--daemon\fR
+Immediately fork in the background, to run as a daemon\&.
+.SH SOULFIND VS\&. OFFICIAL SOULSEEK SERVER
+Soulfind has a few differences with the official, non-distributed, server\&. The most important of them is of course that Soulfind is GPL :)
+.PP
+\fBDistributed searches\fR are not implemented (yet)\&. First because they are probably a big piece of work, then because they will only be needed for really big networks, and finally because they are causing quite a few problems on the official network at the moment\&.
+.PP
+Almost all \fBunicode characters\fR are allowed for usernames and chatrooms, except for known non-printing characters, or characters that look the same (e\&.g\&.: non-breaking space, thin space, zero-width joiner)\&.
+.SH REPORTING BUGS
+Report bugs to <soulfind@seeschloss\&.org>\&.
+.SH SEE ALSO
+\fBsoulsetup\fR(1)
+.SH AUTHOR
+SeeSchloss <seeschloss@seeschloss\&.org>

@@ -1,0 +1,50 @@
+DC=dmd
+
+DEBUG=1
+
+BINDIR=bin
+SRCDIR=src
+OBJDIR=obj
+DOCDIR=doc
+
+SOULFINDFILES=$(SRCDIR)\client.d \
+         $(SRCDIR)\db.d \
+	 $(SRCDIR)\message_codes.d \
+	 $(SRCDIR)\messages.d \
+	 $(SRCDIR)\pm.d \
+	 $(SRCDIR)\room.d \
+	 $(SRCDIR)\server.d \
+	 $(SRCDIR)\defines.d \
+	 $(SRCDIR)\sqlite3_imp.d \
+	 win\sqlite.lib \
+	 \dmd\lib\ws2_32.lib
+
+
+SOULSETUPFILES=$(SRCDIR)\soulsetup.d \
+               $(SRCDIR)\defines.d \
+               $(SRCDIR)\db.d \
+	       win\sqlite.lib
+
+
+SOULFIND=$(BINDIR)\soulfind
+SOULSETUP=$(BINDIR)\soulsetup
+
+all: soulfind soulsetup
+
+soulfind: $(SOULFIND)
+
+soulsetup: $(SOULSETUP)
+
+$(SOULFIND): $(SOULFINDFILES)
+	-mkdir $(OBJDIR)
+	-mkdir $(BINDIR)
+	$(DC) $(SOULFINDFILES) -I$(SRCDIR) -od$(OBJDIR) -of$(SOULFIND) -version=Soulfind -debug=$(DEBUG)
+
+$(SOULSETUP): $(SOULSETUPFILES)
+	-mkdir $(OBJDIR)
+	-mkdir $(BINDIR)
+	$(DC) $(SOULSETUPFILES) -I$(SRCDIR) -od$(OBJDIR) -of$(SOULSETUP)  -version=Soulsetup -debug=$(DEBUG)
+
+clean:
+	-rmdir /S /Q $(OBJDIR)
+	-rmdir /S /Q $(BINDIR)

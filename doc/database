@@ -1,0 +1,13 @@
+Soulfind's database has three tables :
+* users  (username text, password text, speed integer, dlnum integer, files integer, folders integer, banned integer, privileges integer)
+	- the banned field isn't used yet
+	- privileges are stored in seconds
+
+* admins (username text, level integer)
+	- level isn't used yet, it is intended to create a hierarchy between admins
+
+* conf (port integer, max_users integer, max_message_size integer, max_offline_pms integer)
+	- port             : port to listen on
+	- max_users        : max number of connections to accept (does not actually limit the number of connected users, but reserves this number of sockets)
+	- max_message_size : max size (in bytes) of an user message, clients are disconnected if they send a message longer than that.
+	- max_offline_pms  : max number of private messages kept while an user is offline
