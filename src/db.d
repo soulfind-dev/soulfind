@@ -2,8 +2,9 @@ module db;
 
 import defines;
 
+private import log : log;
+
 private import std.string : format, join, split, replace, toStringz;
-private import std.stdio : writeln, write;
 private import std.file : exists, isFile, getAttributes;
 private import std.conv : to, octal, ConvException;
 
@@ -54,9 +55,8 @@ class Sdb
 			string[][] res = this.query (format ("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
 			if (res[0][0] != format (conf_table_format[0 .. $-1], conf_table))
 				{
-				write ("Configuration needs to be updated... ");
 				update_conf_table (res[0][0], default_conf_format[0 .. $-1]);
-				writeln ("updated.");
+				log(1, "Configuration updated.");
 				}
 			}
 		}
@@ -218,7 +218,7 @@ class Sdb
 			string query = format ("INSERT INTO %s (username, password) VALUES ('%s', '%s');",
 					       users_table, escape (username), escape (password));
 			this.query (query);
-			debug (4) writeln (query);
+			log(4, query);
 			}
 		}
 	
@@ -239,7 +239,7 @@ class Sdb
 	
 	bool get_user (string username, out int speed, out int download_number, out int something, out int shared_files, out int shared_folders)
 		{
-		debug (4) writeln ("DB: Requested ", username, "'s info...");
+		log(4, "DB: Requested ", username, "'s info...");
 		string query = format ("SELECT speed,dlnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -261,7 +261,7 @@ class Sdb
 	
 	bool get_user (string username, out string password, out int speed, out int download_number, out int shared_files, out int shared_folders, out int privileges)
 		{
-		debug (4) writeln ("DB: Requested ", username, "'s info...");
+		log(4, "DB: Requested ", username, "'s info...");
 		string query = format ("SELECT password,speed,dlnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -292,7 +292,7 @@ class Sdb
 	
 	string[][] query (string query)
 		{
-		debug (4) writeln ("DB query : \"", query, "%s\"");
+		log(4, "DB query : \"", query, "%s\"");
 		string[][] ret;
 		
 		sqlite3_reset (stmt);

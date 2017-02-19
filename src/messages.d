@@ -23,8 +23,9 @@ module messages;
 
 import defines;
 
+private import log : log;
+
 private import std.outbuffer : OutBuffer;
-private import std.stdio : writeln;
 private import std.format : format;
 private import std.digest.md : md5Of;
 private import std.conv : to;
@@ -50,7 +51,7 @@ class Message
 	void writei (int i)
 		{
 		try {b.write (i);}
-		catch (WriteException e) {writeln (e, " when trying to send an int : ", i);}
+		catch (WriteException e) {log(1, e, " when trying to send an int : ", i);}
 		}
 
 	void writei (long i)
@@ -61,18 +62,18 @@ class Message
 	void writeb (byte o)
 		{
 		try {b.write (o);}
-		catch (WriteException e) {writeln (e, " when trying to send a byte : ", o);}
+		catch (WriteException e) {log(1, e, " when trying to send a byte : ", o);}
 		}
 	
 	void writes (string s)
 		{
 		try
 			{
-			writeln("Sending string '", s, "', length ", s.length);
+			log(3, "Sending string '", s, "', length ", s.length);
 			writei (s.length);
 			b.write (s);
 			}
-		catch (WriteException e) {writeln (e, " when trying to send a string : ", s, "(", s.length, ")");}
+		catch (WriteException e) {log(1, e, " when trying to send a string : ", s, "(", s.length, ")");}
 		}
 
 	int length;
@@ -89,7 +90,7 @@ class Message
 		try {s.read (i);}
 		catch (ReadException e)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read an int : ", e);
+			log(1, "Message code ", code, ", length ", length, " trying to read an int : ", e);
 			i = 0;
 			}
 		return i;
@@ -101,7 +102,7 @@ class Message
 		try {s.read (b);}
 		catch (ReadException e)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read a byte : ", e);
+			log(1, "Message code ", code, ", length ", length, " trying to read a byte : ", e);
 			b = 0;
 			}
 		return b;
@@ -118,7 +119,7 @@ class Message
 			}
 		catch (ReadException e)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read a string : ", e);
+			log(1, "Message code ", code, ", length ", length, " trying to read a string : ", e);
 			str = "";
 			}
 		return str;
@@ -776,7 +777,6 @@ class SLogin : Message
 		
 		writeb (success);	// success (0 = fail / 1 = success)
 		writes (mesg);		// server message
-		writeln("MOTD: ", mesg);
 		if (success)
 			{
 			writei (addr);	// external IP address of the client

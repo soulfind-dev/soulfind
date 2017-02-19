@@ -23,6 +23,7 @@ module server;
 
 import defines;
 
+private import log : log;
 private import client;
 private import messages, message_codes;
 private import db;
@@ -53,10 +54,10 @@ version (linux)
 
 void help (string[] args)
 	{
-	writeln ("Usage: %s [database_file] [-d|--deamon]", args[0]);
-	writeln ("\tdatabase_file: path to the sqlite3 database (default: %s)", default_db_file);
-	writeln ("\t-d, --deamon : fork in the background");
-	exit (0);
+	writeln(format("Usage: %s [database_file] [-d|--deamon]", args[0]));
+	writeln(format("\tdatabase_file: path to the sqlite3 database (default: %s)", default_db_file));
+	writeln(format("\t-d, --deamon : fork in the background"));
+	exit(0);
 	}
 
 void main (string[] args)
@@ -95,14 +96,14 @@ void main (string[] args)
 			}
 		else
 			{
-			writeln ("--deamon: only supported under Linux");
+			writeln("--deamon: only supported under Linux");
 			}
 		}
 	
 	Server s = new Server (db);
 	s.listen ();
 
-	if (!deamon) writeln ("Exiting.");
+	if (!deamon) writeln("Exiting.");
 	}
 
 class Server
@@ -164,7 +165,7 @@ class Server
 				writeln();
 			exit (1789);
 			}
-		writeln("Process ", getpid(), " listening on port ", port);
+		log(1, "Process ", getpid(), " listening on port ", port);
 
 		SocketSet sockset = new SocketSet (max_users + 1);
 		
@@ -182,13 +183,9 @@ class Server
 			if (sockset.isSet (socket))
 				{
 				nb--;
-				debug (3) writeln ("Waiting for a connection...");
+				log(3, "Waiting for a connection...");
 				Socket sock = socket.accept ();
-				debug (3)
-					{
-					try {writeln ("Connection accepted from ", sock.remoteAddress().toString());}
-					catch (Exception e) {writeln ("?");}
-					}
+				log(3, "Connection accepted from ", sock.remoteAddress().toString());
 				User user = new User (this, sock, (cast (InternetAddress) sock.remoteAddress()).addr());
 				user_sockets[sock] = user;
 				sockset.remove (socket);
@@ -310,13 +307,11 @@ class Server
 	
 	void send_to_all (Message m)
 		{
-		debug (2) write("Sending message (", blue,  message_name[m.code], black, " - code ", blue, m.code, black, ") to all users");
+		log(2, "Sending message (", blue,  message_name[m.code], black, " - code ", blue, m.code, black, ") to all users");
 		foreach (User u ; users ())
 			{
-			debug (2) write (".");
 			u.send_message (m);
 			}
-		debug (2) writeln ();
 		}
 	
 	// recommendations
@@ -397,7 +392,7 @@ class Server
 					}
 				else
 					{
-					this.adminpm (admin, format ("User %s does not exist.", user));
+					this.adminpm (admin, format("User %s does not exist.", user));
 					}
 				break;
 			case "nbusers":
@@ -415,7 +410,7 @@ class Server
 				this.adminpm (admin, this.show_user (join (command[1 .. $], " ")));
 				break;
 			case "killall":
-				debug (1) writeln ("Admin request to kill ALL users...");
+				log(1, "Admin request to kill ALL users...");
 				this.kill_all_users ();
 				break;
 			case "kill":
@@ -425,7 +420,7 @@ class Server
 					break;
 					}
 				this.kill_user (join (command[1 .. $], " "));
-				this.adminpm (admin, format ("User %s kicked from the server", join (command[1 .. $], " ")));
+				this.adminpm (admin, format("User %s kicked from the server", join (command[1 .. $], " ")));
 				break;
 			case "ban":
 				if (command.length < 2)
@@ -434,7 +429,7 @@ class Server
 					break;
 					}
 				this.ban_user (join (command[1 .. $], " "));
-				this.adminpm (admin, format ("User %s banned from the server", join (command[1 .. $], " ")));
+				this.adminpm (admin, format("User %s banned from the server", join (command[1 .. $], " ")));
 				break;
 			case "unban":
 				if (command.length < 2)
@@ -443,7 +438,7 @@ class Server
 					break;
 					}
 				this.unban_user (join (command[1 .. $], " "));
-				this.adminpm (admin, format ("User %s not banned anymore", join (command[1 .. $], " ")));
+				this.adminpm (admin, format("User %s not banned anymore", join (command[1 .. $], " ")));
 				break;
 			case "addadmin":
 				if (command.length < 2)
@@ -473,7 +468,7 @@ class Server
 				string list;
 				foreach (Room r ; Room.rooms ())
 					{
-					list ~= format ("%s:%d ", r.name, r.nb_users ());
+					list ~= format("%s:%d ", r.name, r.nb_users ());
 					}
 				this.adminpm (admin, list);
 				break;
@@ -668,13 +663,13 @@ class Server
 				return false;
 				}
 
-			debug (2) writeln ("Adding user ", user, "...");
+			log(2, "Adding user ", user, "...");
 			db.add_user (user, encode_password (pass));
 			return true;
 			}
 		else
 			{
-			debug (2) writeln ("User ", user, " is registered, checking banned status and password...");
+			log(2, "User ", user, " is registered, checking banned status and password...");
 			if (db.is_banned (user))
 				{
 				error = "Banned";
@@ -709,7 +704,7 @@ version (linux)
 
 		static void sigpipe (int sig)
 			{
-			debug (3) writeln ("Broken pipe");
+			log(3, "Broken pipe");
 			}
 
 		int fork ();
