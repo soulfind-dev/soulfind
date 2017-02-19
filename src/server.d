@@ -29,32 +29,33 @@ private import db;
 private import room;
 private import pm;
 
-import std.stdio;
-import std.socket, undead.socketstream;
-import std.conv;
-import std.array;
-import std.c.process;
-import std.c.time;
-//import std.thread;
-import std.file;
-import std.utf;
-import std.format;
-import std.algorithm;
+private import std.stdio : write, writeln;
+private import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel, SocketSet, InternetAddress;
+private import undead.socketstream : SocketStream;
+private import std.conv : to;
+private import std.array : split, join, replace;
+private import core.stdc.stdlib : exit;
+private import core.stdc.time : time;
+private import std.utf : validate, UTFException;
+private import std.format : format;
+private import std.algorithm : canFind;
+private import std.datetime : Duration, dur;
+private import std.digest.md : md5Of;
 
-import std.digest.md;		// to encode passwords
+private import core.sys.posix.unistd : getpid;
 
 version (linux)
 	{ // for SIGPIPE
-	version (DigitalMars) import std.c.linux.linux;
-	else                  import std.c.unix.unix;
+	version (DigitalMars) private import core.sys.posix.signal : SIGPIPE;
+	else                  private import std.c.unix.unix;
 	}
 
 
 void help (string[] args)
 	{
-	writefln ("Usage: %s [database_file] [-d|--deamon]", args[0]);
-	writefln ("\tdatabase_file: path to the sqlite3 database (default: %s)", default_db_file);
-	writefln ("\t-d, --deamon : fork in the background");
+	writeln ("Usage: %s [database_file] [-d|--deamon]", args[0]);
+	writeln ("\tdatabase_file: path to the sqlite3 database (default: %s)", default_db_file);
+	writeln ("\t-d, --deamon : fork in the background");
 	exit (0);
 	}
 
@@ -94,14 +95,14 @@ void main (string[] args)
 			}
 		else
 			{
-			writefln ("--deamon: only supported under Linux");
+			writeln ("--deamon: only supported under Linux");
 			}
 		}
 	
 	Server s = new Server (db);
 	s.listen ();
 
-	if (!deamon) writefln ("Exiting.");
+	if (!deamon) writeln ("Exiting.");
 	}
 
 class Server
@@ -125,7 +126,7 @@ class Server
 
 	this (string db_file)
 		{
-		this.started_at = cast(int)core.stdc.time.time(null);
+		this.started_at = cast(int)time(null);
 		db = new Sdb (db_file);
 	
 		config ();
@@ -147,7 +148,7 @@ class Server
 			}
 		catch (Exception e)
 			{
-			writefln ("Unable to set socket option REUSEADDR.");
+			writeln ("Unable to set socket option REUSEADDR.");
 			}
 		try
 			{
@@ -163,7 +164,7 @@ class Server
 				writeln();
 			exit (1789);
 			}
-		writeln("Process ", std.c.process.getpid (), " listening on port ", port);
+		writeln("Process ", getpid(), " listening on port ", port);
 
 		SocketSet sockset = new SocketSet (max_users + 1);
 		
@@ -181,12 +182,12 @@ class Server
 			if (sockset.isSet (socket))
 				{
 				nb--;
-				debug (3) writefln ("Waiting for a connection...");
+				debug (3) writeln ("Waiting for a connection...");
 				Socket sock = socket.accept ();
 				debug (3)
 					{
-					try {writefln ("Connection accepted from ", sock.remoteAddress().toString());}
-					catch (Exception e) {writefln ("?");}
+					try {writeln ("Connection accepted from ", sock.remoteAddress().toString());}
+					catch (Exception e) {writeln ("?");}
 					}
 				User user = new User (this, sock, (cast (InternetAddress) sock.remoteAddress()).addr());
 				user_sockets[sock] = user;
@@ -300,7 +301,7 @@ class Server
 		{
 		foreach (User u ; users ())
 			{
-			if ((cast(int)core.stdc.time.time(null) - u.last_message_date) >= timeout.total!"seconds")
+			if ((cast(int)time(null) - u.last_message_date) >= timeout.total!"seconds")
 				{
 				u.send_message (new SServerPing ());
 				}
@@ -312,7 +313,7 @@ class Server
 		debug (2) write("Sending message (", blue,  message_name[m.code], black, " - code ", blue, m.code, black, ") to all users");
 		foreach (User u ; users ())
 			{
-			debug (2) writef (".");
+			debug (2) write (".");
 			u.send_message (m);
 			}
 		debug (2) writeln ();
@@ -359,19 +360,19 @@ class Server
 			case "help":
 				//this.adminpm (admin, "nbusers, users, info <user>, killall, kill <user>, [un]ban <user>, (add|del)admin <user>, admins, rooms, addprivileges <days> <user>, message <message>, uptime, reload");
 				this.adminpm (admin, "Available commands :\n\n"
-						     "nbusers\n\tNumber of users connected\n\n"
-				                     "users\n\tInfo about each connected user\n\n"
-						     "info <user>\n\tInfo about user <user>\n\n"
-						     "killall\n\tDisconnect all users\n\n"
-						     "kill <user>\n\tDisconnect <user>\n\n"
-						     "[un]ban <user>\n\tUnban or ban and disconnect user <user>\n\n"
-						     "(add|del)admin <user>\n\tMake <user> an admin\n\n"
-						     "admins\n\tList admins\n\n"
-						     "rooms\n\tList rooms and number of occupiants\n\n"
-						     "addprivileges <days> <user>\n\tAdd <days> days of privileges to user <user>\n\n"
-						     "message <message>\n\tSend global message <message> (Note: Museeq users will not see it)\n\n"
-						     "uptime\n\tShow server uptime\n\n"
-						     "reload\n\tReload settings (Admins, MOTD, max sixes, etc)");
+						   ~ "nbusers\n\tNumber of users connected\n\n"
+				           ~ "users\n\tInfo about each connected user\n\n"
+						   ~ "info <user>\n\tInfo about user <user>\n\n"
+						   ~ "killall\n\tDisconnect all users\n\n"
+						   ~ "kill <user>\n\tDisconnect <user>\n\n"
+						   ~ "[un]ban <user>\n\tUnban or ban and disconnect user <user>\n\n"
+						   ~ "(add|del)admin <user>\n\tMake <user> an admin\n\n"
+						   ~ "admins\n\tList admins\n\n"
+						   ~ "rooms\n\tList rooms and number of occupiants\n\n"
+						   ~ "addprivileges <days> <user>\n\tAdd <days> days of privileges to user <user>\n\n"
+						   ~ "message <message>\n\tSend global message <message> (Note: Museeq users will not see it)\n\n"
+						   ~ "uptime\n\tShow server uptime\n\n"
+						   ~ "reload\n\tReload settings (Admins, MOTD, max sixes, etc)");
 				break;
 			case "addprivileges":
 				int days;
@@ -414,7 +415,7 @@ class Server
 				this.adminpm (admin, this.show_user (join (command[1 .. $], " ")));
 				break;
 			case "killall":
-				debug (1) writefln ("Admin request to kill ALL users...");
+				debug (1) writeln ("Admin request to kill ALL users...");
 				this.kill_all_users ();
 				break;
 			case "kill":
@@ -600,7 +601,7 @@ class Server
 	
 	long uptime ()	// returns uptime, in seconds
 		{
-		return cast(int)core.stdc.time.time(null) - this.started_at;
+		return cast(int)time(null) - this.started_at;
 		}
 	
 	string print_uptime ()
@@ -667,13 +668,13 @@ class Server
 				return false;
 				}
 
-			debug (2) writefln ("Adding user ", user, "...");
+			debug (2) writeln ("Adding user ", user, "...");
 			db.add_user (user, encode_password (pass));
 			return true;
 			}
 		else
 			{
-			debug (2) writefln ("User ", user, " is registered, checking banned status and password...");
+			debug (2) writeln ("User ", user, " is registered, checking banned status and password...");
 			if (db.is_banned (user))
 				{
 				error = "Banned";
@@ -708,7 +709,7 @@ version (linux)
 
 		static void sigpipe (int sig)
 			{
-			debug (3) writefln ("Broken pipe");
+			debug (3) writeln ("Broken pipe");
 			}
 
 		int fork ();
@@ -716,7 +717,7 @@ version (linux)
 
 	struct sigset_t
 		{
-		uint __val[1024 / (8 * uint.sizeof)];
+		uint[1024 / (8 * (uint).sizeof)] __val;
 		}
 		
 	struct sigaction_t

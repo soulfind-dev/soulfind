@@ -30,16 +30,14 @@ private import pm;
 private import db;
 private import message_codes;
 
-import undead.stream, undead.cstream;
-import undead.socketstream;
-//import std.thread;
-import std.string;
-import std.socket;
-import std.datetime;
-import std.stdio;
-import std.conv;
+private import undead.stream : Stream;
+private import undead.cstream : EndianStream, MemoryStream, ReadException;
+private import undead.socketstream : SocketStream;
+private import std.socket : Socket, InternetAddress;
+private import std.stdio : write, writeln;
 
-import std.c.process;
+private import std.system : Endian, endian;
+private import core.stdc.time : time;
 
 class User
 	{
@@ -81,15 +79,16 @@ class User
 		{
 		this.server            = serv;
 		this.socket            = s;
-		if (std.system.endian == std.system.Endian.bigEndian)
-			this.stream    = new EndianStream (new SocketStream (s), std.system.Endian.littleEndian);
-		else
+		if (endian == Endian.bigEndian) {
+			this.stream    = new EndianStream (new SocketStream (s), Endian.littleEndian);
+		} else {
 			this.stream    = new SocketStream (s);
+		}
 		this.address           = address;
 		this.loggedin          = false;
 		this.admin             = false;
-		this.connected_at      = cast(int)core.stdc.time.time(null);
-		this.last_message_date = cast(int)core.stdc.time.time(null);
+		this.connected_at      = cast(int)time(null);
+		this.last_message_date = cast(int)time(null);
 		}
 	
 	this () {}
@@ -166,7 +165,7 @@ class User
 	
 	void update_privileges ()
 		{
-		int now = cast(int)core.stdc.time.time(null);
+		int now = cast(int)time(null);
 		this.privileges -= now - this.last_checked_privileges;
 		if (this.privileges < 0) this.privileges = 0;
 		this.last_checked_privileges = now;
@@ -499,7 +498,7 @@ class User
 			
 			ubyte[] bœuf; bœuf.length = length;
 
-			last_message_date = cast(int)core.stdc.time.time(null);
+			last_message_date = cast(int)time(null);
 
 			auto read = stream.readBlock (bœuf.ptr, length);
 

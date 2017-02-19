@@ -2,15 +2,12 @@ module db;
 
 import defines;
 
-import undead.stream;
-import std.string;
-import std.stdio;
-import std.file;
-import std.conv;
+private import std.string : format, join, split, replace, toStringz;
+private import std.stdio : writeln, write;
+private import std.file : exists, isFile, getAttributes;
+private import std.conv : to, octal, ConvException;
 
-import std.c.process;
-
-import sqlite3_imp;
+private import sqlite3_imp;
 
 class Sdb
 	{
@@ -46,7 +43,7 @@ class Sdb
 			version (linux)
 				{
 				uint a = getAttributes (file);
-				if (!((a & std.conv.octal!700) >> 6 & 0b010))
+				if (!((a & octal!700) >> 6 & 0b010))
 					{
 					throw new Exception ("Database file (" ~ file ~ ") not writable");
 					return;
@@ -57,9 +54,9 @@ class Sdb
 			string[][] res = this.query (format ("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
 			if (res[0][0] != format (conf_table_format[0 .. $-1], conf_table))
 				{
-				writef ("Configuration needs to be updated... ");
+				write ("Configuration needs to be updated... ");
 				update_conf_table (res[0][0], default_conf_format[0 .. $-1]);
-				writefln ("updated.");
+				writeln ("updated.");
 				}
 			}
 		}
@@ -221,7 +218,7 @@ class Sdb
 			string query = format ("INSERT INTO %s (username, password) VALUES ('%s', '%s');",
 					       users_table, escape (username), escape (password));
 			this.query (query);
-			debug (4) writefln (query);
+			debug (4) writeln (query);
 			}
 		}
 	
@@ -242,7 +239,7 @@ class Sdb
 	
 	bool get_user (string username, out int speed, out int download_number, out int something, out int shared_files, out int shared_folders)
 		{
-		debug (4) writefln ("DB: Requested ", username, "'s info...");
+		debug (4) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT speed,dlnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -264,7 +261,7 @@ class Sdb
 	
 	bool get_user (string username, out string password, out int speed, out int download_number, out int shared_files, out int shared_folders, out int privileges)
 		{
-		debug (4) writefln ("DB: Requested ", username, "'s info...");
+		debug (4) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT password,speed,dlnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -295,7 +292,7 @@ class Sdb
 	
 	string[][] query (string query)
 		{
-		debug (4) writefln ("DB query : \"%s\"", query);
+		debug (4) writeln ("DB query : \"", query, "%s\"");
 		string[][] ret;
 		
 		sqlite3_reset (stmt);

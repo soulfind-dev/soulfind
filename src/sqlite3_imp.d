@@ -6,7 +6,7 @@
 
 module sqlite3_imp;
 
-private import std.c.stdarg; // For va_list.
+private import core.stdc.stdarg : va_list;
 
 
 extern(C):

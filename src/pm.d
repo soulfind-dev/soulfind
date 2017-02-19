@@ -23,7 +23,7 @@ module pm;
 
 import defines;
 
-import std.datetime;
+private import core.stdc.time : time;
 
 class PM
 	{
@@ -104,7 +104,7 @@ class PM
 		this.to		= to;
 		this.content	= content;
 
-		this.timestamp  = cast(int)core.stdc.time.time(null);
+		this.timestamp  = cast(int)time(null);
 			// timestamp is in seconds since 01/01/1970
 
 		this.nb_pms[to]++;

@@ -25,11 +25,13 @@ import defines;
 
 private import db;
 
-import std.stdio;
-import undead.stream, undead.cstream;
-import std.conv, std.format;
+private import std.stdio : writefln;
+private import undead.cstream;
+private import std.conv : to;
+private import std.format : format;
+private import std.algorithm : sort;
 
-import std.c.process;
+private import core.sys.posix.stdlib : exit;
 
 Sdb sdb;
 
@@ -43,7 +45,7 @@ void main (string[] args)
 			{
 			writefln ("Usage: %s [database_file]", args[0]);
 			writefln ("\tdatabase_file: path to Soulfind's database (default: %s)", default_db_file);
-			std.c.process.exit (0);
+			exit(0);
 			}
 		else
 			{
@@ -83,7 +85,7 @@ void main_menu ()
 void exit ()
 	{
 	dout.writefln ("\nA la prochaine...");
-	std.c.process.exit (0);
+	exit(0);
 	}
 
 void admins ()
@@ -214,11 +216,11 @@ void motd ()
 void set_motd ()
 	{
 	writefln ("You can use the following variables :\n"
-	          "%%version%%     : server version (", VERSION, ")\n"
-	          "%%nbusers%%     : number of users already connected\n"
-	          "%%username%%    : name of the connecting user\n"
-	          "%%userversion%% : version of the user's client software\n"
-	          "New MOTD (end with a dot on a single line) :");
+	        ~ "%%version%%     : server version (", VERSION, ")\n"
+	        ~ "%%nbusers%%     : number of users already connected\n"
+	        ~ "%%username%%    : name of the connecting user\n"
+	        ~ "%%userversion%% : version of the user's client software\n"
+	        ~ "New MOTD (end with a dot on a single line) :");
 
 	string MOTD;
 	char c, old;
@@ -387,7 +389,7 @@ class Menu
 
 		if (info.length > 0) dout.writefln ("%s\n", info);
 		
-		foreach (string index ; entries.keys.sort)
+		foreach (string index ; sort(entries.keys))
 			{
 			dout.writefln ("%s. %s", index, entries[index]);
 			}

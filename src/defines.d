@@ -1,7 +1,7 @@
 module defines;
 
-int port		= 2240;
-int max_users		= 65535;
+int port      = 2240;
+int max_users = 65535;
 
 version (Windows)
 	{
