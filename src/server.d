@@ -522,15 +522,25 @@ class Server
 		if (this.find_user (username))
 			{
 			User user = this.get_user (username);
-			return format (user.username, " : connected at ", user.connected_at,
-						  "\n\tclient version :", user.cversion,
-						  "\n\taddress : ", (cast (SocketStream) user.stream).socket.remoteAddress().toString(),
-						  "\n\tadmin : ", user.admin,
-						  "\n\tfiles : ", user.shared_files,
-						  "\n\tdirs : ", user.shared_folders,
-						  "\n\tstatus : ", user.status,
-						  "\n\tprivileges : ", user.print_privileges (),
-						  "\n\tjoined rooms : ", user.list_joined_rooms ());
+			return format("%s: connected at %s"
+						~ "\n\tclient version: %s"
+						~ "\n\taddress: %s"
+						~ "\n\tadmin: %s"
+						~ "\n\tfiles: %s"
+						~ "\n\tdirs: %s"
+						~ "\n\tstatus: %s"
+						~ "\n\tprivileges: %s"
+						~ "\n\tjoined rooms: %s",
+					        user.username,
+						    user.connected_at,
+						    user.cversion,
+						    (cast (SocketStream) user.stream).socket.remoteAddress().toString(),
+						    user.admin,
+						    user.shared_files,
+						    user.shared_folders,
+						    user.status,
+						    user.print_privileges (),
+						    user.list_joined_rooms ());
 			}
 		else return "";
 		}
