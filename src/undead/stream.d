@@ -81,6 +81,7 @@ private {
   //import std.format;
   import std.system;    // for Endian enumeration
   import std.utf;
+  import undead.utf;
   import core.bitop; // for bswap
   import core.vararg;
   static import std.file;
@@ -393,7 +394,7 @@ class Stream : InputStream, OutputStream {
   // stream abilities
   bool readable = false;        /// Indicates whether this stream can be read from.
   bool writeable = false;       /// Indicates whether this stream can be written to.
-  bool seekable = false;        /// Indicates whether this stream can be seeked within.
+  bool seekable = false;        /// Indicates whether this stream can be sought within.
   protected bool isopen = true; /// Indicates whether this stream is open.
 
   protected bool readEOF = false; /** Indicates whether this stream is at eof
@@ -1213,7 +1214,7 @@ class Stream : InputStream, OutputStream {
 
   private void doFormatCallback(dchar c) {
     char[4] buf;
-    auto b = std.utf.toUTF8(buf, c);
+    auto b = undead.utf.toUTF8(buf, c);
     writeString(b);
   }
 
@@ -2844,7 +2845,7 @@ class MmFileStream : TArrayStream!(MmFile) {
   override void close() {
     if (isopen) {
       super.close();
-      delete buf;
+      buf.destroy();
       buf = null;
     }
   }

@@ -23,7 +23,8 @@ SOULFINDFILES=client.d \
          undead/internal/file.d \
          undead/cstream.d \
          undead/socketstream.d \
-         undead/stream.d
+         undead/stream.d \
+         undead/utf.d
 SOULFINDFILES:=$(addprefix $(SRCDIR)/,$(SOULFINDFILES))
 
 
@@ -35,7 +36,8 @@ SOULSETUPFILES=soulsetup.d \
                undead/internal/file.d \
                undead/cstream.d \
                undead/socketstream.d \
-               undead/stream.d
+               undead/stream.d \
+               undead/utf.d
 SOULSETUPFILES:=$(addprefix $(SRCDIR)/,$(SOULSETUPFILES))
 
 

@@ -121,7 +121,7 @@ class SocketStream: Stream
          * Socket streams do not support seeking. This disabled method throws
          * a $(D SeekException).
          */
-        @disable override ulong seek(long offset, SeekPos whence)
+        override ulong seek(long offset, SeekPos whence)
         {
             throw new SeekException("Cannot seek a socket.");
         }
