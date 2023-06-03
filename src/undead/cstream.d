@@ -203,8 +203,8 @@ class CFile : Stream {
     file.writeLine("That was blank");
     file.position = 0;
     char[][] lines;
-    foreach(char[] line; file) {
-      lines ~= line.dup;
+    foreach(char[] fileLine; file) {
+      lines ~= fileLine.dup;
     }
     assert( lines.length == 5 );
     assert( lines[0] == "Testing stream.d:");
@@ -213,8 +213,8 @@ class CFile : Stream {
     assert( lines[3] == "That was blank");
     file.position = 0;
     lines = new char[][5];
-    foreach(ulong n, char[] line; file) {
-      lines[cast(size_t)(n-1)] = line.dup;
+    foreach(ulong n, char[] fileLine; file) {
+      lines[cast(size_t)(n-1)] = fileLine.dup;
     }
     assert( lines[0] == "Testing stream.d:");
     assert( lines[1] == "Another line");
