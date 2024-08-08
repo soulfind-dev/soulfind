@@ -236,7 +236,7 @@ class User
 
 		foreach (User u ; server.users ())
 			{
-			if (this is u) break;
+			if (this is u) continue;
 			int weight = 0;
 			foreach (string thing ; this.things_he_likes)
 				{
@@ -275,7 +275,7 @@ class User
 
 		foreach (User u ; server.users ())
 			{
-			if (this is u) break;
+			if (this is u) continue;
 			int weight = 0;
 			foreach (string thing ; things_he_likes)
 				{
@@ -311,7 +311,7 @@ class User
 
 		foreach (User u ; server.users ())
 			{
-			if (this is u) break;
+			if (this is u) continue;
 			int weight = 0;
 			if (u.likes (item))
 				{
@@ -337,7 +337,7 @@ class User
 
 		foreach (User u ; server.users ())
 			{
-			if (this is u) break;
+			if (this is u) continue;
 			if (u.likes (item))
 				{
 				list ~= u.username;
