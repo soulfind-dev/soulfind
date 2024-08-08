@@ -98,6 +98,7 @@ const int RoomSearch			= 120;	// Was "PrivilegedUsersZ" in nicotine ?
 const int SendUploadSpeed		= 121;
 const int UserPrivileges		= 122;
 const int GivePrivileges		= 123;
+const int ChangePassword		= 142;
 const int CantConnectToPeer		= 1001;
 
 const int ServerInfo			= 1789; // specific to Soulfind

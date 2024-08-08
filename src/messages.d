@@ -784,6 +784,25 @@ class UGivePrivileges : Message
 		}
 	}
 
+class UChangePassword : Message
+	{		// A user wants to change their password
+	string password;
+
+	this (Stream s)
+		{
+		super (s);
+
+		password = reads ();
+		}
+
+	this (string password)
+		{
+		super (ChangePassword);
+
+		writes (password);
+		}
+	}
+
 class UCantConnectToPeer : Message
 	{		// Client tells us he couldn't connect to someone
 	int token;	// message token
@@ -1778,6 +1797,25 @@ class SUserPrivileges : Message
 
 		privileges = readi ();
 		username   = reads ();
+		}
+	}
+
+class SChangePassword : Message
+	{	// Send the new password of a user
+	this (string password)
+		{
+		super (ChangePassword);
+
+		writes (password);	// user's password
+		}
+
+	string password;
+
+	this (Stream s)
+		{
+		super (s);
+
+		password = reads ();
 		}
 	}
 

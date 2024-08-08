@@ -146,7 +146,13 @@ class User
 		{
 		this.send_message (new SMessageUser (pm.id, pm.timestamp, pm.from, pm.content, new_message));
 		}
-	
+
+	void change_password (string password)
+		{
+		this.password = password;
+		server.db.user_update_field (this.username, "password", this.password);
+		}
+
 	// privileges
 	void add_privileges (int privileges)
 		{
@@ -861,6 +867,12 @@ class User
 					server.get_user (o.user).add_privileges (o.time*3600*24);
 					if (!admin) this.remove_privileges (o.time*3600*24);
 					}
+				break;
+			case ChangePassword:
+				UChangePassword o = new UChangePassword (s);
+
+				this.change_password(o.password);
+				send_message (new SChangePassword (this.password));
 				break;
 			case CantConnectToPeer:
 				UCantConnectToPeer o = new UCantConnectToPeer (s);
