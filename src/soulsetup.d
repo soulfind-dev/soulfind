@@ -25,7 +25,7 @@ import defines;
 
 private import db;
 
-private import std.stdio : writefln;
+private import std.stdio : writeln;
 private import undead.cstream;
 private import std.conv : to;
 private import std.format : format;
@@ -43,8 +43,8 @@ void main (string[] args)
 		{
 		if (args[1] == "--help" || args[1] == "-h")
 			{
-			writefln ("Usage: %s [database_file]", args[0]);
-			writefln ("\tdatabase_file: path to Soulfind's database (default: %s)", default_db_file);
+			writeln ("Usage: ", args[0], " [database_file]");
+			writeln ("\tdatabase_file: path to Soulfind's database (default: ", default_db_file, ")");
 			exit(0);
 			}
 		else
@@ -83,7 +83,7 @@ void main_menu ()
 
 void exit ()
 	{
-	dout.writefln ("\nA la prochaine...");
+	dout.writeLine ("\nA la prochaine...");
 	exit(0);
 	}
 
@@ -119,14 +119,14 @@ void list_admins ()
 
 	if (names.length == 0)
 		{
-		dout.writefln ("No admin on this server.");
+		dout.writeLine ("No admin on this server.");
 		}
 	else
 		{
-		dout.writefln ("\nAdmins :");
+		dout.writeLine ("\nAdmins :");
 		foreach (string admin ; names)
 			{
-			dout.writefln ("- %s", admin);
+			dout.writeLine (format ("- %s", admin));
 			}
 		}
 	
@@ -214,7 +214,7 @@ void motd ()
 
 void set_motd ()
 	{
-	writefln ("You can use the following variables :\n"
+	writeln ("You can use the following variables :\n"
 	        ~ "%%version%%     : server version (", VERSION, ")\n"
 	        ~ "%%nbusers%%     : number of users already connected\n"
 	        ~ "%%username%%    : name of the connecting user\n"
@@ -301,14 +301,14 @@ void list_banned ()
 
 	if (users.length == 0)
 		{
-		dout.writefln ("No user is banned.");
+		dout.writeLine ("No user is banned.");
 		}
 	else
 		{
-		dout.writefln ("\nBanned users :");
+		dout.writeLine ("\nBanned users :");
 		foreach (string user ; users)
 			{
-			dout.writefln ("- %s", user);
+			dout.writeLine (format ("- %s", user));
 			}
 		}
 	
@@ -368,16 +368,16 @@ class Menu
 	
 	void show ()
 		{
-		dout.writefln ("\n\n%s\n", title);
+		dout.writeLine (format( "\n%s\n", title));
 
-		if (info.length > 0) dout.writefln ("%s\n", info);
+		if (info.length > 0) dout.writeLine (format ("%s\n", info));
 		
 		foreach (string index ; sort(entries.keys))
 			{
-			dout.writefln ("%s. %s", index, entries[index]);
+			dout.writeLine (format ("%s. %s", index, entries[index]));
 			}
 
-		dout.writef ("\nYour choice : ");
+		dout.write ("\nYour choice : ");
 
 		string answer = to!string(din.readLine());
 
@@ -387,7 +387,7 @@ class Menu
 			}
 		else
 			{
-			dout.writefln ("Next time, try a number which has an action assigned to it...");
+			dout.writeLine ("Next time, try a number which has an action assigned to it...");
 			show ();
 			}
 		}

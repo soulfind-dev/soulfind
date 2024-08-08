@@ -52,7 +52,7 @@ $(SOULFIND): $(SOULFINDFILES)
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(BINDIR)
 ifeq ($(findstring gdc, $(DC)), gdc)
-		$(DC) $(SOULFINDFILES) -I$(SRCDIR) -o$(SOULFIND) -lsqlite3 -fversion=Soulfind -fdebug=$(DEBUG)
+		$(DC) $(SOULFINDFILES) -I$(SRCDIR) -o$(SOULFIND) -lsqlite3 -fversion=Soulfind
 else
 		$(DC) $(SOULFINDFILES) -I$(SRCDIR) -od$(OBJDIR) -of$(SOULFIND) -L-lsqlite3 -version=Soulfind -debug=$(DEBUG)
 endif
@@ -61,7 +61,7 @@ $(SOULSETUP): $(SOULSETUPFILES)
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(BINDIR)
 ifeq ($(findstring gdc, $(DC)), gdc)
-		$(DC) $(SOULSETUPFILES) -I$(SRCDIR) -o$(SOULSETUP) -lsqlite3 -fversion=Soulsetup -fdebug=$(DEBUG)
+		$(DC) $(SOULSETUPFILES) -I$(SRCDIR) -o$(SOULSETUP) -lsqlite3 -fversion=Soulsetup
 else
 		$(DC) $(SOULSETUPFILES) -I$(SRCDIR) -od$(OBJDIR) -of$(SOULSETUP) -L-lsqlite3 -version=Soulsetup -debug=$(DEBUG)
 endif
