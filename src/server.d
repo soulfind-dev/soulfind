@@ -217,7 +217,7 @@ class Server
 
 	void do_UserSearch (int token, string string, string username,                string to)
 		{					// user who sends the search	// to this user
-		Message m = new SUserSearch (username, token, string);
+		Message m = new SFileSearch (username, token, string);
 		User u = get_user (to);
 
 		if (u is null)
@@ -232,7 +232,7 @@ class Server
 	
 	void do_RoomSearch (int token, string string, string username, string room)
 		{
-		Message m = new SRoomSearch (username, token, string);
+		Message m = new SFileSearch (username, token, string);
 
 		Room r = Room.get_room (room);
 
