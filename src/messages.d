@@ -974,7 +974,7 @@ class SRoomList : Message
 
 class SJoinRoom : Message
 	{	// Give info on the room to a client who just joined it
-	this (string room, string[] usernames, int[string] statuses, int[string] speeds, int[string] download_numbers, int[string] somethings, int[string] shared_files, int[string] shared_folders, int[string] slots_full)
+	this (string room, string[] usernames, int[string] statuses, int[string] speeds, int[string] download_numbers, int[string] somethings, int[string] shared_files, int[string] shared_folders, int[string] slots_full, string[string] country_codes)
 		{
 		super (JoinRoom);
 
@@ -1008,6 +1008,11 @@ class SJoinRoom : Message
 			{	// list of nb of full slots for each user
 			writei (slots_full      [username]);
 			}
+		writei (n);	// number of country codes we will send
+		foreach (string username ; usernames)
+			{	// list of all the country codes
+			writes (country_codes   [username]);
+			}
 		}
 	
 	string room;
@@ -1019,6 +1024,7 @@ class SJoinRoom : Message
 	int[string] shared_files;
 	int[string] shared_folders;
 	int[string] slots_full;
+	string[string] country_codes;
 	
 	this (Stream s)
 		{
@@ -1058,6 +1064,13 @@ class SJoinRoom : Message
 			{
 			slots_full      [usernames[i]] = readi ();
 			}
+
+		n = readi ();
+
+		for (int i = 0 ; i < n ; i++)
+			{
+			country_codes   [usernames[i]] = reads ();
+			}
 		}
 	}
 	
@@ -1082,7 +1095,7 @@ class SLeaveRoom : Message
 
 class SUserJoinedRoom : Message
 	{	// User user has joined the room room
-	this (string room, string username, int status, int speed, int download_number, int something, int shared_files, int shared_folders, int slots_full)
+	this (string room, string username, int status, int speed, int download_number, int something, int shared_files, int shared_folders, int slots_full, string country_code)
 		{
 		super (UserJoinedRoom);
 
@@ -1095,6 +1108,7 @@ class SUserJoinedRoom : Message
 		writei (shared_files);		// shared files
 		writei (shared_folders);	// shared folders
 		writei (slots_full);		// slots full
+		writes (country_code);		// country code
 		}
 	
 	string room;
@@ -1106,6 +1120,7 @@ class SUserJoinedRoom : Message
 	int    shared_files;
 	int    shared_folders;
 	int    slots_full;
+	string country_code;
 
 	this (Stream s)
 		{
@@ -1120,6 +1135,7 @@ class SUserJoinedRoom : Message
 		shared_files    = readi ();
 		shared_folders  = readi ();
 		slots_full      = readi ();
+		country_code    = reads ();
 		}
 	}
 

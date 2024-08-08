@@ -61,6 +61,7 @@ class User
 	int	shared_files;
 	int	shared_folders;
 	int	slots_full;
+	string  country_code;
 
 	int		status;				// 0,1,2
 	bool	loggedin;
