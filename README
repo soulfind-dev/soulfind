@@ -1,10 +1,9 @@
 To build Soulfind, just type :
 	make
-The Makefile uses DMD by  default to build Soulfind (since it's easier
-to install,  more up-to-date, etc). Set the DC environment variable to
-'gdc' to compile with GDC instead :
-	DC=gdc make
-(it's a shame DMD doesn't use the same options as GDC)
+The Makefile    uses LDC by default    to  build Soulfind. Set  the DC
+environment variable to 'dmd' or 'gdc' to use the respective compilers
+instead :
+	DC=dmd make
 
 Valid targets are :
 	- all (default target)
@@ -14,11 +13,6 @@ Valid targets are :
 	- install_soulfind
 	- install_soulsetup
 
-
-You can find gdc at :
-	http://home.earthlink.net/~dvdfrdmn/d
-and dmd at :
-	http://www.digitalmars.com/d/dcompiler.html
 
 You'll also need to have the sqlite3 library installed, since it's the
 database Soulfind uses to store its configuration and user info.

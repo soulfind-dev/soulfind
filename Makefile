@@ -1,4 +1,4 @@
-DC?=dmd -g
+DC?=ldmd2 -g
 
 DEBUG?=1
 
