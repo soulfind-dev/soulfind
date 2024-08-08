@@ -495,7 +495,8 @@ class Server
 	void adminpm (User admin, string message)
 		{
 		PM pm = new PM (message, this.server_user, admin.username);
-		admin.send_pm (pm);
+		bool new_message = true;
+		admin.send_pm (pm, new_message);
 		}
 	
 	void global_message (string message)

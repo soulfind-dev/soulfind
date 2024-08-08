@@ -142,9 +142,9 @@ class User
 		server.db.user_update_field (this.username, "folders", this.shared_folders);
 		}
 	
-	void send_pm (PM pm)
+	void send_pm (PM pm, bool new_message)
 		{
-		this.send_message (new SMessageUser (pm.id, pm.timestamp, pm.from, pm.content));
+		this.send_message (new SMessageUser (pm.id, pm.timestamp, pm.from, pm.content, new_message));
 		}
 	
 	// privileges
@@ -664,8 +664,9 @@ class User
 					{ // user is connected
 					PM pm = new PM (o.message, this.username, o.user);
 					User dest = server.get_user (o.user);
+					bool new_message = true;
 					PM.add_pm (pm);
-					dest.send_pm (pm);
+					dest.send_pm (pm, new_message);
 					}
 				else if (server.db.user_exists (o.user))
 					{ // user is not connected but exists
@@ -874,8 +875,9 @@ class User
 
 		foreach (PM pm ; PM.get_pms_for (this.username))
 			{
+			bool new_message = false;
 			log(3, "Sending offline PM (id ", pm.id, ") to ", this.username);
-			send_pm (pm);
+			send_pm (pm, new_message);
 			}
 		
 		return true;

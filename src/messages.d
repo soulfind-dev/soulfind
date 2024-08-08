@@ -1213,7 +1213,7 @@ class SConnectToPeer : Message
 
 class SMessageUser : Message
 	{	// Send the PM
-	this (int id, int timestamp, string from, string content)
+	this (int id, int timestamp, string from, string content, byte new_message)
 		{
 		super (MessageUser);
 
@@ -1221,21 +1221,24 @@ class SMessageUser : Message
 		writei (timestamp);	// timestamp (seconds since 1970)
 		writes (from);		// sender
 		writes (content);	// message content
+		writeb (new_message);
 		}
 	
 	int    id;
 	int    timestamp;
 	string from;
 	string content;
+	byte   new_message;
 
 	this (Stream s)
 		{
 		super (s);
 
-		id        = readi ();
-		timestamp = readi ();
-		from      = reads ();
-		content   = reads ();
+		id          = readi ();
+		timestamp   = readi ();
+		from        = reads ();
+		content     = reads ();
+		new_message = readb ();
 		}
 	}
 
