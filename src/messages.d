@@ -1016,6 +1016,11 @@ class SRoomList : Message
 			{	// list of all the user counts, in the same order
 			writei (users);
 			}
+		writei (0);	// number of owned private rooms (unimplemented)
+		writei (0);	// number of owned private rooms (unimplemented)
+		writei (0);	// number of other private rooms (unimplemented)
+		writei (0);	// number of other private rooms (unimplemented)
+		writei (0);	// number of operated private rooms (unimplemented)
 		}
 	
 	int[string] rooms;
