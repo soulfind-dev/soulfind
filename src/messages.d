@@ -781,6 +781,39 @@ class UChangePassword : Message
 		}
 	}
 
+class UMessageUsers : Message
+	{			// Client wants to send private messages
+	string[] users;		// users to send the message to
+	string   message;	// message content
+
+	this (Stream s)
+		{
+		super (s);
+
+		int n = readi ();
+		for (int i = 0 ; i < n ; i++)
+			{
+			string user = reads ();
+			users ~= user;
+			}
+
+		message = reads ();
+		}
+
+	this (string[] users, string message)
+		{
+		super (MessageUsers);
+
+		writei (users.length);
+		foreach (string user ; users)
+			{
+			writes (user);
+			}
+
+		writes (message);
+		}
+	}
+
 class UCantConnectToPeer : Message
 	{		// Client tells us he couldn't connect to someone
 	int token;	// message token

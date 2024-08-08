@@ -863,6 +863,19 @@ class User
 				this.change_password(o.password);
 				send_message (new SChangePassword (this.password));
 				break;
+			case MessageUsers:
+				UMessageUsers o = new UMessageUsers (s);
+				bool new_message = true;
+
+				foreach (string user ; o.users)
+					{
+					if (server.find_user (user))
+						{
+						PM pm = new PM (o.message, this.username, user);
+						server.get_user (user).send_pm (pm, new_message);
+						}
+					}
+				break;
 			case CantConnectToPeer:
 				UCantConnectToPeer o = new UCantConnectToPeer (s);
 
