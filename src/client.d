@@ -381,7 +381,7 @@ class User
 	void set_status (int status)
 		{
 		this.status = status;
-		this.send_to_watching (new SGetUserStatus (this.username, this.status));
+		this.send_to_watching (new SGetUserStatus (this.username, this.status, this.privileges > 0));
 		}
 	
 	
@@ -617,12 +617,15 @@ class User
 			case GetUserStatus:
 				UGetUserStatus o = new UGetUserStatus (s);
 				int status;
+				bool privileged;
 
 				log(2, "Sending ", o.user, "'s status... ");
 				if (server.find_user (o.user))
 					{	// user is online
+					User u = server.get_user (o.user);
 					log(2, "online.");
-					status = server.get_user (o.user).status;
+					status = u.status;
+					privileged = u.privileges > 0;
 					}
 				else if (server.db.user_exists (o.user))
 					{	// user is offline but exists
@@ -639,7 +642,7 @@ class User
 					log(2, "doesn't exist.");
 					}
 
-				send_message (new SGetUserStatus (o.user, status));
+				send_message (new SGetUserStatus (o.user, status, privileged));
 				break;
 			case SayChatroom:
 				USayChatroom o = new USayChatroom (s);
@@ -667,7 +670,7 @@ class User
 					User user = server.get_user (o.user);
 					InternetAddress ia = new InternetAddress (user.address, cast(ushort)user.port);
 					log(2, this.username, " cannot connect to ", o.user, "/", ia.toString(), ", asking us to tell the other...");
-					user.send_message (new SConnectToPeer (user.username, o.type, user.address, user.port, o.token));
+					user.send_message (new SConnectToPeer (user.username, o.type, user.address, user.port, o.token, user.privileges > 0));
 					}
 				break;
 			case MessageUser:

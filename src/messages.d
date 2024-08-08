@@ -825,26 +825,32 @@ class SLogin : Message
 
 class SGetPeerAddress : Message
 	{	// Send the address and port of user user
-	this (string username, int address, int port)
+	this (string username, int address, int port, int unknown = 0, int obfuscated_port = 0)
 		{
 		super (GetPeerAddress);
 		
 		writes (username);	// username the address belongs to
 		writei (address);	// IP address
 		writei (port);		// port number
+		writei (unknown);
+		writei (obfuscated_port);
 		}
 	
 	string username;
 	int    address;
 	int    port;
+	int    unknown;
+	int    obfuscated_port;
 
 	this (Stream s)
 		{
 		super (s);
 
-		username = reads ();
-		address  = readi ();
-		port     = readi ();
+		username        = reads ();
+		address         = readi ();
+		port            = readi ();
+		unknown         = readi ();
+		obfuscated_port = readi();
 		}
 	}
 
@@ -897,23 +903,26 @@ class SWatchUser : Message
 
 class SGetUserStatus : Message
 	{	// Send the status of user user
-	this (string username, int status)
+	this (string username, int status, bool privileged)
 		{
 		super (GetUserStatus);
 
 		writes (username);	// username
 		writei (status);	// user status (see the class User)
+		writeb (privileged);    // is user privileged
 		}
 
 	string username;
 	int    status;
+	byte   privileged;
 
 	this (Stream s)
 		{
 		super (s);
 
-		username = reads ();
-		status   = readi ();
+		username   = reads ();
+		status     = readi ();
+		privileged = readb ();
 		}
 	}
 
@@ -1178,7 +1187,7 @@ class SUserLeftRoom : Message
 
 class SConnectToPeer : Message
 	{	// Ask a peer to connect back to user
-	this (string username, string type, int address, int port, int token)
+	this (string username, string type, int address, int port, int token, bool privileged, int unknown = 0, int obfuscated_port = 0)
 		{
 		super (ConnectToPeer);
 
@@ -1187,6 +1196,9 @@ class SConnectToPeer : Message
 		writei (address);	// IP address of the peer to connect to
 		writei (port);		// port to use
 		writei (token);		// message token
+		writeb (privileged);    // is user privileged
+		writei (unknown);
+		writei (obfuscated_port);
 		}
 	
 	string username;
@@ -1194,16 +1206,22 @@ class SConnectToPeer : Message
 	int    address;
 	int    port;
 	int    token;
+	byte   privileged;
+	int    unknown;
+	int    obfuscated_port;
 
 	this (Stream s)
 		{
 		super (s);
 
-		username = reads ();
-		type     = reads ();
-		address  = readi ();
-		port     = readi ();
-		token    = readi ();
+		username        = reads ();
+		type            = reads ();
+		address         = readi ();
+		port            = readi ();
+		token           = readi ();
+		privileged      = readb ();
+		unknown         = readi ();
+		obfuscated_port = readi ();
 		}
 	}
 
