@@ -669,7 +669,7 @@ class Server
 			{
 			if (!check_string (user) || user == this.server_user)
 				{
-				error = "Bad username";
+				error = "INVALIDUSERNAME";
 				return false;
 				}
 
@@ -682,7 +682,7 @@ class Server
 			log(2, "User ", user, " is registered, checking banned status and password...");
 			if (db.is_banned (user))
 				{
-				error = "Banned";
+				error = "BANNED";
 				return false;
 				}
 			else
@@ -695,7 +695,7 @@ class Server
 					}
 				else
 					{
-					error = "Bad password";
+					error = "INVALIDPASS";
 					return false;
 					}
 				}
