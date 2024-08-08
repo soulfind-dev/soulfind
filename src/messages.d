@@ -790,7 +790,7 @@ class UCantConnectToPeer : Message
 class SLogin : Message
 	{	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
-	this (byte success, string mesg, int addr = 0, string password = null)
+	this (byte success, string mesg, int addr = 0, string password = null, bool supporter = false)
 		{
 		super (Login);
 		
@@ -799,19 +799,13 @@ class SLogin : Message
 		if (success)
 			{
 			writei (addr);	// external IP address of the client
-
-			if (password !is null && false)
-				{	// the official  server now sends this md5sum
-					// back to the client at login.  The official
-					// client uses it to check if it is connected
-					// to the official server.
-				ubyte[16] digest;
-				digest = md5Of (password);
-				string sum;
-				foreach (ubyte u ; digest)
-					sum ~= format ("%02x", u);
-				writes (sum);
-				}
+			ubyte[16] digest;
+			digest = md5Of (password);
+			string sum;
+			foreach (ubyte u ; digest)
+				sum ~= format ("%02x", u);
+			writes (sum);
+			writeb (supporter);
 			}
 		}
 		

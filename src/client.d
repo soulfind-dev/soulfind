@@ -544,7 +544,7 @@ class User
 				if (!server.check_login (o.name, o.pass, o.vers, error))
 					{
 					log(1, o.name, ": Impossible to login (", error, ")");
-					send_message (new SLogin (0, error, 0));
+					send_message (new SLogin (false, error));
 					return false;
 					}
 				else if (server.find_user (o.name) && server.get_user (o.name).loggedin)
@@ -872,10 +872,11 @@ class User
 	bool login (ULogin m)
 		{
 		string message = this.server.get_motd (m.name, m.vers);
+		bool supporter = this.get_privileges () > 0;
 		this.username = m.name;
 		this.password = m.pass;
 		this.cversion = m.vers;
-		send_message (new SLogin (1, message, this.address, server.db.conf_get_int("md5_ident") ? this.password : null));
+		send_message (new SLogin (true, message, this.address, this.password, supporter));
 		this.loggedin = true;
 
 		if (!server.db.get_user (this.username, this.password, this.speed, this.upload_number, this.shared_files, this.shared_folders, this.privileges))

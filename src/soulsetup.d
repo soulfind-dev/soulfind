@@ -75,7 +75,6 @@ void main_menu ()
 	m.add ("6", "Banned users",      &banned_users);
 	m.add ("7", "Server username",   &server_username);
 	m.add ("8", "Case sensitivity",  &case_sensitivity);
-	m.add ("9", "Client login",      &client_login);
 	m.add ("i", "Server info.",      &info);
 	m.add ("q", "Exit",              &exit);
 	
@@ -347,22 +346,6 @@ void set_case_sensitivity ()
 	{
 	sdb.conf_set_field ("case_insensitive", !sdb.conf_get_int ("case_insensitive"));
 	case_sensitivity ();
-	}
-
-void client_login ()
-	{
-	Menu m = new Menu ("The official server uses a special method for the authentification of the official Windows client. It allows this client to know whether it is connected to the official server or not, and refuse to connect to an unknown server. If you " ~ (sdb.conf_get_int ("md5_ident") ? "disable this option, Soulfind will identify as itself and the Windows client will refuse to connect to it." : "enable this option, Soulfind will be recognised as the official server by the Windows client."));
-
-	m.add ("1", "Toggle", &set_client_login);
-	m.add ("q", "Return", &main_menu);
-
-	m.show ();
-	}
-
-void set_client_login ()
-	{
-	sdb.conf_set_field ("md5_ident", !sdb.conf_get_int ("md5_ident"));
-	client_login ();
 	}
 
 class Menu
