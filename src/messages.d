@@ -1618,9 +1618,9 @@ class SGetItemRecommendations : Message
 
 		writes (item);
 		writei (list.length);
-		foreach (string item, int weight ; list)
+		foreach (string recommendation, int weight ; list)
 			{
-			writes (item);
+			writes (recommendation);
 			writei (weight);
 			}
 		}
@@ -1634,10 +1634,10 @@ class SGetItemRecommendations : Message
 		int n = readi ();
 		for (int i = 0 ; i < n ; i++)
 			{
-			string item   = reads ();
-			int    weight = readi ();
+			string recommendation = reads ();
+			int    weight         = readi ();
 
-			list[item] = weight;
+			list[recommendation] = weight;
 			}
 		}
 	}
