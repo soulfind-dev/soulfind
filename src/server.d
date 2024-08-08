@@ -47,8 +47,7 @@ private import core.sys.posix.unistd : getpid;
 
 version (linux)
 	{ // for SIGPIPE
-	version (DigitalMars) private import core.sys.posix.signal : SIGPIPE;
-	else                  private import std.c.unix.unix;
+	private import core.sys.posix.signal : SIGPIPE;
 	}
 
 
