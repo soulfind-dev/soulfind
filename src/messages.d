@@ -392,6 +392,28 @@ class UFileSearch : Message
 		}
 	}
 
+class UWishlistSearch : Message
+	{		// Client makes a wishlist search
+	int token;	// search token
+	string strng;	// search string
+
+	this (Stream s)
+		{
+		super (s);
+
+		token = readi ();
+		strng = reads ();
+		}
+
+	this (int token, string string)
+		{
+		super (WishlistSearch);
+
+		writei (token);
+		writes (string);
+		}
+	}
+
 class USetStatus : Message
 	{		// Client sets its status
 	int status;	// -1 : Unknown - 0 : Offline - 1 : Away - 2 : Online
@@ -1553,6 +1575,25 @@ class SCheckPrivileges : Message
 		super (s);
 
 		time = readi ();
+		}
+	}
+
+class SWishlistInterval	: Message
+	{
+	this (int interval)
+		{
+		super (WishlistInterval);
+
+		writei (interval);	// interval in seconds for searches
+		}
+
+	int interval;
+
+	this (Stream s)
+		{
+		super (s);
+
+		interval = readi ();
 		}
 	}
 

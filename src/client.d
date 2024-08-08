@@ -807,6 +807,10 @@ class User
 			case CheckPrivileges:
 				send_message (new SCheckPrivileges (this.get_privileges ()));
 				break;
+			case WishlistSearch:
+				UWishlistSearch o = new UWishlistSearch (s);
+				server.do_FileSearch (o.token, o.strng, this.username);
+				break;
 			case ItemRecommendations:
 				UGetItemRecommendations o = new UGetItemRecommendations (s);
 				send_message (new SGetItemRecommendations (o.item, get_item_recommendations (o.item)));
@@ -901,6 +905,9 @@ class User
 		{
 		string message = this.server.get_motd (m.name, m.vers);
 		bool supporter = this.get_privileges () > 0;
+		int wishlist_interval = 720;  // in seconds
+		if (supporter) wishlist_interval = 120;
+
 		this.username = m.name;
 		this.password = m.pass;
 		this.cversion = m.vers;
@@ -917,6 +924,7 @@ class User
 		server.add_user (this);
 
 		send_message (new SRoomList (Room.room_stats ()));
+		send_message (new SWishlistInterval (wishlist_interval));
 		this.set_status (2);
 
 		foreach (PM pm ; PM.get_pms_for (this.username))
