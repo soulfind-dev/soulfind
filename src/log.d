@@ -23,8 +23,9 @@ module log;
 private import std.stdio : writeln;
 private import std.format : format;
 
-void log(Int, S...)(Int level, S args) {
-	debug (level) {
-		writeln(format(args));
+void log (Int, S...)(Int level, S args)
+	{
+	writeln("HI");
+	writeln(level);
+	debug (level) writeln(args);
 	}
-}

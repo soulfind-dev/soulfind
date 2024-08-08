@@ -10,7 +10,6 @@ DOCDIR=doc
 PREFIX=/usr
 
 SOULFINDFILES=client.d \
-         log.d \
          db.d \
          message_codes.d \
          messages.d \
@@ -29,7 +28,6 @@ SOULFINDFILES:=$(addprefix $(SRCDIR)/,$(SOULFINDFILES))
 
 
 SOULSETUPFILES=soulsetup.d \
-               log.d \
                defines.d \
                db.d \
                undead/doformat.d \
