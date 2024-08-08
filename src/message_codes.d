@@ -54,10 +54,8 @@ const int MessageAcked			= 23;
 const int FileSearch			= 26;
 const int SetStatus			= 28;
 const int ServerPing			= 32;
-const int SendDownloadSpeed		= 34;
 const int SharedFoldersFiles		= 35;
 const int GetUserStats			= 36;
-const int QueuedDownloads		= 40;
 const int Relogged			= 41;
 const int UserSearch			= 42;
 const int AddThingILike			= 51;
@@ -65,24 +63,10 @@ const int RemoveThingILike		= 52;
 const int GetRecommendations		= 54;
 const int GlobalRecommendations		= 56;
 const int UserInterests			= 57;
-const int PlaceInLineResponse		= 60;
-const int RoomAdded			= 62;
-const int RoomRemoved			= 63;
 const int RoomList			= 64;
-const int ExactFileSearch		= 65;
 const int AdminMessage			= 66;
-const int GlobalUserList		= 67;
-const int TunneledMessage		= 68;
-const int PrivilegedUsers		= 69;
-const int HaveNoParent			= 71;
-const int ParentInactivityTimeout	= 86;
-const int SearchInactivityTimeout	= 87;
-const int MinParentsInCache		= 88;
-const int DistribAliveInterval		= 90;
 const int AddToPrivileged		= 91;
 const int CheckPrivileges		= 92;
-const int SearchRequest			= 93;
-const int NetInfo			= 102;
 const int WishlistSearch		= 103;	/+ TODO : U (int ticket, string query)+/
 const int WishlistInterval		= 104;	/+ TODO : S ? +/
 const int SimilarUsers			= 110;
@@ -103,27 +87,6 @@ const int CantConnectToPeer		= 1001;
 
 const int ServerInfo			= 1789; // specific to Soulfind
 
-
-
-// Peer Messages (we don't care but I thought it was nice to list them as well)
-const int GetSharedFileList = 4;
-const int SharedFileList = 5;
-const int FileSearchResult = 9;
-const int UserInfoRequest = 15;
-const int UserInfoReply = 16;
-const int FolderContentsRequest = 36;
-const int FolderContentsResponse = 37;
-const int TransferRequest = 40;
-const int TransferResponse = 41;
-const int PlaceholdUpload = 42;
-const int QueueUpload = 43;
-const int PlaceInQueue = 44;
-const int UploadFailed = 46;
-const int QueueFailed = 50;
-const int PlaceInQueueRequest = 51;
-
-
-
 // Useful for debugging
 string[] message_name = [
 		  1 : "Login"
@@ -143,33 +106,18 @@ string[] message_name = [
 		, 26 : "FileSearch"
 		, 28 : "SetStatus"
 		, 32 : "ServerPing"
-		, 34 : "SendDownloadSpeed"
 		, 35 : "SharedFoldersFiles"
 		, 36 : "GetUserStats"
-		, 40 : "QueuedDownloads"
 		, 41 : "Relogged"
 		, 51 : "AddThingILike"
 		, 52 : "RemoveThingILike"
 		, 54 : "GetRecommendations"
 		, 56 : "GlobalRecommendations"
-		, 60 : "PlaceInLineResponse"
-		, 62 : "RoomAdded"
-		, 63 : "RoomRemoved"
 		, 64 : "RoomList"
-		, 65 : "ExactFileSearch"
 		, 66 : "AdminMessage"
-		, 67 : "GlobalUserList"
-		, 68 : "TunneledMessage"
 		, 69 : "PrivilegedUsers"
-		, 71 : "HaveNoParent"
-		, 86 : "ParentInactivityTimeout"
-		, 87 : "SearchInactivityTimeout"
-		, 88 : "MinParentsInCache"
-		, 90 : "DistribAliveInterval"
 		, 91 : "AddToPrivileged"
 		, 92 : "CheckPrivileges"
-		, 93 : "SearchRequest"
-		, 102 : "NetInfo"
 		, 103 : "WishlistSearch"
 		, 104 : "WishlistInterval"
 		, 110 : "SimilarUsers"
@@ -181,7 +129,7 @@ string[] message_name = [
 		, 116 : "SetRoomTicker"
 		, 117 : "AddThingIHate"
 		, 118 : "RemoveThingIHate"
-		, 120 : "PrivilegedUsersZ"
+		, 120 : "RoomSearch"
 		, 121 : "SendUploadSpeed"
 		, 122 : "UserPrivileges"
 		, 123 : "GivePrivileges"

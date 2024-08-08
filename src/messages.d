@@ -412,28 +412,6 @@ class USetStatus : Message
 		}
 	}
 
-class USendDownloadSpeed : Message
-	{		// Client reports a transfer speed
-	string user;	// user name
-	int    speed;   // speed
-	
-	this (Stream s)
-		{
-		super (s);
-
-		user  = reads ();
-		speed = readi ();
-		}
-	
-	this (string user, int speed)
-		{
-		super (SendDownloadSpeed);
-
-		writes (user);
-		writei (speed);
-		}
-	}
-
 class USendUploadSpeed : Message
 	{		// Client reports a transfer speed
 	int    speed;   // speed
@@ -1059,7 +1037,7 @@ class SJoinRoom : Message
 		foreach (string username ; usernames)
 			{
 			writei (speeds          [username]);	// speed of each user
-			writei (upload_numbers	[username]);	// number of files downloaded ever
+			writei (upload_numbers	[username]);	// number of files uploaded ever
 			writei (somethings      [username]);	// something ? 1789 is a good number
 			writei (shared_files    [username]);	// nb of shared files
 			writei (shared_folders  [username]);	// nb of shared folders
@@ -1165,7 +1143,7 @@ class SUserJoinedRoom : Message
 		writes (username);		// name of the user who joined
 		writei (status);		// status
 		writei (speed);			// speed
-		writei (upload_number);		// download number
+		writei (upload_number);		// upload number
 		writei (something);		// something ?
 		writei (shared_files);		// shared files
 		writei (shared_folders);	// shared folders
@@ -1500,44 +1478,6 @@ class SUserSearch : Message
 		user   = reads ();
 		token  = readi ();
 		query  = reads ();
-		}
-	}
-
-class SRoomAdded : Message
-	{	// A room has been created
-	this (string room)
-		{
-		super (RoomAdded);
-
-		writes (room);	// name of the room
-		}
-
-	string name;
-
-	this (Stream s)
-		{
-		super (s);
-
-		name = reads ();
-		}
-	}
-
-class SRoomRemoved : Message
-	{	// A room has been removed
-	this (string room)
-		{
-		super (RoomRemoved);
-
-		writes (room);	// name of the room
-		}
-
-	string name;
-
-	this (Stream s)
-		{
-		super (s);
-
-		name = reads ();
 		}
 	}
 

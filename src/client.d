@@ -718,17 +718,6 @@ class User
 			case ServerPing:
 				send_message (new SServerPing ());
 				break;
-			case SendDownloadSpeed:
-				/* USendDownloadSpeed o = new USendDownloadSpeed (s);
-
-				if (server.find_user (o.user))
-					{
-					User u = server.get_user (o.user);
-					u.calc_speed (o.speed);
-
-					log(2, "User ", this.username, " reports a speed of ", o.speed, " B/s for user ", o.user, " (whose speed is now ", u.speed, " B/s)");
-					} */
-				break;
 			case SharedFoldersFiles:
 				USharedFoldersFiles o = new USharedFoldersFiles (s);
 				log(2, this.username, " is sharing ", o.nb_files, " files and ", o.nb_folders, " folders");
