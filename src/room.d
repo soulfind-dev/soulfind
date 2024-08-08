@@ -276,7 +276,6 @@ class Room
 			{
 			user_list.remove (user.username);
 			this.send_to_all (new SUserLeftRoom (user.username, this.name));
-			del_ticker (user.username);
 			}
 		if (this.nb_users () == 0)
 			{
@@ -314,7 +313,6 @@ class Room
 			{
 			ticker_list.remove (username);
 			this.send_to_all (new SRoomTickerRemove (this.name, username));
-			// TODO: see if it works of if we need to send a SRoomTicker
 			}
 		}
 	}
