@@ -1837,6 +1837,31 @@ class SChangePassword : Message
 		}
 	}
 
+class SGlobalRoomMessage : Message
+	{	// User user has said mesg in room room
+	this (string room, string user, string mesg)
+		{
+		super (GlobalRoomMessage);
+
+		writes (room); // room the message comes from
+		writes (user); // the user who said it
+		writes (mesg); // what (s)he said
+		}
+
+	string room;
+	string user;
+	string mesg;
+
+	this (Stream s)
+		{
+		super (s);
+
+		room = reads ();
+		user = reads ();
+		mesg = reads ();
+		}
+	}
+
 class SCantConnectToPeer : Message
 	{	// A connection couldn't be established for some message
 	this (int token)

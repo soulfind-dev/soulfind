@@ -652,7 +652,15 @@ class User
 			case SayChatroom:
 				USayChatroom o = new USayChatroom (s);
 				if (Room.find_room (o.room))
+					{
 					Room.get_room (o.room).say (this.username, o.message);
+
+					foreach (string global_username ; Room.get_global_room_users ())
+						{
+						User u = server.get_user (global_username);
+						u.send_message (new SGlobalRoomMessage (o.room, this.username, o.message));
+						}
+					}
 				break;
 			case JoinRoom:
 				UJoinRoom o = new UJoinRoom (s);
@@ -879,6 +887,12 @@ class User
 						}
 					}
 				break;
+			case JoinGlobalRoom:
+				Room.add_global_room_user (this.username);
+				break;
+			case LeaveGlobalRoom:
+				Room.remove_global_room_user (this.username);
+				break;
 			case CantConnectToPeer:
 				UCantConnectToPeer o = new UCantConnectToPeer (s);
 
@@ -944,6 +958,7 @@ class User
 			{
 			room.leave (this);
 			}
+		Room.remove_global_room_user (username);
 		this.loggedin = false;
 		this.set_status (0);
 		debug (1) if (this.username.length > 0) writeln ("User " ~ blue, username, black ~ " has quit.");

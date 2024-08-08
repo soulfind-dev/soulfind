@@ -30,8 +30,9 @@ private import server;
 class Room
 	{
 	// static stuff
-	private static Room[string] room_list;
+	private static Room[string]	room_list;
 					// room_list[room.name] = room
+	private static string[string]	global_room_users;
 	
 	static ulong nb_rooms ()
 		{
@@ -91,7 +92,28 @@ class Room
 
 		room.join (user);
 		}
-	
+
+	static void add_global_room_user (string username)
+		{
+		if (!(username in global_room_users))
+			{
+			global_room_users[username] = username;
+			}
+		}
+
+	static void remove_global_room_user (string username)
+		{
+		if (username in global_room_users)
+			{
+			global_room_users.remove (username);
+			}
+		}
+
+	static string[] get_global_room_users ()
+		{
+		return global_room_users.keys;
+		}
+
 	// constructor
 	this (string name, Server serv)
 		{
