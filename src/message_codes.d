@@ -54,7 +54,7 @@ const int MessageAcked			= 23;
 const int FileSearch			= 26;
 const int SetStatus			= 28;
 const int ServerPing			= 32;
-const int SendSpeed			= 34;
+const int SendDownloadSpeed		= 34;
 const int SharedFoldersFiles		= 35;
 const int GetUserStats			= 36;
 const int QueuedDownloads		= 40;	/+ TODO : S (no trace of that in museek, ask hyriand what it is exactly ?) +/
@@ -94,6 +94,7 @@ const int SetRoomTicker			= 116;
 const int AddThingIHate			= 117;	/+ TODO : U +/
 const int RemoveThingIHate		= 118;	/+ TODO : U +/
 const int RoomSearch			= 120;	// Was "PrivilegedUsersZ" in nicotine ?
+const int SendUploadSpeed		= 121;
 const int UserPrivileges		= 122;
 const int GivePrivileges		= 123;
 const int CantConnectToPeer		= 1001;
@@ -140,7 +141,7 @@ string[] message_name = [
 		, 26 : "FileSearch"
 		, 28 : "SetStatus"
 		, 32 : "ServerPing"
-		, 34 : "SendSpeed"
+		, 34 : "SendDownloadSpeed"
 		, 35 : "SharedFoldersFiles"
 		, 36 : "GetUserStats"
 		, 40 : "QueuedDownloads"
@@ -179,6 +180,7 @@ string[] message_name = [
 		, 117 : "AddThingIHate"
 		, 118 : "RemoveThingIHate"
 		, 120 : "PrivilegedUsersZ"
+		, 121 : "SendUploadSpeed"
 		, 122 : "UserPrivileges"
 		, 123 : "GivePrivileges"
 		, 1001 : "CantConnectToPeer"

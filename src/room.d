@@ -165,16 +165,16 @@ class Room
 		return speeds;
 		}
 	
-	int[string] download_numbers ()
+	int[string] upload_numbers ()
 		{
-		int[string] download_numbers;
+		int[string] upload_numbers;
 
 		foreach (User user ; users ())
 			{
-			download_numbers[user.username] = user.download_number;
+			upload_numbers[user.username] = user.upload_number;
 			}
 
-		return download_numbers;
+		return upload_numbers;
 		}
 	
 	int[string] somethings ()
@@ -261,11 +261,11 @@ class Room
 			{
 			user_list[user.username] = user.username;
 
-			user.send_message (new SJoinRoom   (this.name, this.user_names (), this.statuses (), this.speeds (), this.download_numbers (), this.somethings (), this.shared_files (), this.shared_folders (), this.slots_full (), this.country_codes ()));
+			user.send_message (new SJoinRoom   (this.name, this.user_names (), this.statuses (), this.speeds (), this.upload_numbers (), this.somethings (), this.shared_files (), this.shared_folders (), this.slots_full (), this.country_codes ()));
 			user.send_message (new SRoomTicker (this.name, this.tickers));
 			user.join_room    (this.name);
 
-			this.send_to_all  (new SUserJoinedRoom (this.name, user.username, user.status, user.speed, user.download_number, user.something, user.shared_files, user.shared_folders, user.slots_full, user.country_code));
+			this.send_to_all  (new SUserJoinedRoom (this.name, user.username, user.status, user.speed, user.upload_number, user.something, user.shared_files, user.shared_folders, user.slots_full, user.country_code));
 			if (this.nb_users() == 1) server.send_to_all (new SRoomList (Room.room_stats ()));
 			}
 		}

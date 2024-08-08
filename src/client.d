@@ -56,7 +56,7 @@ class User
 	int	privileges;		// in seconds
 	long	last_checked_privileges;// privileges length is counted from this date
 	int	speed;			// received in B/s, sent in kB/s
-	int	download_number;
+	int	upload_number;
 	int	something;
 	int	shared_files;
 	int	shared_folders;
@@ -114,18 +114,18 @@ class User
 
 	void calc_speed (int speed)
 		{
-		if (this.download_number == 0)
+		if (this.upload_number == 0)
 			{
-			this.download_number = 1;
+			this.upload_number = 1;
 			this.speed = speed;
 			}
 		else
 			{
-			this.speed = (this.speed*download_number + speed)/(download_number + 1);
-			this.download_number++;
+			this.speed = (this.speed*upload_number + speed)/(upload_number + 1);
+			this.upload_number++;
 			}
 
-		send_to_watching (new SGetUserStats (this.username, this.speed, this.download_number, this.something, this.shared_files, this.shared_folders));
+		send_to_watching (new SGetUserStats (this.username, this.speed, this.upload_number, this.something, this.shared_files, this.shared_folders));
 
 		server.db.user_update_field (this.username, "speed", this.speed);
 		}
@@ -583,9 +583,9 @@ class User
 					{
 					send_message (new SUserExists (o.user, true));
 
-					int speed, download_number, something, shared_files, shared_folders;
-					server.db.get_user (o.user, speed, download_number, something, shared_files, shared_folders);
-					send_message (new SGetUserStats (o.user, speed, download_number, something, shared_files, shared_folders));
+					int speed, upload_number, something, shared_files, shared_folders;
+					server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
+					send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
 					watch (o.user);
 					}
 				else if (o.user == server.server_user)
@@ -691,8 +691,8 @@ class User
 			case ServerPing:
 				send_message (new SServerPing ());
 				break;
-			case SendSpeed:
-				USendSpeed o = new USendSpeed (s);
+			case SendDownloadSpeed:
+				/* USendDownloadSpeed o = new USendDownloadSpeed (s);
 
 				if (server.find_user (o.user))
 					{
@@ -700,7 +700,7 @@ class User
 					u.calc_speed (o.speed);
 
 					log(2, "User ", this.username, " reports a speed of ", o.speed, " B/s for user ", o.user, " (whose speed is now ", u.speed, " B/s)");
-					}
+					} */
 				break;
 			case SharedFoldersFiles:
 				USharedFoldersFiles o = new USharedFoldersFiles (s);
@@ -708,14 +708,14 @@ class User
 				this.set_shared_folders (o.nb_folders);
 				this.set_shared_files (o.nb_files);
 
-				this.send_to_watching (new SGetUserStats (this.username, this.speed, this.download_number, this.something, this.shared_files, this.shared_folders));
+				this.send_to_watching (new SGetUserStats (this.username, this.speed, this.upload_number, this.something, this.shared_files, this.shared_folders));
 				break;
 			case GetUserStats:
 				UGetUserStats o = new UGetUserStats (s);
 				
-				int speed, download_number, something, shared_files, shared_folders;
-				server.db.get_user (o.user, speed, download_number, something, shared_files, shared_folders);
-				send_message (new SGetUserStats (o.user, speed, download_number, something, shared_files, shared_folders));
+				int speed, upload_number, something, shared_files, shared_folders;
+				server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
+				send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
 				break;
 			case UserSearch:
 				UUserSearch o = new UUserSearch (s);
@@ -803,6 +803,17 @@ class User
 
 				server.do_RoomSearch (o.token, o.query, this.username, o.room);
 				break;
+			case SendUploadSpeed:
+				USendUploadSpeed o = new USendUploadSpeed (s);
+
+				if (server.find_user (this.username))
+					{
+					User u = server.get_user (this.username);
+					u.calc_speed (o.speed);
+
+					log(2, "User ", this.username, " reports a speed of ", o.speed, " B/s (their speed is now ", u.speed, " B/s)");
+					}
+				break;
 			case UserPrivileges:
 				UUserPrivileges o = new UUserPrivileges (s);
 				
@@ -849,7 +860,7 @@ class User
 		send_message (new SLogin (1, message, this.address, server.db.conf_get_int("md5_ident") ? this.password : null));
 		this.loggedin = true;
 
-		if (!server.db.get_user (this.username, this.password, this.speed, this.download_number, this.shared_files, this.shared_folders, this.privileges))
+		if (!server.db.get_user (this.username, this.password, this.speed, this.upload_number, this.shared_files, this.shared_folders, this.privileges))
 			{
 			throw new Exception ("User " ~ this.username ~ " does not exist.");
 			}

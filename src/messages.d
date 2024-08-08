@@ -412,7 +412,7 @@ class USetStatus : Message
 		}
 	}
 
-class USendSpeed : Message
+class USendDownloadSpeed : Message
 	{		// Client reports a transfer speed
 	string user;	// user name
 	int    speed;   // speed
@@ -427,9 +427,28 @@ class USendSpeed : Message
 	
 	this (string user, int speed)
 		{
-		super (SendSpeed);
+		super (SendDownloadSpeed);
 
 		writes (user);
+		writei (speed);
+		}
+	}
+
+class USendUploadSpeed : Message
+	{		// Client reports a transfer speed
+	int    speed;   // speed
+
+	this (Stream s)
+		{
+		super (s);
+
+		speed = readi ();
+		}
+
+	this (string user, int speed)
+		{
+		super (SendUploadSpeed);
+
 		writei (speed);
 		}
 	}
@@ -974,7 +993,7 @@ class SRoomList : Message
 
 class SJoinRoom : Message
 	{	// Give info on the room to a client who just joined it
-	this (string room, string[] usernames, int[string] statuses, int[string] speeds, int[string] download_numbers, int[string] somethings, int[string] shared_files, int[string] shared_folders, int[string] slots_full, string[string] country_codes)
+	this (string room, string[] usernames, int[string] statuses, int[string] speeds, int[string] upload_numbers, int[string] somethings, int[string] shared_files, int[string] shared_folders, int[string] slots_full, string[string] country_codes)
 		{
 		super (JoinRoom);
 
@@ -997,7 +1016,7 @@ class SJoinRoom : Message
 		foreach (string username ; usernames)
 			{
 			writei (speeds          [username]);	// speed of each user
-			writei (download_numbers[username]);	// number of files downloaded ever
+			writei (upload_numbers	[username]);	// number of files downloaded ever
 			writei (somethings      [username]);	// something ? 1789 is a good number
 			writei (shared_files    [username]);	// nb of shared files
 			writei (shared_folders  [username]);	// nb of shared folders
@@ -1006,12 +1025,12 @@ class SJoinRoom : Message
 		writei (n);	// number of slots records we will send...
 		foreach (string username ; usernames)
 			{	// list of nb of full slots for each user
-			writei (slots_full      [username]);
+			writei (slots_full	[username]);
 			}
 		writei (n);	// number of country codes we will send
 		foreach (string username ; usernames)
 			{	// list of all the country codes
-			writes (country_codes   [username]);
+			writes (country_codes	[username]);
 			}
 		}
 	
@@ -1019,7 +1038,7 @@ class SJoinRoom : Message
 	string[]    usernames;
 	int[string] statuses;
 	int[string] speeds;
-	int[string] download_numbers;
+	int[string] upload_numbers;
 	int[string] somethings;
 	int[string] shared_files;
 	int[string] shared_folders;
@@ -1052,7 +1071,7 @@ class SJoinRoom : Message
 		for (int i = 0 ; i < n ; i++)
 			{
 			speeds          [usernames[i]] = readi ();
-			download_numbers[usernames[i]] = readi ();
+			upload_numbers	[usernames[i]] = readi ();
 			somethings      [usernames[i]] = readi ();
 			shared_files    [usernames[i]] = readi ();
 			shared_folders  [usernames[i]] = readi ();
@@ -1069,7 +1088,7 @@ class SJoinRoom : Message
 
 		for (int i = 0 ; i < n ; i++)
 			{
-			country_codes   [usernames[i]] = reads ();
+			country_codes	[usernames[i]] = reads ();
 			}
 		}
 	}
@@ -1095,7 +1114,7 @@ class SLeaveRoom : Message
 
 class SUserJoinedRoom : Message
 	{	// User user has joined the room room
-	this (string room, string username, int status, int speed, int download_number, int something, int shared_files, int shared_folders, int slots_full, string country_code)
+	this (string room, string username, int status, int speed, int upload_number, int something, int shared_files, int shared_folders, int slots_full, string country_code)
 		{
 		super (UserJoinedRoom);
 
@@ -1103,7 +1122,7 @@ class SUserJoinedRoom : Message
 		writes (username);		// name of the user who joined
 		writei (status);		// status
 		writei (speed);			// speed
-		writei (download_number);	// download number ?
+		writei (upload_number);		// download number
 		writei (something);		// something ?
 		writei (shared_files);		// shared files
 		writei (shared_folders);	// shared folders
@@ -1115,7 +1134,7 @@ class SUserJoinedRoom : Message
 	string username;
 	int    status;
 	int    speed;
-	int    download_number;
+	int    upload_number;
 	int    something;
 	int    shared_files;
 	int    shared_folders;
@@ -1130,7 +1149,7 @@ class SUserJoinedRoom : Message
 		username        = reads ();
 		status          = readi ();
 		speed           = readi ();
-		download_number = readi ();
+		upload_number 	= readi ();
 		something       = readi ();
 		shared_files    = readi ();
 		shared_folders  = readi ();
@@ -1255,13 +1274,13 @@ class SServerPing : Message
 
 class SGetUserStats : Message
 	{	// Send the stats of user user
-	this (string username, int speed, int download_number, int something, int shared_files, int shared_folders)
+	this (string username, int speed, int upload_number, int something, int shared_files, int shared_folders)
 		{
 		super (GetUserStats);
 
 		writes (username);		// user name
 		writei (speed);			// speed (in B/s)
-		writei (download_number);	// download number ?
+		writei (upload_number);		// upload number
 		writei (something);		// something ?
 		writei (shared_files);		// shared files
 		writei (shared_folders);	// shared folders
@@ -1269,7 +1288,7 @@ class SGetUserStats : Message
 	
 	string username;
 	int    speed;
-	int    download_number;
+	int    upload_number;
 	int    something;
 	int    shared_files;
 	int    shared_folders;
@@ -1280,7 +1299,7 @@ class SGetUserStats : Message
 
 		username        = reads ();
 		speed           = readi ();
-		download_number = readi ();
+		upload_number 	= readi ();
 		something       = readi ();
 		shared_files    = readi ();
 		shared_folders  = readi ();

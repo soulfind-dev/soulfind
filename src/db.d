@@ -237,7 +237,7 @@ class Sdb
 			}
 		}
 	
-	bool get_user (string username, out int speed, out int download_number, out int something, out int shared_files, out int shared_folders)
+	bool get_user (string username, out int speed, out int upload_number, out int something, out int shared_files, out int shared_folders)
 		{
 		log(4, "DB: Requested ", username, "'s info...");
 		string query = format ("SELECT speed,dlnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
@@ -247,7 +247,7 @@ class Sdb
 			string[] u           = res[0];
 
 			speed           = atoi (u[0]);
-			download_number = atoi (u[1]);
+			upload_number   = atoi (u[1]);
 			shared_files    = atoi (u[2]);
 			shared_folders  = atoi (u[3]);
 			something       = 1789;
@@ -259,7 +259,7 @@ class Sdb
 			}
 		}
 	
-	bool get_user (string username, out string password, out int speed, out int download_number, out int shared_files, out int shared_folders, out int privileges)
+	bool get_user (string username, out string password, out int speed, out int upload_number, out int shared_files, out int shared_folders, out int privileges)
 		{
 		log(4, "DB: Requested ", username, "'s info...");
 		string query = format ("SELECT password,speed,dlnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
@@ -270,7 +270,7 @@ class Sdb
 
 			password        = u[0];
 			speed           = atoi (u[1]);
-			download_number = atoi (u[2]);
+			upload_number   = atoi (u[2]);
 			shared_files    = atoi (u[3]);
 			shared_folders  = atoi (u[4]);
 			privileges      = atoi (u[5]);
