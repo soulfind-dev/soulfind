@@ -188,27 +188,8 @@ class UGetPeerAddress : Message
 		}
 	}
 
-class UUserExists : Message
-	{		// A client wants to know if some user exists ?
-	string user;	// name of the user
-
-	this (Stream s)
-		{
-		super (s);
-
-		user = reads ();
-		}
-	
-	this (string user)
-		{
-		super (UserExists);
-
-		writes (user);
-		}
-	}
-
-class UAddUser : Message
-	{		// A client wants to watch someone else
+class UWatchUser : Message
+	{		// A client wants to watch a user
 	string user;	// name of the user to watch
 
 	this (Stream s)
@@ -220,7 +201,26 @@ class UAddUser : Message
 	
 	this (string user)
 		{
-		super (AddUser);
+		super (WatchUser);
+
+		writes (user);
+		}
+	}
+
+class UUnwatchUser : Message
+	{		// A client wants to unwatch a user
+	string user;	// name of the user to unwatch
+
+	this (Stream s)
+		{
+		super (s);
+
+		user = reads ();
+		}
+	
+	this (string user)
+		{
+		super (UnwatchUser);
 
 		writes (user);
 		}
@@ -854,48 +854,50 @@ class SGetPeerAddress : Message
 		}
 	}
 
-class SUserExists : Message
-	{	// A client asked whether user user exists or not
-	this (string user, byte exists)
+class SWatchUser : Message
+	{	// Tell a client if a user exists and potential stats
+	this (string user, byte exists, int status, int speed, int upload_number, int something, int shared_files, int shared_folders, string country_code)
 		{
-		super (UserExists);
+		super (WatchUser);
 
 		writes (user);   // username
 		writeb (exists); // whether the user exists or not
+		if (!exists) return;
+
+		writei (status);		// status
+		writei (speed);			// speed (in B/s)
+		writei (upload_number);		// upload number
+		writei (something);		// something ?
+		writei (shared_files);		// shared files
+		writei (shared_folders);	// shared folders
+		if (status > 0) writes (country_code);  // country code
 		}
 	
 	string user;
 	byte   exists;
+	int    status;
+	int    speed;
+	int    upload_number;
+	int    something;
+	int    shared_files;
+	int    shared_folders;
+	string country_code;
 
 	this (Stream s)
 		{
 		super (s);
 
-		user   = reads ();
-		exists = readb ();
-		}
-	}
+		user            = reads ();
+		exists          = readb ();
+		if (!exists) return;
 
-class SAddUser : Message
-	{	// A client asked to watch user, tell him if this user exists or not
-		// the official server doesn't seem to be sending that anymore
-	this (string user, byte exists)
-		{
-		super (AddUser);
-
-		writes (user);   // username
-		writeb (exists); // whether the user exists or not
-		}
-	
-	string user;
-	byte   exists;
-
-	this (Stream s)
-		{
-		super (s);
-
-		user   = reads ();
-		exists = readb ();
+		status          = readi ();
+		speed           = readi ();
+		upload_number 	= readi ();
+		something       = readi ();
+		shared_files    = readi ();
+		shared_folders  = readi ();
+		if (status > 0) country_code = reads();
 		}
 	}
 

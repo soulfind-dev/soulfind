@@ -575,54 +575,71 @@ class User
 					send_message (new SGetPeerAddress (o.user, 0, 0));
 					}
 				break;
-			case UserExists: // see message_codes.d for some explanation about these codes
-			case AddUser:
-				UAddUser o = new UAddUser (s);
+			case WatchUser:
+				UWatchUser o = new UWatchUser (s);
+				bool exists = true;
+				int status, speed, upload_number, something, shared_files, shared_folders;
+				string country_code;
 				
 				if (server.db.user_exists (o.user))
 					{
-					send_message (new SUserExists (o.user, true));
+					User u = server.get_user (o.user);
+					if (u)
+						{
+						status = u.status;
+						country_code = u.country_code;
+						}
+					else
+						{
+						status = 0;
+						country_code = "";
+					}
 
-					int speed, upload_number, something, shared_files, shared_folders;
 					server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
-					send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
+					send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
 					watch (o.user);
 					}
 				else if (o.user == server.server_user)
 					{
-					send_message (new SUserExists (o.user, true));
-
-					send_message (new SGetUserStats (o.user, 0, 0, 0, 0, 0));
+					status = 2;
 					}
 				else
 					{
-					send_message (new SUserExists (o.user, false));
+					exists = false;
 					}
+
+				send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
+				break;
+			case UnwatchUser:
+				UUnwatchUser o = new UUnwatchUser (s);
+				unwatch(o.user);
 				break;
 			case GetUserStatus:
 				UGetUserStatus o = new UGetUserStatus (s);
+				int status;
 
 				log(2, "Sending ", o.user, "'s status... ");
 				if (server.find_user (o.user))
 					{	// user is online
 					log(2, "online.");
-					send_message (new SGetUserStatus (o.user, server.get_user (o.user).status));
+					status = server.get_user (o.user).status;
 					}
 				else if (server.db.user_exists (o.user))
 					{	// user is offline but exists
 					log(2, "offline.");
-					send_message (new SGetUserStatus (o.user, 0));
+					status = 0;
 					}
 				else if (o.user == server.server_user)
 					{	// user is the server administration interface
 					log(2, "server (online)");
-					send_message (new SGetUserStatus (o.user, 2));
+					status = 2;
 					}
 				else
 					{	// user doesn't exist
 					log(2, "doesn't exist.");
-					send_message (new SUserExists (o.user, 0));
 					}
+
+				send_message (new SGetUserStatus (o.user, status));
 				break;
 			case SayChatroom:
 				USayChatroom o = new USayChatroom (s);

@@ -40,8 +40,8 @@ const struct Transfer
 const int Login				= 1;
 const int SetWaitPort			= 2;
 const int GetPeerAddress		= 3;
-const int UserExists			= 5;	// the official server replies to an AddUser request with this message, nicotine and museek still use the
-const int AddUser			= 6;	// UserExists message as AddUser though, so we add users to the watch list for UserExists messages as well
+const int WatchUser			= 5;
+const int UnwatchUser			= 6;
 const int GetUserStatus			= 7;
 const int SayChatroom			= 13;
 const int JoinRoom			= 14;
@@ -127,8 +127,8 @@ string[] message_name = [
 		  1 : "Login"
 		, 2 : "SetWaitPort"
 		, 3 : "GetPeerAddress"
-		, 5 : "UserExists"
-		, 6 : "AddUser"
+		, 5 : "WatchUser"
+		, 6 : "UnwatchUser"
 		, 7 : "GetUserStatus"
 		, 13 : "SayChatroom"
 		, 14 : "JoinRoom"
