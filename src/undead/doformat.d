@@ -390,6 +390,11 @@ void main()
  */
 void doFormat()(scope void delegate(dchar) putc, TypeInfo[] arguments, va_list ap)
 {
+    version (GNU)
+    {
+        static assert(false, "GNU D compiler does not support doFormat");
+    }
+
     import std.utf : encode, toUCSindex, isValidDchar, UTFException, toUTF8;
     import core.stdc.string : strlen;
     import core.stdc.stdlib : alloca, malloc, realloc, free;
@@ -1266,6 +1271,7 @@ private bool needToSwapEndianess(Char)(ref FormatSpec!Char f)
         || endian == Endian.bigEndian && f.flDash;
 }
 
+version(GNU) {} else
 unittest
 {
     string res;

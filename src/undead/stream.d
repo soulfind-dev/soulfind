@@ -339,6 +339,9 @@ interface OutputStream {
    * Print a formatted string into the stream using writef-style syntax.
    * References: <a href="std_format.html">std.format</a>.
    * Returns: self to chain with other stream commands like flush.
+   *
+   * NOTE: not supported in GDC, since it uses features unimplemented in that
+   * compiler.
    */
   OutputStream writef(...);
   OutputStream writefln(...); /// ditto
@@ -1206,10 +1209,17 @@ class Stream : InputStream, OutputStream {
 
   // writes data with optional trailing newline
   OutputStream writefx(TypeInfo[] arguments, va_list argptr, int newline=false) {
-    doFormat(&doFormatCallback,arguments,argptr);
-    if (newline)
-      writeLine("");
-    return this;
+    version (GNU)
+    {
+      assert(false, "GNU D compiler does not support doFormat");
+    }
+    else
+    {
+      doFormat(&doFormatCallback,arguments,argptr);
+      if (newline)
+        writeLine("");
+      return this;
+    }
   }
 
   /***
@@ -1424,43 +1434,46 @@ class Stream : InputStream, OutputStream {
     assert (chars == "three", chars);
   }
 
-  unittest { //unit tests for Issue 1668
-    void tryFloatRoundtrip(float x, string fmt = "", string pad = "") {
-      auto s = new MemoryStream();
-      s.writef(fmt, x, pad);
-      s.position = 0;
+  version (GNU) {} else
+  {
+    unittest { //unit tests for Issue 1668
+      void tryFloatRoundtrip(float x, string fmt = "", string pad = "") {
+        auto s = new MemoryStream();
+        s.writef(fmt, x, pad);
+        s.position = 0;
 
-      float f;
-      assert(s.readf(&f));
-      assert(x == f || (x != x && f != f)); //either equal or both NaN
+        float f;
+        assert(s.readf(&f));
+        assert(x == f || (x != x && f != f)); //either equal or both NaN
+      }
+
+      tryFloatRoundtrip(1.0);
+      tryFloatRoundtrip(1.0, "%f");
+      tryFloatRoundtrip(1.0, "", " ");
+      tryFloatRoundtrip(1.0, "%f", " ");
+
+      tryFloatRoundtrip(3.14);
+      tryFloatRoundtrip(3.14, "%f");
+      tryFloatRoundtrip(3.14, "", " ");
+      tryFloatRoundtrip(3.14, "%f", " ");
+
+      float nan = float.nan;
+      tryFloatRoundtrip(nan);
+      tryFloatRoundtrip(nan, "%f");
+      tryFloatRoundtrip(nan, "", " ");
+      tryFloatRoundtrip(nan, "%f", " ");
+
+      float inf = 1.0/0.0;
+      tryFloatRoundtrip(inf);
+      tryFloatRoundtrip(inf, "%f");
+      tryFloatRoundtrip(inf, "", " ");
+      tryFloatRoundtrip(inf, "%f", " ");
+
+      tryFloatRoundtrip(-inf);
+      tryFloatRoundtrip(-inf,"%f");
+      tryFloatRoundtrip(-inf, "", " ");
+      tryFloatRoundtrip(-inf, "%f", " ");
     }
-
-    tryFloatRoundtrip(1.0);
-    tryFloatRoundtrip(1.0, "%f");
-    tryFloatRoundtrip(1.0, "", " ");
-    tryFloatRoundtrip(1.0, "%f", " ");
-
-    tryFloatRoundtrip(3.14);
-    tryFloatRoundtrip(3.14, "%f");
-    tryFloatRoundtrip(3.14, "", " ");
-    tryFloatRoundtrip(3.14, "%f", " ");
-
-    float nan = float.nan;
-    tryFloatRoundtrip(nan);
-    tryFloatRoundtrip(nan, "%f");
-    tryFloatRoundtrip(nan, "", " ");
-    tryFloatRoundtrip(nan, "%f", " ");
-
-    float inf = 1.0/0.0;
-    tryFloatRoundtrip(inf);
-    tryFloatRoundtrip(inf, "%f");
-    tryFloatRoundtrip(inf, "", " ");
-    tryFloatRoundtrip(inf, "%f", " ");
-
-    tryFloatRoundtrip(-inf);
-    tryFloatRoundtrip(-inf,"%f");
-    tryFloatRoundtrip(-inf, "", " ");
-    tryFloatRoundtrip(-inf, "%f", " ");
   }
 }
 
@@ -2763,24 +2776,27 @@ class MemoryStream: TArrayStream!(ubyte[]) {
     assert (m.position == 42);
     m.position = 0;
     assert (m.available == 42);
-    m.writef("%d %d %s",100,345,"hello");
-    auto str = m.toString();
-    assert (str[0..13] == "100 345 hello", str[0 .. 13]);
-    assert (m.available == 29);
-    assert (m.position == 13);
+    version (GNU) {} else // writef not allowed in GNU
+    {
+      m.writef("%d %d %s",100,345,"hello");
+      auto str = m.toString();
+      assert (str[0..13] == "100 345 hello", str[0 .. 13]);
+      assert (m.available == 29);
+      assert (m.position == 13);
 
-    MemoryStream m2;
-    m.position = 3;
-    m2 = new MemoryStream ();
-    m2.writeString("before");
-    m2.copyFrom(m,10);
-    str = m2.toString();
-    assert (str[0..16] == "before 345 hello");
-    m2.position = 3;
-    m2.copyFrom(m);
-    auto str2 = m.toString();
-    str = m2.toString();
-    assert (str == ("bef" ~ str2));
+      MemoryStream m2;
+      m.position = 3;
+      m2 = new MemoryStream ();
+      m2.writeString("before");
+      m2.copyFrom(m,10);
+      str = m2.toString();
+      assert (str[0..16] == "before 345 hello");
+      m2.position = 3;
+      m2.copyFrom(m);
+      auto str2 = m.toString();
+      str = m2.toString();
+      assert (str == ("bef" ~ str2));
+    }
   }
 }
 
