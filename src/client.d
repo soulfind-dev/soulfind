@@ -350,13 +350,10 @@ class User
 		{
 		string list;
 
-		debug (5) writeln ("Hmmm x3");
-
 		foreach (User user ; watching ())
 			{
 			list ~= user.username ~ " ";
 			}
-		debug (5) writeln ("Hmmm x4");
 		return list;
 		}
 	
@@ -413,10 +410,8 @@ class User
 		User[] list;
 		foreach (User user ; server.users ())
 			{
-			debug (5) writeln ("Hmmm x7");
 			if (user.watching().length > 0 && user !is this && this.username in user.watching ())
 				list ~= user;
-			debug (5) writeln ("Hmmm x8");
 			}
 		return list;
 		}

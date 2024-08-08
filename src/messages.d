@@ -68,7 +68,7 @@ class Message
 		{
 		try
 			{
-			writeln("Sending string '", s, "', length ", s.length);
+			debug (3) writeln("Sending string '", s, "', length ", s.length);
 			writei (s.length);
 			b.write (s);
 			}
@@ -844,7 +844,6 @@ class SLogin : Message
 		
 		writeb (success);	// success (0 = fail / 1 = success)
 		writes (mesg);		// server message
-		writeln("MOTD: ", mesg);
 		if (success)
 			{
 			writei (addr);	// external IP address of the client
