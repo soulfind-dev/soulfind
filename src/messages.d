@@ -558,6 +558,25 @@ class URemoveThingILike : Message
 		}
 	}
 
+class UUserInterests : Message
+	{		// A user wants to know this user's likes and hates
+	string user;
+
+	this (Stream s)
+		{
+		super (s);
+
+		user = reads ();
+		}
+
+	this (string user)
+		{
+		super (UserInterests);
+
+		writes (user);
+		}
+	}
+
 class UAddThingIHate : Message
 	{		// Client hates thing
 	string thing;	// thing (s)he likes
@@ -1382,6 +1401,52 @@ class SGetGlobalRecommendations : Message
 			int    level  = readi ();
 
 			list[artist] = level;
+			}
+		}
+	}
+
+class SUserInterests : Message
+	{	// Send a user's likes and hates
+	this (string user, string[string] likes, string[string] hates)
+		{
+		super (UserInterests);
+
+		writes (user);
+
+		writei (likes.length);
+		foreach (string thing ; likes)
+			{
+			writes (thing);
+			}
+		writei (hates.length);
+		foreach (string thing ; hates)
+			{
+			writes (thing);
+			}
+		}
+
+	string         user;
+	string[string] likes;
+	string[string] hates;
+
+	this (Stream s)
+		{
+		super (s);
+
+		user = reads ();
+
+		int n = readi ();
+		for (int i = 0 ; i < n ; i++)
+			{
+			string thing = reads ();
+			likes[thing] = thing;
+			}
+
+		n = readi ();
+		for (int i = 0 ; i < n ; i++)
+			{
+			string thing = reads ();
+			hates[thing] = thing;
 			}
 		}
 	}

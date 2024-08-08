@@ -776,6 +776,15 @@ class User
 			case SimilarUsers:
 				send_message (new SSimilarUsers (get_similar_users ()));
 				break;
+			case UserInterests:
+				UUserInterests o = new UUserInterests (s);
+
+				if (server.find_user (o.user)) {
+					User u = server.get_user (o.user);
+					send_message (new SUserInterests (u.username, u.things_he_likes, u.things_he_hates));
+
+				}
+				break;
 			case RoomList:
 				send_message (new SRoomList (Room.room_stats ()));
 				break;

@@ -64,6 +64,7 @@ const int AddThingILike			= 51;
 const int RemoveThingILike		= 52;
 const int GetRecommendations		= 54;	/+ TODO : both +/
 const int GlobalRecommendations		= 56;	/+ TODO : both +/
+const int UserInterests			= 57;
 const int PlaceInLineResponse		= 60;	/+ not used anymore on the official server +/
 const int RoomAdded			= 62;	/+ not used anymore, not understood by museek +/
 const int RoomRemoved			= 63;	/+ --^ +/
