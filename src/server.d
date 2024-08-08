@@ -52,8 +52,8 @@ version (linux)
 
 void help (string[] args)
 	{
-	writeln ("Usage: %s [database_file] [-d|--deamon]", args[0]);
-	writeln ("\tdatabase_file: path to the sqlite3 database (default: %s)", default_db_file);
+	writeln ("Usage: ", args[0], " [database_file] [-d|--deamon]");
+	writeln ("\tdatabase_file: path to the sqlite3 database (default: ", default_db_file, ")");
 	writeln ("\t-d, --deamon : fork in the background");
 	exit (0);
 	}
