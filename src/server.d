@@ -366,9 +366,9 @@ class Server
 						   ~ "admins\n\tList admins\n\n"
 						   ~ "rooms\n\tList rooms and number of occupiants\n\n"
 						   ~ "addprivileges <days> <user>\n\tAdd <days> days of privileges to user <user>\n\n"
-						   ~ "message <message>\n\tSend global message <message> (Note: Museeq users will not see it)\n\n"
+						   ~ "message <message>\n\tSend global message <message>\n\n"
 						   ~ "uptime\n\tShow server uptime\n\n"
-						   ~ "reload\n\tReload settings (Admins, MOTD, max sixes, etc)");
+						   ~ "reload\n\tReload settings (Admins, MOTD, etc)");
 				break;
 			case "addprivileges":
 				uint days;
