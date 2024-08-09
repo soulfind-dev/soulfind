@@ -1,11 +1,11 @@
 module defines;
 
-static string VERSION	= "0.4.8";
-string default_db_file	= "soulfind.db";
-uint port		= 2242;
-uint max_users		= 65535;
-uint max_message_size	= 16384;
-string server_user	= "server";
+const string VERSION		= "0.4.8";
+const string default_db_file	= "soulfind.db";
+const uint port			= 2242;
+const uint max_users		= 65535;
+const uint max_message_size	= 16384;
+const string server_user	= "server";
 
 
 // colours

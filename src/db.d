@@ -14,13 +14,13 @@ class Sdb
 	sqlite3* db;
 	sqlite3_stmt* stmt;
 
-	string users_table  = "users";
-	string admins_table = "admins";
-	string conf_table   = "conf";
+	const string users_table  = "users";
+	const string admins_table = "admins";
+	const string conf_table   = "conf";
 
-	string users_table_format  = "CREATE TABLE %s (username TEXT, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER);";
-	string admins_table_format = "CREATE TABLE %s (username TEXT, level INTEGER);";
-	string conf_table_format   = "CREATE TABLE %s (port INTEGER, max_users INTEGER, motd TEXT);";
+	const string users_table_format  = "CREATE TABLE %s (username TEXT, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER);";
+	const string admins_table_format = "CREATE TABLE %s (username TEXT, level INTEGER);";
+	const string conf_table_format   = "CREATE TABLE %s (port INTEGER, max_users INTEGER, motd TEXT);";
 
 	this (string file, bool update = false)
 		{
