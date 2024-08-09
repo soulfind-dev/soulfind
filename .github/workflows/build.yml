@@ -27,3 +27,28 @@ jobs:
 
       - name: Build
         run: make
+
+  artifacts:
+    runs-on: ubuntu-latest
+    container: alpine:edge
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        arch: [x86_64]
+    env:
+      DC: ldmd2 -static
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: apk add gcc ldc ldc-static make musl-dev sqlite-dev sqlite-static
+
+      - name: Build
+        run: make
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soulfind-${{ matrix.arch }}-linux
+          path: bin
