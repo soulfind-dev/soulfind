@@ -50,3 +50,8 @@ You can edit the database yourself with the sqlite3 utility, but the easiest is
 to use `soulsetup` instead. You need to add the first admin yourself, since you
 have to be an admin already to add an admin when connected to the server
 (though Soulfind runs fine without any admin).
+
+
+## Authors
+
+Originally created by SeeSchloss
