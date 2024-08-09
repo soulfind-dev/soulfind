@@ -52,9 +52,9 @@ version (linux)
 
 void help (string[] args)
 	{
-	writeln ("Usage: ", args[0], " [database_file] [-d|--deamon]");
+	writeln ("Usage: ", args[0], " [database_file] [-d|--daemon]");
 	writeln ("\tdatabase_file: path to the sqlite3 database (default: ", default_db_file, ")");
-	writeln ("\t-d, --deamon : fork in the background");
+	writeln ("\t-d, --daemon : fork in the background");
 	exit (0);
 	}
 
@@ -62,7 +62,7 @@ void main (string[] args)
 	{
 	string db;
 	
-	bool deamon = false;
+	bool daemon = false;
 
 	if (args.length > 3) help (args);
 
@@ -75,8 +75,8 @@ void main (string[] args)
 				help (args);
 				break;
 			case "-d":
-			case "--deamon":
-				deamon = true;
+			case "--daemon":
+				daemon = true;
 				break;
 			default:
 				db = arg;
@@ -86,7 +86,7 @@ void main (string[] args)
 	
 	if (db.length == 0) db = default_db_file;
 
-	if (deamon)
+	if (daemon)
 		{
 		version (linux)
 			{
@@ -94,14 +94,14 @@ void main (string[] args)
 			}
 		else
 			{
-			writeln ("--deamon: only supported under Linux");
+			writeln ("--daemon: only supported under Linux");
 			}
 		}
 	
 	Server s = new Server (db);
 	s.listen ();
 
-	if (!deamon) writeln ("Exiting.");
+	if (!daemon) writeln ("Exiting.");
 	}
 
 class Server
