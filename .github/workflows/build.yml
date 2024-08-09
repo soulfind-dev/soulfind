@@ -5,9 +5,17 @@ on: [push, pull_request]
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-
+    strategy:
+      matrix:
+        include:
+          - compiler: gdc
+            ccommand: gdc
+          - compiler: ldc
+            ccommand: ldmd2
+    env:
+      DC: ${{ matrix.ccommand }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -15,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install ldc
+          sudo apt install ${{ matrix.compiler }} libsqlite3-dev
 
       - name: Build
         run: make
