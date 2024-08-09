@@ -493,7 +493,7 @@ class User
 			{
 			int length; stream.read (length);
 			
-			if (length < 0 || length > server.max_message_size)
+			if (length < 0 || length > max_message_size)
 				{ // message is probably bogus, let's disconnect the user
 				return false;
 				}
@@ -538,13 +538,6 @@ class User
 				debug (1) write ("User logging in : ");
 				ULogin o = new ULogin (s);
 				string error;
-
-
-				if (server.db.conf_get_int ("case_insensitive"))
-					{
-					string realname = server.db.get_insensitive_username (o.name);
-					if (realname) o.name = realname;
-					}
 
 				if (!server.check_login (o.name, o.pass, o.vers, error))
 					{
@@ -604,7 +597,7 @@ class User
 					send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
 					watch (o.user);
 					}
-				else if (o.user == server.server_user)
+				else if (o.user == server_user)
 					{
 					status = 2;
 					}
@@ -637,7 +630,7 @@ class User
 					debug (2) writeln ("offline.");
 					status = 0;
 					}
-				else if (o.user == server.server_user)
+				else if (o.user == server_user)
 					{	// user is the server administration interface
 					debug (2) writeln ("server (online)");
 					status = 2;
@@ -689,7 +682,7 @@ class User
 			case MessageUser:
 				UMessageUser o = new UMessageUser (s);
 
-				if (this.admin && o.user == server.server_user)
+				if (this.admin && o.user == server_user)
 					{
 					server.admin_message (this, o.message);
 					}
@@ -703,11 +696,8 @@ class User
 					}
 				else if (server.db.user_exists (o.user))
 					{ // user is not connected but exists
-					if (PM.nb_messages (o.user) < server.max_offline_pms)
-						{
-						PM pm = new PM (o.message, this.username, o.user);
-						PM.add_pm (pm);
-						}
+					PM pm = new PM (o.message, this.username, o.user);
+					PM.add_pm (pm);
 					}
 				break;
 			case MessageAcked:

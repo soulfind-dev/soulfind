@@ -18,13 +18,13 @@ class Sdb
 	string admins_table = "admins";
 	string conf_table   = "conf";
 
-	string users_table_format  = "CREATE TABLE %s (username TEXT, password TEXT, speed INTEGER, dlnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER);";
+	string users_table_format  = "CREATE TABLE %s (username TEXT, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER);";
 	string admins_table_format = "CREATE TABLE %s (username TEXT, level INTEGER);";
-	string conf_table_format   = "CREATE TABLE %s (port INTEGER, max_users INTEGER, max_message_size INTEGER, max_offline_pms INTEGER, motd TEXT, server_user TEXT, case_insensitive INTEGER, md5_ident INTEGER);";
+	string conf_table_format   = "CREATE TABLE %s (port INTEGER, max_users INTEGER, motd TEXT);";
 
 	this (string file, bool update = false)
 		{
-		string default_conf_format = format ("INSERT INTO %%s (port, max_users, max_message_size, max_offline_pms, motd, server_user, case_insensitive, md5_ident) VALUES (%d, %d, %d, %d, 'Soulfind %s', '%s', %d, %d);", 2240, 65535, 16384, 15, VERSION, "server", 0, 1);
+		string default_conf_format = format ("INSERT INTO %%s (port, max_users, motd) VALUES (%d, %d, 'Soulfind %s');", port, max_users, VERSION);
 		if (!exists (file) || !isFile (file))
 			{
 			sqlite3_open (file.toStringz(), &db);
@@ -77,7 +77,7 @@ class Sdb
 	
 		// my eyes are bleeding !
 	string[] parse_db_format (string f)
-		{ // format is like "CREATE TABLE conf (port integer, max_users integer, max_message_size integer, max_offline_pms integer)"
+		{ // format is like "CREATE TABLE conf (port integer, max_users integer)"
 		string[] res = split (f);
 		res = res[3 .. $];       // remove "CREATE TABLE conf"
 		res[0] = res[0][1 .. $]; // remove '('
@@ -240,7 +240,7 @@ class Sdb
 	bool get_user (string username, out int speed, out int upload_number, out int something, out int shared_files, out int shared_folders)
 		{
 		debug (4) writeln ("DB: Requested ", username, "'s info...");
-		string query = format ("SELECT speed,dlnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
+		string query = format ("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
 			{
@@ -262,7 +262,7 @@ class Sdb
 	bool get_user (string username, out string password, out int speed, out int upload_number, out int shared_files, out int shared_folders, out int privileges)
 		{
 		debug (4) writeln ("DB: Requested ", username, "'s info...");
-		string query = format ("SELECT password,speed,dlnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
+		string query = format ("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
 			{
@@ -280,14 +280,6 @@ class Sdb
 			{
 			return false;
 			}
-		}
-
-	string get_insensitive_username (string username)
-		{
-		string[][] res = query (format ("SELECT username FROM %s WHERE username LIKE '%s'", users_table, escape (username)));
-		
-		if (res.length > 0) return res[0][0];
-		else		    return null;
 		}
 	
 	string[][] query (string query)

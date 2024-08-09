@@ -109,10 +109,6 @@ class Server
 	ushort port;
 	int max_users;
 	string motd;
-	string server_user;
-
-	int max_message_size;
-	int max_offline_pms;
 
 	long started_at;	// for server uptime
 
@@ -499,7 +495,7 @@ class Server
 	
 	void adminpm (User admin, string message)
 		{
-		PM pm = new PM (message, this.server_user, admin.username);
+		PM pm = new PM (message, server_user, admin.username);
 		bool new_message = true;
 		admin.send_pm (pm, new_message);
 		}
@@ -598,10 +594,7 @@ class Server
 		{
 		if (!reload) this.port		= cast(ushort)db.conf_get_int ("port");
 		if (!reload) this.max_users	= db.conf_get_int ("max_users");
-		this.max_message_size		= db.conf_get_int ("max_message_size");
-		this.max_offline_pms		= db.conf_get_int ("max_offline_pms");
 		this.motd					= db.conf_get_str ("motd");
-		this.server_user			= db.conf_get_str ("server_user");
 
 		foreach (string admin ; db.get_admins ())
 			{
@@ -672,7 +665,7 @@ class Server
 		{
 		if (!db.user_exists (user))
 			{
-			if (!check_string (user) || user == this.server_user)
+			if (!check_string (user) || user == server_user)
 				{
 				error = "INVALIDUSERNAME";
 				return false;

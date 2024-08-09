@@ -69,12 +69,8 @@ void main_menu ()
 	m.add ("0", "Admins",            &admins);
 	m.add ("1", "Listen port",       &listen_port);
 	m.add ("2", "Max users allowed", &max_users);
-	m.add ("3", "Max message size",  &max_size);
-	m.add ("4", "Max offline PMs",   &max_pms);
-	m.add ("5", "MOTD",              &motd);
-	m.add ("6", "Banned users",      &banned_users);
-	m.add ("7", "Server username",   &server_username);
-	m.add ("8", "Case sensitivity",  &case_sensitivity);
+	m.add ("3", "MOTD",              &motd);
+	m.add ("4", "Banned users",      &banned_users);
 	m.add ("i", "Server info.",      &info);
 	m.add ("q", "Exit",              &exit);
 	
@@ -166,40 +162,6 @@ void set_max_users ()
 	dout.writef ("Max users : ");
 	sdb.conf_set_field ("max_users", to!string(din.readLine()));
 	max_users ();
-	}
-
-void max_size ()
-	{
-	Menu m = new Menu (format ("Max client message size : %d", sdb.conf_get_int ("max_message_size")));
-
-	m.add ("1", "Change max size", &set_max_size);
-	m.add ("q", "Return",          &main_menu);
-
-	m.show ();
-	}
-
-void set_max_size ()
-	{
-	dout.writef ("Max size : ");
-	sdb.conf_set_field ("max_message_size", to!string(din.readLine()));
-	max_size ();
-	}
-
-void max_pms ()
-	{
-	Menu m = new Menu (format ("Max number of offline PMs : %d", sdb.conf_get_int ("max_offline_pms")));
-
-	m.add ("1", "Change number", &set_max_pms);
-	m.add ("q", "Return",        &main_menu);
-
-	m.show ();
-	}
-
-void set_max_pms ()
-	{
-	dout.writef ("Max PMs : ");
-	sdb.conf_set_field ("max_offline_pms", to!string(din.readLine()));
-	max_pms ();
 	}
 
 void motd ()
@@ -313,39 +275,6 @@ void list_banned ()
 		}
 	
 	banned_users ();
-	}
-
-void server_username ()
-	{
-	Menu m = new Menu ("Current username : " ~ sdb.conf_get_str ("server_user"));
-
-	m.add ("1", "Change name", &set_server_username);
-	m.add ("q", "Return",      &main_menu);
-
-	m.show ();
-	}
-
-void set_server_username ()
-	{
-	dout.writef ("New name : ");
-	sdb.conf_set_field ("server_user", to!string(din.readLine()));
-	server_username ();
-	}
-
-void case_sensitivity ()
-	{
-	Menu m = new Menu ("Usernames are now case " ~ (sdb.conf_get_int ("case_insensitive") ? "insensitive" : "sensitive"));
-
-	m.add ("1", "Toggle", &set_case_sensitivity);
-	m.add ("q", "Return", &main_menu);
-
-	m.show ();
-	}
-
-void set_case_sensitivity ()
-	{
-	sdb.conf_set_field ("case_insensitive", !sdb.conf_get_int ("case_insensitive"));
-	case_sensitivity ();
 	}
 
 class Menu

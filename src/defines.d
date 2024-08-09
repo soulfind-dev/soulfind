@@ -1,7 +1,9 @@
 module defines;
 
-int port      = 2240;
-int max_users = 65535;
+int port             = 2242;
+int max_users        = 65535;
+int max_message_size = 16384;
+string server_user   = "server";
 
 static string VERSION	= "0.4.8";
 string default_db_file	= "/var/db/soulfind/soulfind.db";

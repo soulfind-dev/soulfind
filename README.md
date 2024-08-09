@@ -30,24 +30,6 @@ You'll also need to have the sqlite3 library installed, since it's the database
 Soulfind uses to store its configuration and user info.
 
 
-## Case Sensitivity for Usernames
-
-Case sensitivity can be configured through soulsetup. When in case-insensitive
-mode, the case used is the one used at the first connection to the server, for
-example: "User" logs in for the first time. He is registered as "User". If he
-later connects as "user", he will still be shown as "User".
-
-Case-insensitivity will only work for ASCII characters (not even other
-iso-8859-15 characters like é/É, à/À, ô/Ô, etc), this is because of a SQLite
-limitation and may change someday, or depend on the version of the SQLite
-library used.
-
-It is also not recommended to switch to case-insensitive mode with a database
-that already has registered users, since if two username with a different case
-and a different password are registered, case-insensitivity will prevent the
-most recent one from logging into the server.
-
-
 ## Configuration
 
 Soulfind doesn't use a configuration file anymore. Instead, it stores all its
@@ -62,8 +44,6 @@ Only the `conf` table is filled with some default values:
 
  - port: `2241`
  - max_users: `65535`
- - max_message_size: `16384`
- - max_offline_pms: `15`
  - motd: `Soulfind <version>`
 
 You can edit the database yourself with the sqlite3 utility, but the easiest is
