@@ -283,12 +283,11 @@ class Room
 			{
 			user_list[user.username] = user.username;
 
+			this.send_to_all  (new SUserJoinedRoom (this.name, user.username, user.status, user.speed, user.upload_number, user.something, user.shared_files, user.shared_folders, user.slots_full, user.country_code));
+
 			user.send_message (new SJoinRoom   (this.name, this.user_names (), this.statuses (), this.speeds (), this.upload_numbers (), this.somethings (), this.shared_files (), this.shared_folders (), this.slots_full (), this.country_codes ()));
 			user.send_message (new SRoomTicker (this.name, this.tickers));
 			user.join_room    (this.name);
-
-			this.send_to_all  (new SUserJoinedRoom (this.name, user.username, user.status, user.speed, user.upload_number, user.something, user.shared_files, user.shared_folders, user.slots_full, user.country_code));
-			if (this.nb_users() == 1) server.send_to_all (new SRoomList (Room.room_stats ()));
 			}
 		}
 	
