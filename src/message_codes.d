@@ -128,6 +128,11 @@ string[] message_name = [
 		, 121 : "SendUploadSpeed"
 		, 122 : "UserPrivileged"
 		, 123 : "GivePrivileges"
+		, 142 : "ChangePassword"
+		, 149 : "MessageUsers"
+		, 150 : "JoinGlobalRoom"
+		, 151 : "LeaveGlobalRoom"
+		, 152 : "GlobalRoomMessage"
 		, 1001 : "CantConnectToPeer"
 		, 1789 : "ServerInfo"];
 
