@@ -58,7 +58,6 @@ const uint GlobalRecommendations	= 56;
 const uint UserInterests		= 57;
 const uint RoomList			= 64;
 const uint AdminMessage			= 66;
-const uint AddToPrivileged		= 91;
 const uint CheckPrivileges		= 92;
 const uint WishlistSearch		= 103;
 const uint WishlistInterval		= 104;
@@ -73,7 +72,7 @@ const uint AddThingIHate		= 117;
 const uint RemoveThingIHate		= 118;
 const uint RoomSearch			= 120;
 const uint SendUploadSpeed		= 121;
-const uint UserPrivileges		= 122;
+const uint UserPrivileged		= 122;
 const uint GivePrivileges		= 123;
 const uint ChangePassword		= 142;
 const uint MessageUsers			= 149;
@@ -113,7 +112,6 @@ string[] message_name = [
 		, 64 : "RoomList"
 		, 66 : "AdminMessage"
 		, 69 : "PrivilegedUsers"
-		, 91 : "AddToPrivileged"
 		, 92 : "CheckPrivileges"
 		, 103 : "WishlistSearch"
 		, 104 : "WishlistInterval"
@@ -128,7 +126,7 @@ string[] message_name = [
 		, 118 : "RemoveThingIHate"
 		, 120 : "RoomSearch"
 		, 121 : "SendUploadSpeed"
-		, 122 : "UserPrivileges"
+		, 122 : "UserPrivileged"
 		, 123 : "GivePrivileges"
 		, 1001 : "CantConnectToPeer"
 		, 1789 : "ServerInfo"];

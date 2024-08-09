@@ -158,6 +158,7 @@ class User
 		this.privileges += privileges;
 		debug (2) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
+		send_message (new SCheckPrivileges (this.privileges));
 		}
 	
 	void remove_privileges (uint privileges)
@@ -169,6 +170,7 @@ class User
 			this.privileges -= privileges;
 		debug (2) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
+		send_message (new SCheckPrivileges (this.privileges));
 		}
 	
 	void update_privileges ()
@@ -796,17 +798,6 @@ class User
 						}
 					}
 				break;
-			case AddToPrivileged:
-				if (this.admin)
-					{
-					UAddToPrivileged o = new UAddToPrivileged (s);
-
-					if (server.find_user (o.user))
-						{
-						server.get_user (o.user).privileges += o.time;
-						}
-					}
-				break;
 			case CheckPrivileges:
 				send_message (new SCheckPrivileges (this.get_privileges ()));
 				break;
@@ -845,13 +836,13 @@ class User
 					debug (2) writeln ("User ", this.username, " reports a speed of ", o.speed, " B/s (their speed is now ", u.speed, " B/s)");
 					}
 				break;
-			case UserPrivileges:
-				UUserPrivileges o = new UUserPrivileges (s);
+			case UserPrivileged:
+				UUserPrivileged o = new UUserPrivileged (s);
 				
 				if (server.find_user (o.user))
 					{
 					User u = server.get_user (o.user);
-					send_message (new SUserPrivileges (u.username, u.privileges));
+					send_message (new SUserPrivileged (u.username, u.privileges > 0));
 					}
 				break;
 			case GivePrivileges:

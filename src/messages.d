@@ -632,28 +632,6 @@ class URemoveThingIHate : Message
 		}
 	}
 
-class UAddToPrivileged : Message
-	{		// An admin gives privileges to an user
-	string user;	// user to give the privileges to
-	uint   time;	// privileges credits
-
-	this (Stream s)
-		{
-		super (s);
-
-		user = reads ();
-		time = readi ();
-		}
-	
-	this (string user, uint time)
-		{
-		super (AddToPrivileged);
-
-		writes (user);
-		writei (time);
-		}
-	}
-
 class UGetItemRecommendations : Message
 	{		// An user wants to get recommendations
 			// for a particular item
@@ -741,7 +719,7 @@ class URoomSearch : Message
 		}
 	}
 
-class UUserPrivileges : Message
+class UUserPrivileged : Message
         {               // Client wants to know if someone has privileges
         string user;    // user name
 
@@ -754,7 +732,7 @@ class UUserPrivileges : Message
 	
 	this (string user)
 		{
-		super (UserPrivileges);
+		super (UserPrivileged);
 
 		writes (user);
 		}
@@ -878,7 +856,7 @@ class UCantConnectToPeer : Message
 class SLogin : Message
 	{	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
-	this (byte success, string mesg, uint addr = 0, string password = null, bool supporter = false)
+	this (byte success, string mesg, uint addr = 0, string password = null, byte supporter = false)
 		{
 		super (Login);
 		
@@ -991,7 +969,7 @@ class SWatchUser : Message
 
 class SGetUserStatus : Message
 	{	// Send the status of user user
-	this (string username, uint status, bool privileged)
+	this (string username, uint status, byte privileged)
 		{
 		super (GetUserStatus);
 
@@ -1280,7 +1258,7 @@ class SUserLeftRoom : Message
 
 class SConnectToPeer : Message
 	{	// Ask a peer to connect back to user
-	this (string username, string type, uint address, uint port, uint token, bool privileged, uint unknown = 0, uint obfuscated_port = 0)
+	this (string username, string type, uint address, uint port, uint token, byte privileged, uint unknown = 0, uint obfuscated_port = 0)
 		{
 		super (ConnectToPeer);
 
@@ -1814,25 +1792,25 @@ class SRoomSearch : Message
 		}
 	}
 
-class SUserPrivileges : Message
+class SUserPrivileged : Message
 	{	// Send the privileges status of user
-	this (string username, uint privileges)
+	this (string username, byte privileged)
 		{
-		super (UserPrivileges);
+		super (UserPrivileged);
 
-		writei (privileges);	// user privileges
 		writes (username);	// user name
+		writeb (privileged);	// user privileged
 		}
 
-	uint   privileges;
 	string username;
+	byte   privileged;
 
 	this (Stream s)
 		{
 		super (s);
 
-		privileges = readi ();
 		username   = reads ();
+		privileged = readb ();
 		}
 	}
 
