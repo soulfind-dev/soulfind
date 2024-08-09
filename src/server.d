@@ -152,7 +152,7 @@ class Server
 			}
 		catch (Exception e)
 			{
-			write("Unable to bind socket to port %d", port);
+			write("Unable to bind socket to port ", port);
 			if (port < 1024)
 				writeln(", could it be that you're trying to use a port less than 1024 while running as a user ?");
 			else
