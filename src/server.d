@@ -107,12 +107,12 @@ void main (string[] args)
 class Server
 	{
 	ushort port;
-	int max_users;
+	uint max_users;
 	string motd;
 
-	long started_at;	// for server uptime
+	ulong started_at;	// for server uptime
 
-	int timeoutval = 240*1000000; // 2 minutes (µseconds)
+	uint timeoutval = 240*1000000; // 2 minutes (µseconds)
 	Duration timeout = dur!"minutes"(2);
 	Sdb db; // users database
 
@@ -121,7 +121,7 @@ class Server
 
 	this (string db_file)
 		{
-		this.started_at = cast(int)time(null);
+		this.started_at = time(null);
 		db = new Sdb (db_file);
 	
 		config ();
@@ -169,7 +169,7 @@ class Server
 			sockset.reset ();
 			sockset.add (socket);
 			foreach (Socket s ; user_sockets.keys) sockset.add (s);
-			int nb = Socket.select (sockset, null, null, timeout);
+			uint nb = Socket.select (sockset, null, null, timeout);
 			if (nb == 0)
 				{
 				send_pings ();
@@ -208,14 +208,15 @@ class Server
 		}
 
 	// Filesearches
-	void do_FileSearch (int token, string string, string username)
+	void do_FileSearch (uint token, string string, string username)
 		{					// user who sends the search
 		Message m = new SFileSearch (username, token, string);
 		this.send_to_all (m);
 		}
 
-	void do_UserSearch (int token, string string, string username,                string to)
-		{					// user who sends the search	// to this user
+	void do_UserSearch (uint token, string string, string username, string to)
+		{					// user who sends the search
+							// to this user
 		Message m = new SFileSearch (username, token, string);
 		User u = get_user (to);
 
@@ -229,7 +230,7 @@ class Server
 			}
 		}
 	
-	void do_RoomSearch (int token, string string, string username, string room)
+	void do_RoomSearch (uint token, string string, string username, string room)
 		{
 		Message m = new SFileSearch (username, token, string);
 
@@ -296,7 +297,7 @@ class Server
 		{
 		foreach (User u ; users ())
 			{
-			if ((cast(int)time(null) - u.last_message_date) >= timeout.total!"seconds")
+			if ((time(null) - u.last_message_date) >= timeout.total!"seconds")
 				{
 				u.send_message (new SServerPing ());
 				}
@@ -315,9 +316,9 @@ class Server
 		}
 	
 	// recommendations
-	int[string] global_recommendations ()
+	uint[string] global_recommendations ()
 		{
-		int[string] list;
+		uint[string] list;
 		
 		foreach (User u ; this.users ())
 			{
@@ -370,7 +371,7 @@ class Server
 						   ~ "reload\n\tReload settings (Admins, MOTD, max sixes, etc)");
 				break;
 			case "addprivileges":
-				int days;
+				uint days;
 				if (command.length < 3)
 					{
 					this.adminpm (admin, "Syntax is : addprivileges <days> <user>");
@@ -378,7 +379,7 @@ class Server
 					}
 				try
 					{
-					days = to!int(command[1]);
+					days = to!uint(command[1]);
 					}
 				catch (Exception e)
 					{
@@ -579,7 +580,7 @@ class Server
 			}
 		}
 
-	string get_motd (string name, int vers)
+	string get_motd (string name, uint vers)
 		{
 		string ret;
 		ret = replace (this.motd, "%version%", VERSION);
@@ -602,9 +603,9 @@ class Server
 			}
 		}
 	
-	long uptime ()	// returns uptime, in seconds
+	ulong uptime ()	// returns uptime, in seconds
 		{
-		return cast(int)time(null) - this.started_at;
+		return time(null) - this.started_at;
 		}
 	
 	string print_uptime ()
@@ -661,7 +662,7 @@ class Server
 		return true;
 		}
 	
-	bool check_login (string user, string pass, int vers, out string error)
+	bool check_login (string user, string pass, uint vers, out string error)
 		{
 		if (!db.user_exists (user))
 			{
@@ -735,12 +736,12 @@ version (linux)
 	}
 
 
-string print_length (long length)
+string print_length (ulong length)
 	{
-	long d = length/(60*60*24);
-	long h = length/(60*60) - d*24;
-	long m = length/(60) - d*60*24 - h*60;
-	long s = length - d*60*60*24 - h*60*60 - m*60;
+	ulong d = length/(60*60*24);
+	ulong h = length/(60*60) - d*24;
+	ulong m = length/(60) - d*60*24 - h*60;
+	ulong s = length - d*60*60*24 - h*60*60 - m*60;
 	
 	string l;
 	if (d > 0) l ~= format ("%d %s, ", d, d > 1 ? "days" : "day");

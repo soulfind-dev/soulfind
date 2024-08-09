@@ -84,7 +84,7 @@ class Sdb
 
 		string[] ret;
 		ret.length = res.length/2;
-		for (int i = 0 ; i < ret.length ; i++)
+		for (uint i = 0 ; i < ret.length ; i++)
 			{
 			ret[i] = res[i*2];
 			}
@@ -92,7 +92,7 @@ class Sdb
 		return ret;
 		}
 	
-	void add_admin (string username, int level = 0)
+	void add_admin (string username, uint level = 0)
 		{
 		this.query (format ("INSERT INTO %s (username, level) VALUES ('%s', %d);", admins_table, escape (username), level));
 		}
@@ -116,7 +116,7 @@ class Sdb
 		return ret;
 		}
 	
-	void conf_set_field (string field, int value)
+	void conf_set_field (string field, uint value)
 		{
 		this.query (format ("UPDATE %s SET '%s' = %d;", conf_table, field, value));
 		}
@@ -126,11 +126,11 @@ class Sdb
 		this.query (format ("UPDATE %s SET '%s' = '%s';", conf_table, field, escape (value)));
 		}
 	
-	int conf_get_int (string field)
+	uint conf_get_int (string field)
 		{
 		string[][] res = this.query (format ("SELECT %s FROM %s;", field, conf_table));
 
-		return to!int(res[0][0]);
+		return to!uint(res[0][0]);
 		}
 	
 	string conf_get_str (string field)
@@ -140,14 +140,14 @@ class Sdb
 		return res[0][0];
 		}
 
-	int nb_users ()
+	uint nb_users ()
 		{
 		string query = format ("SELECT COUNT(username) FROM %s;", users_table);
 		string[][] res = this.query (query);
 		return atoi (res[0][0]);
 		}
 	
-	int nb_banned_users ()
+	uint nb_banned_users ()
 		{
 		string query = format ("SELECT COUNT(username) FROM %s WHERE banned = 1;", users_table);
 		string[][] res = this.query (query);
@@ -175,7 +175,7 @@ class Sdb
 		this.query (query);
 		}
 
-	void user_update_field (string username, string field, int value)
+	void user_update_field (string username, string field, uint value)
 		{
 		string query = format ("UPDATE %s SET %s = %d WHERE username = '%s';", users_table, field, value, escape (username));
 
@@ -237,7 +237,7 @@ class Sdb
 			}
 		}
 	
-	bool get_user (string username, out int speed, out int upload_number, out int something, out int shared_files, out int shared_folders)
+	bool get_user (string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 		{
 		debug (4) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
@@ -259,7 +259,7 @@ class Sdb
 			}
 		}
 	
-	bool get_user (string username, out string password, out int speed, out int upload_number, out int shared_files, out int shared_folders, out int privileges)
+	bool get_user (string username, out string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 		{
 		debug (4) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
@@ -291,17 +291,17 @@ class Sdb
 		
 		char* tail;
 
-		sqlite3_prepare (db, query.toStringz(), cast(int)query.length, &stmt, &tail);
+		sqlite3_prepare (db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
-		int res;
+		uint res;
 		res = sqlite3_step (stmt);
 
 		while (res == SQLITE_ROW)
 			{
 			string[] record;
-			int n = sqlite3_column_count (stmt);
+			uint n = sqlite3_column_count (stmt);
 
-			for (int i ; i < n ; i++)
+			for (uint i ; i < n ; i++)
 				{
 				record ~= to!string(sqlite3_column_text (stmt, i));
 				}
@@ -324,7 +324,7 @@ class Sdb
 		return replace (str, "'", "''");
 		}
 
-	int atoi (string str)
+	uint atoi (string str)
 		{
 		if (str == "")
 			{
@@ -333,7 +333,7 @@ class Sdb
 		
 		try
 			{
-			int i = to!int(str);
+			uint i = to!uint(str);
 			return i;
 			}
 		catch (ConvException e)

@@ -44,27 +44,27 @@ class User
 	// some attributes...
 	string	username;
 	string	password;
-	int	cversion;
+	uint	cversion;
 
-	int	address;
-	int	port;
+	uint	address;
+	uint	port;
 
 	bool	admin;
 
-	int	privileges;		// in seconds
-	long	last_checked_privileges;// privileges length is counted from this date
-	int	speed;			// received in B/s, sent in kB/s
-	int	upload_number;
-	int	something;
-	int	shared_files;
-	int	shared_folders;
-	int	slots_full;
+	uint	privileges;		// in seconds
+	ulong	last_checked_privileges;// privileges length is counted from this date
+	uint	speed;			// received in B/s, sent in kB/s
+	uint	upload_number;
+	uint	something;
+	uint	shared_files;
+	uint	shared_folders;
+	uint	slots_full;
 	string  country_code;
 
-	int		status;				// 0,1,2
+	uint	status;			// 0,1,2
 	bool	loggedin;
-	int		connected_at;		// in seconds
-	int		last_message_date;	// in seconds
+	ulong	connected_at;		// in seconds
+	ulong	last_message_date;	// in seconds
 
 	string[string]	things_he_likes;
 	string[string]	things_he_hates;
@@ -76,7 +76,7 @@ class User
 	ubyte[] boeuf;
 
 	// constructors
-	this (Server serv, Socket s, int address)
+	this (Server serv, Socket s, uint address)
 		{
 		this.server            = serv;
 		this.socket            = s;
@@ -88,8 +88,8 @@ class User
 		this.address           = address;
 		this.loggedin          = false;
 		this.admin             = false;
-		this.connected_at      = cast(int)time(null);
-		this.last_message_date = cast(int)time(null);
+		this.connected_at      = time(null);
+		this.last_message_date = time(null);
 		}
 	
 	this () {}
@@ -110,7 +110,7 @@ class User
 		return this.privileges > 0 ? print_length(this.privileges) : "None";
 		}
 
-	void calc_speed (int speed)
+	void calc_speed (uint speed)
 		{
 		if (this.upload_number == 0)
 			{
@@ -128,13 +128,13 @@ class User
 		server.db.user_update_field (this.username, "speed", this.speed);
 		}
 	
-	void set_shared_files (int files)
+	void set_shared_files (uint files)
 		{
 		this.shared_files = files;
 		server.db.user_update_field (this.username, "files", this.shared_files);
 		}
 	
-	void set_shared_folders (int folders)
+	void set_shared_folders (uint folders)
 		{
 		this.shared_folders = folders;
 		server.db.user_update_field (this.username, "folders", this.shared_folders);
@@ -142,7 +142,7 @@ class User
 	
 	void send_pm (PM pm, bool new_message)
 		{
-		this.send_message (new SMessageUser (pm.id, pm.timestamp, pm.from, pm.content, new_message));
+		this.send_message (new SMessageUser (pm.id, cast(uint) pm.timestamp, pm.from, pm.content, new_message));
 		}
 
 	void change_password (string password)
@@ -152,34 +152,39 @@ class User
 		}
 
 	// privileges
-	void add_privileges (int privileges)
+	void add_privileges (uint privileges)
 		{
 		debug (2) writeln ("Adding ", privileges, " seconds of privileges to user ", username);
 		this.privileges += privileges;
-		if (this.privileges < 0) this.privileges = 0;
 		debug (2) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
 		}
 	
-	void remove_privileges (int privileges)
+	void remove_privileges (uint privileges)
 		{
 		debug (2) writeln ("Removing ", privileges, " seconds of privileges to user ", username);
-		this.privileges -= privileges;
-		if (this.privileges < 0) this.privileges = 0;
+		if (privileges > this.privileges)
+			this.privileges = 0;
+		else
+			this.privileges -= privileges;
 		debug (2) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
 		}
 	
 	void update_privileges ()
 		{
-		int now = cast(int)time(null);
-		this.privileges -= now - this.last_checked_privileges;
-		if (this.privileges < 0) this.privileges = 0;
+		ulong now = time(null);
+		ulong difference = now - this.last_checked_privileges;
+		if (this.last_checked_privileges > now) difference = 0;
+		if (this.privileges < difference)
+			this.privileges = 0;
+		else
+			this.privileges -= now - this.last_checked_privileges;
 		this.last_checked_privileges = now;
 		server.db.user_update_field (this.username, "privileges", this.privileges);
 		}
 	
-	int get_privileges ()
+	uint get_privileges ()
 		{
 		update_privileges ();
 		return this.privileges;
@@ -228,9 +233,9 @@ class User
 		return (!(!(thing in things_he_hates)));
 		}
 	
-	int[string] get_recommendations ()
+	uint[string] get_recommendations ()
 		{
-		int[string] list;
+		uint[string] list;
 
 		foreach (User u ; server.users ())
 			{
@@ -267,9 +272,9 @@ class User
 		return list;
 		}
 	
-	int[string] get_similar_users ()
+	uint[string] get_similar_users ()
 		{
-		int[string] users;
+		uint[string] users;
 
 		foreach (User u ; server.users ())
 			{
@@ -303,9 +308,9 @@ class User
 		return users;
 		}
 	
-	int[string] get_item_recommendations (string item)
+	uint[string] get_item_recommendations (string item)
 		{
-		int[string] list;
+		uint[string] list;
 
 		foreach (User u ; server.users ())
 			{
@@ -382,7 +387,7 @@ class User
 		debug (3) writeln ();
 		}
 	
-	void set_status (int status)
+	void set_status (uint status)
 		{
 		this.status = status;
 		this.send_to_watching (new SGetUserStatus (this.username, this.status, this.privileges > 0));
@@ -457,7 +462,7 @@ class User
 		}
 	
 	// messages
-	int run ()
+	uint run ()
 		{
 		while (recv_message ()) {}
 
@@ -474,7 +479,7 @@ class User
 		try
 			{
 			socket.blocking = false;
-			stream.write (cast (int) boeuf.length);
+			stream.write (cast (uint) boeuf.length);
 			stream.write (cast (ubyte[]) boeuf);
 			socket.blocking = true;
 			debug (4) writeln ("Sent ", boeuf.length, " bytes to user " ~ blue, this.username, black);
@@ -491,7 +496,7 @@ class User
 		{
 		try
 			{
-			int length; stream.read (length);
+			uint length; stream.read (length);
 			
 			if (length < 0 || length > max_message_size)
 				{ // message is probably bogus, let's disconnect the user
@@ -500,7 +505,7 @@ class User
 			
 			ubyte[] bœuf; bœuf.length = length;
 
-			last_message_date = cast(int)time(null);
+			last_message_date = time(null);
 
 			auto read = stream.readBlock (bœuf.ptr, length);
 
@@ -525,7 +530,7 @@ class User
 	
 	bool proc_message (Stream s)
 		{
-		int code;
+		uint code;
 		s.read (code);
 		debug (3) if (code != 32 && code < message_name.length) writeln ("Received message ", blue, message_name[code], black, " (code ", blue, code, black ~ ")");
 
@@ -576,7 +581,7 @@ class User
 			case WatchUser:
 				UWatchUser o = new UWatchUser (s);
 				bool exists = true;
-				int status, speed, upload_number, something, shared_files, shared_folders;
+				uint status, speed, upload_number, something, shared_files, shared_folders;
 				string country_code;
 				
 				if (server.db.user_exists (o.user))
@@ -614,7 +619,7 @@ class User
 				break;
 			case GetUserStatus:
 				UGetUserStatus o = new UGetUserStatus (s);
-				int status;
+				uint status;
 				bool privileged;
 
 				debug (2) write ("Sending ", o.user, "'s status... ");
@@ -726,7 +731,7 @@ class User
 			case GetUserStats:
 				UGetUserStats o = new UGetUserStats (s);
 				
-				int speed, upload_number, something, shared_files, shared_folders;
+				uint speed, upload_number, something, shared_files, shared_folders;
 				server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
 				send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
 				break;
@@ -909,7 +914,7 @@ class User
 		{
 		string message = this.server.get_motd (m.name, m.vers);
 		bool supporter = this.get_privileges () > 0;
-		int wishlist_interval = 720;  // in seconds
+		uint wishlist_interval = 720;  // in seconds
 		if (supporter) wishlist_interval = 120;
 
 		this.username = m.name;

@@ -163,9 +163,9 @@ class Room
 		return user_list.keys;
 		}
 	
-	int[string] statuses ()
+	uint[string] statuses ()
 		{
-		int[string] statuses;
+		uint[string] statuses;
 
 		foreach (User user ; users ())
 			{
@@ -175,9 +175,9 @@ class Room
 		return statuses;
 		}
 	
-	int[string] speeds ()
+	uint[string] speeds ()
 		{
-		int[string] speeds;
+		uint[string] speeds;
 
 		foreach (User user ; users ())
 			{
@@ -187,9 +187,9 @@ class Room
 		return speeds;
 		}
 	
-	int[string] upload_numbers ()
+	uint[string] upload_numbers ()
 		{
-		int[string] upload_numbers;
+		uint[string] upload_numbers;
 
 		foreach (User user ; users ())
 			{
@@ -199,9 +199,9 @@ class Room
 		return upload_numbers;
 		}
 	
-	int[string] somethings ()
+	uint[string] somethings ()
 		{
-		int[string] somethings;
+		uint[string] somethings;
 
 		foreach (User user ; users ())
 			{
@@ -211,9 +211,9 @@ class Room
 		return somethings;
 		}
 	
-	int[string] shared_files ()
+	uint[string] shared_files ()
 		{
-		int[string] shared_files;
+		uint[string] shared_files;
 
 		foreach (User user ; users ())
 			{
@@ -223,9 +223,9 @@ class Room
 		return shared_files;
 		}
 	
-	int[string] shared_folders ()
+	uint[string] shared_folders ()
 		{
-		int[string] shared_folders;
+		uint[string] shared_folders;
 
 		foreach (User user ; users ())
 			{
@@ -235,9 +235,9 @@ class Room
 		return shared_folders;
 		}
 	
-	int[string] slots_full ()
+	uint[string] slots_full ()
 		{
-		int[string] slots_full;
+		uint[string] slots_full;
 
 		foreach (User user ; users ())
 			{

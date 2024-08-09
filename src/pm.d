@@ -28,7 +28,7 @@ private import core.stdc.time : time;
 class PM
 	{
 	// static
-	private static PM[int] pm_list;
+	private static PM[uint] pm_list;
 	private static int[string] nb_pms;
 
 	static int nb_messages (string user)
@@ -36,18 +36,18 @@ class PM
 		return (user in nb_pms) ? nb_pms[user] : 0;
 		}
 
-	static bool find_pm (int id)
+	static bool find_pm (uint id)
 		{
 		return (id in pm_list) ? true : false;
 		}
 
-	static PM get_pm (int id)
+	static PM get_pm (uint id)
 		{
 		if (find_pm (id))	return pm_list[id];
 		else			return null;
 		}
 	
-	static void del_pm (int id)
+	static void del_pm (uint id)
 		{
 		if (find_pm (id)) pm_list.remove (id);
 		}
@@ -57,9 +57,9 @@ class PM
 		pm_list[pm.id] = pm;
 		}
 
-	static int new_id ()
+	static uint new_id ()
 		{
-		int id = cast(int)pm_list.length;
+		uint id = cast(uint)pm_list.length;
 		while (find_pm (id))
 			{
 			id++;
@@ -77,9 +77,9 @@ class PM
 		return pms;
 		}
 	
-	static int nb_pms_for (string user)
+	static uint nb_pms_for (string user)
 		{
-		int i;
+		uint i;
 		if (pm_list.length > 0) foreach (PM pm ; pm_list)
 			{
 			if (pm.to == user) i++;
@@ -88,8 +88,8 @@ class PM
 		}
 	
 	// attributes
-	int	id;
-	int	timestamp;	// in UTC time
+	uint	id;
+	ulong	timestamp;	// in UTC time
 
 	string	from;
 	string	to;
@@ -104,7 +104,7 @@ class PM
 		this.to		= to;
 		this.content	= content;
 
-		this.timestamp  = cast(int)time(null);
+		this.timestamp  = time(null);
 			// timestamp is in seconds since 01/01/1970
 
 		this.nb_pms[to]++;

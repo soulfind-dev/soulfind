@@ -35,27 +35,33 @@ private import message_codes;
 
 class Message
 	{	// Server message
-	int code;
+	uint code;
 	OutBuffer b;
 
 	ubyte[] toBytes () {return b.toBytes ();}
 
-	this (int code)
+	this (uint code)
 		{
 		b = new OutBuffer ();
 		this.code = code;
 		writei (code);
 		}
 
-	void writei (int i)
+	void writei (uint i)
 		{
 		try {b.write (i);}
 		catch (WriteException e) {writeln (e, " when trying to send an int : ", i);}
 		}
 
-	void writei (long i)
+	void writei (ulong i)
 		{
-		this.writei(cast(int)i);
+		this.writei(cast(uint)i);
+		}
+
+	void writesi (int i)
+		{
+		try {b.write (i);}
+		catch (WriteException e) {writeln (e, " when trying to send an int : ", i);}
 		}
 		
 	void writeb (byte o)
@@ -75,7 +81,7 @@ class Message
 		catch (WriteException e) {writeln (e, " when trying to send a string : ", s, "(", s.length, ")");}
 		}
 
-	int length;
+	uint length;
 	Stream s;
 
 	this (Stream s)
@@ -83,13 +89,25 @@ class Message
 		this.s = s;
 		}
 
-	int readi ()
+	uint readi ()
 		{ // read an int
-		int i;
+		uint i;
 		try {s.read (i);}
 		catch (ReadException e)
 			{
 			writeln ("message code ", code, ", length ", length, " trying to read an int : ", e);
+			i = 0;
+			}
+		return i;
+		}
+
+	uint readsi ()
+		{ // read a signed int
+		int i;
+		try {s.read (i);}
+		catch (ReadException e)
+			{
+			writeln ("message code ", code, ", length ", length, " trying to read a signed int : ", e);
 			i = 0;
 			}
 		return i;
@@ -109,8 +127,8 @@ class Message
 	
 	string reads ()
 		{ // read a string
-		int    slen;
-		string str;
+		uint    slen;
+		string  str;
 		try
 			{
 			slen = readi ();
@@ -129,7 +147,7 @@ class ULogin : Message
 	{		// New login
 	string name;	// user name
 	string pass;	// user password
-	int    vers;	// client version (198 for nicotine and museek, 180 for pyslsk)
+	uint   vers;	// client version (198 for nicotine and museek, 180 for pyslsk)
 
 	this (Stream s)
 		{
@@ -140,7 +158,7 @@ class ULogin : Message
 		vers = readi ();
 		}
 
-	this (string name, string pass, int vers)
+	this (string name, string pass, uint vers)
 		{
 		super (Login);
 
@@ -152,7 +170,7 @@ class ULogin : Message
 
 class USetWaitPort : Message
 	{		// A client is telling us which port it is listening on
-	int port;	// port number
+	uint port;	// port number
 	this (Stream s)
 		{
 		super (s);
@@ -160,7 +178,7 @@ class USetWaitPort : Message
 		port = readi ();
 		}
 	
-	this (int port)
+	this (uint port)
 		{
 		super (SetWaitPort);
 
@@ -306,7 +324,7 @@ class ULeaveRoom : Message
 
 class UConnectToPeer : Message
 	{		// Client cannot connect to another one and wants us to ask the other to connect to him
-	int token;	// connection token
+	uint token;	// connection token
 	string user;	// user name
 	string type;	// connection type ("F" if for a file transfers, "P" otherwise)
 
@@ -319,7 +337,7 @@ class UConnectToPeer : Message
 		type  = reads ();
 		}
 	
-	this (int token, string user, string type)
+	this (uint token, string user, string type)
 		{
 		super (ConnectToPeer);
 
@@ -353,7 +371,7 @@ class UMessageUser : Message
 
 class UMessageAcked : Message
 	{		// Client acknowledges a private message
-	int id;		// message id
+	uint id;	// message id
 	
 	this (Stream s)
 		{
@@ -362,7 +380,7 @@ class UMessageAcked : Message
 		id = readi ();
 		}
 	
-	this (int id)
+	this (uint id)
 		{
 		super (MessageAcked);
 
@@ -372,7 +390,7 @@ class UMessageAcked : Message
 
 class UFileSearch : Message
 	{		// Client makes a filesearch
-	int token;	// search token
+	uint token;	// search token
 	string strng;	// search string
 
 	this (Stream s)
@@ -383,7 +401,7 @@ class UFileSearch : Message
 		strng = reads ();
 		}
 	
-	this (int token, string string)
+	this (uint token, string string)
 		{
 		super (FileSearch);
 
@@ -394,7 +412,7 @@ class UFileSearch : Message
 
 class UWishlistSearch : Message
 	{		// Client makes a wishlist search
-	int token;	// search token
+	uint token;	// search token
 	string strng;	// search string
 
 	this (Stream s)
@@ -405,7 +423,7 @@ class UWishlistSearch : Message
 		strng = reads ();
 		}
 
-	this (int token, string string)
+	this (uint token, string string)
 		{
 		super (WishlistSearch);
 
@@ -416,7 +434,7 @@ class UWishlistSearch : Message
 
 class USetStatus : Message
 	{		// Client sets its status
-	int status;	// -1 : Unknown - 0 : Offline - 1 : Away - 2 : Online
+	uint status;	// 0 : Offline - 1 : Away - 2 : Online
 
 	this (Stream s)
 		{
@@ -425,7 +443,7 @@ class USetStatus : Message
 		status = readi ();
 		}
 	
-	this (int status)
+	this (uint status)
 		{
 		super (SetStatus);
 
@@ -435,7 +453,7 @@ class USetStatus : Message
 
 class USendUploadSpeed : Message
 	{		// Client reports a transfer speed
-	int    speed;   // speed
+	uint    speed;  // speed
 
 	this (Stream s)
 		{
@@ -444,7 +462,7 @@ class USendUploadSpeed : Message
 		speed = readi ();
 		}
 
-	this (string user, int speed)
+	this (string user, uint speed)
 		{
 		super (SendUploadSpeed);
 
@@ -453,9 +471,9 @@ class USendUploadSpeed : Message
 	}
 
 class USharedFoldersFiles : Message
-	{		// Client tells us how many files and folder it is sharing
-	int nb_folders;	// number of folders
-	int nb_files;	// number of files
+	{			// Client tells us how many files and folder it is sharing
+	uint nb_folders;	// number of folders
+	uint nb_files;		// number of files
 
 	this (Stream s)
 		{
@@ -465,7 +483,7 @@ class USharedFoldersFiles : Message
 		nb_files   = readi ();
 		}
 	
-	this (int nb_folders, int nb_files)
+	this (uint nb_folders, uint nb_files)
 		{
 		super (SharedFoldersFiles);
 
@@ -497,7 +515,7 @@ class UUserSearch : Message
 	{		// Client wants to send searches to his buddies...
 	string user;	// user to send the search to (yes, there is one message to the server
 			// sent for each buddy... how efficient [:kiki])
-	int    token;	// search token
+	uint   token;	// search token
 	string query;	// search string
 
 	this (Stream s)
@@ -509,7 +527,7 @@ class UUserSearch : Message
 		query = reads ();
 		}
 	
-	this (string user, int token, string query)
+	this (string user, uint token, string query)
 		{
 		super (RoomSearch);
 
@@ -617,7 +635,7 @@ class URemoveThingIHate : Message
 class UAddToPrivileged : Message
 	{		// An admin gives privileges to an user
 	string user;	// user to give the privileges to
-	int    time;	// privileges credits
+	uint   time;	// privileges credits
 
 	this (Stream s)
 		{
@@ -627,7 +645,7 @@ class UAddToPrivileged : Message
 		time = readi ();
 		}
 	
-	this (string user, int time)
+	this (string user, uint time)
 		{
 		super (AddToPrivileged);
 
@@ -701,7 +719,7 @@ class USetRoomTicker : Message
 class URoomSearch : Message
 	{		// Client wants to send a search to all the users in the room
 	string room;	// room name
-	int    token;	// search token
+	uint   token;	// search token
 	string query;	// search string
 
 	this (Stream s)
@@ -713,7 +731,7 @@ class URoomSearch : Message
 		query = reads ();
 		}
 	
-	this (string room, int token, string query)
+	this (string room, uint token, string query)
 		{
 		super (RoomSearch);
 
@@ -764,7 +782,7 @@ class UAdminMessage : Message
 class UGivePrivileges : Message
 	{		// Client wants to give privileges to somebody else
 	string user;	// user to give the privileges to
-	int    time;	// time to give
+	uint   time;	// time to give
 
 	this (Stream s)
 		{
@@ -774,7 +792,7 @@ class UGivePrivileges : Message
 		time = readi ();
 		}
 	
-	this (string user, int time)
+	this (string user, uint time)
 		{
 		super (GivePrivileges);
 
@@ -811,8 +829,8 @@ class UMessageUsers : Message
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string user = reads ();
 			users ~= user;
@@ -837,7 +855,7 @@ class UMessageUsers : Message
 
 class UCantConnectToPeer : Message
 	{		// Client tells us he couldn't connect to someone
-	int token;	// message token
+	uint token;	// message token
 	string user;	// user who requested the connection
 
 	this (Stream s)
@@ -848,7 +866,7 @@ class UCantConnectToPeer : Message
 		user  = reads ();
 		}
 	
-	this (int token, string user)
+	this (uint token, string user)
 		{
 		super (CantConnectToPeer);
 
@@ -860,7 +878,7 @@ class UCantConnectToPeer : Message
 class SLogin : Message
 	{	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
-	this (byte success, string mesg, int addr = 0, string password = null, bool supporter = false)
+	this (byte success, string mesg, uint addr = 0, string password = null, bool supporter = false)
 		{
 		super (Login);
 		
@@ -881,7 +899,7 @@ class SLogin : Message
 		
 	byte   success;
 	string mesg;
-	int    addr;
+	uint   addr;
 	
 	this (Stream s)
 		{
@@ -895,7 +913,7 @@ class SLogin : Message
 
 class SGetPeerAddress : Message
 	{	// Send the address and port of user user
-	this (string username, int address, int port, int unknown = 0, int obfuscated_port = 0)
+	this (string username, uint address, uint port, uint unknown = 0, uint obfuscated_port = 0)
 		{
 		super (GetPeerAddress);
 		
@@ -907,10 +925,10 @@ class SGetPeerAddress : Message
 		}
 	
 	string username;
-	int    address;
-	int    port;
-	int    unknown;
-	int    obfuscated_port;
+	uint   address;
+	uint   port;
+	uint   unknown;
+	uint   obfuscated_port;
 
 	this (Stream s)
 		{
@@ -926,7 +944,7 @@ class SGetPeerAddress : Message
 
 class SWatchUser : Message
 	{	// Tell a client if a user exists and potential stats
-	this (string user, byte exists, int status, int speed, int upload_number, int something, int shared_files, int shared_folders, string country_code)
+	this (string user, byte exists, uint status, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders, string country_code)
 		{
 		super (WatchUser);
 
@@ -945,12 +963,12 @@ class SWatchUser : Message
 	
 	string user;
 	byte   exists;
-	int    status;
-	int    speed;
-	int    upload_number;
-	int    something;
-	int    shared_files;
-	int    shared_folders;
+	uint   status;
+	uint   speed;
+	uint   upload_number;
+	uint   something;
+	uint   shared_files;
+	uint   shared_folders;
 	string country_code;
 
 	this (Stream s)
@@ -973,7 +991,7 @@ class SWatchUser : Message
 
 class SGetUserStatus : Message
 	{	// Send the status of user user
-	this (string username, int status, bool privileged)
+	this (string username, uint status, bool privileged)
 		{
 		super (GetUserStatus);
 
@@ -983,7 +1001,7 @@ class SGetUserStatus : Message
 		}
 
 	string username;
-	int    status;
+	uint   status;
 	byte   privileged;
 
 	this (Stream s)
@@ -1045,26 +1063,26 @@ class SRoomList : Message
 		writei (0);	// number of operated private rooms (unimplemented)
 		}
 	
-	int[string] rooms;
+	uint[string] rooms;
 
 	this (Stream s)
 		{
 		super (s);
 
-		int n = readi ();
+		uint n = readi ();
 		
 		string[] room_names;
 		
 		room_names.length = n;
 		
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			room_names[i] = reads ();
 			}
 
 		n = readi ();
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			rooms[room_names[i]] = readi ();
 			}
@@ -1073,12 +1091,12 @@ class SRoomList : Message
 
 class SJoinRoom : Message
 	{	// Give info on the room to a client who just joined it
-	this (string room, string[] usernames, int[string] statuses, int[string] speeds, int[string] upload_numbers, int[string] somethings, int[string] shared_files, int[string] shared_folders, int[string] slots_full, string[string] country_codes)
+	this (string room, string[] usernames, uint[string] statuses, uint[string] speeds, uint[string] upload_numbers, uint[string] somethings, uint[string] shared_files, uint[string] shared_folders, uint[string] slots_full, string[string] country_codes)
 		{
 		super (JoinRoom);
 
 		writes (room);	// the room the user just joined
-		long n = usernames.length;
+		ulong n = usernames.length;
 
 		writei (n);	// number of user names we will send
 		foreach (string username ; usernames)
@@ -1116,13 +1134,13 @@ class SJoinRoom : Message
 	
 	string room;
 	string[]    usernames;
-	int[string] statuses;
-	int[string] speeds;
-	int[string] upload_numbers;
-	int[string] somethings;
-	int[string] shared_files;
-	int[string] shared_folders;
-	int[string] slots_full;
+	uint[string] statuses;
+	uint[string] speeds;
+	uint[string] upload_numbers;
+	uint[string] somethings;
+	uint[string] shared_files;
+	uint[string] shared_folders;
+	uint[string] slots_full;
 	string[string] country_codes;
 	
 	this (Stream s)
@@ -1131,24 +1149,24 @@ class SJoinRoom : Message
 
 		room = reads ();
 
-		int n = readi ();
+		uint n = readi ();
 		usernames.length = n;
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			usernames[i] = reads ();
 			}
 
 		n = readi ();
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			statuses        [usernames[i]] = readi ();
 			}
 
 		n = readi ();
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			speeds          [usernames[i]] = readi ();
 			upload_numbers	[usernames[i]] = readi ();
@@ -1159,14 +1177,14 @@ class SJoinRoom : Message
 
 		n = readi ();
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			slots_full      [usernames[i]] = readi ();
 			}
 
 		n = readi ();
 
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			country_codes	[usernames[i]] = reads ();
 			}
@@ -1194,7 +1212,7 @@ class SLeaveRoom : Message
 
 class SUserJoinedRoom : Message
 	{	// User user has joined the room room
-	this (string room, string username, int status, int speed, int upload_number, int something, int shared_files, int shared_folders, int slots_full, string country_code)
+	this (string room, string username, uint status, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders, uint slots_full, string country_code)
 		{
 		super (UserJoinedRoom);
 
@@ -1212,13 +1230,13 @@ class SUserJoinedRoom : Message
 	
 	string room;
 	string username;
-	int    status;
-	int    speed;
-	int    upload_number;
-	int    something;
-	int    shared_files;
-	int    shared_folders;
-	int    slots_full;
+	uint   status;
+	uint   speed;
+	uint   upload_number;
+	uint   something;
+	uint   shared_files;
+	uint   shared_folders;
+	uint   slots_full;
 	string country_code;
 
 	this (Stream s)
@@ -1262,7 +1280,7 @@ class SUserLeftRoom : Message
 
 class SConnectToPeer : Message
 	{	// Ask a peer to connect back to user
-	this (string username, string type, int address, int port, int token, bool privileged, int unknown = 0, int obfuscated_port = 0)
+	this (string username, string type, uint address, uint port, uint token, bool privileged, uint unknown = 0, uint obfuscated_port = 0)
 		{
 		super (ConnectToPeer);
 
@@ -1278,12 +1296,12 @@ class SConnectToPeer : Message
 	
 	string username;
 	string type;
-	int    address;
-	int    port;
-	int    token;
+	uint   address;
+	uint   port;
+	uint   token;
 	byte   privileged;
-	int    unknown;
-	int    obfuscated_port;
+	uint   unknown;
+	uint   obfuscated_port;
 
 	this (Stream s)
 		{
@@ -1302,7 +1320,7 @@ class SConnectToPeer : Message
 
 class SMessageUser : Message
 	{	// Send the PM
-	this (int id, int timestamp, string from, string content, byte new_message)
+	this (uint id, uint timestamp, string from, string content, byte new_message)
 		{
 		super (MessageUser);
 
@@ -1313,8 +1331,8 @@ class SMessageUser : Message
 		writeb (new_message);
 		}
 	
-	int    id;
-	int    timestamp;
+	uint   id;
+	uint   timestamp;
 	string from;
 	string content;
 	byte   new_message;
@@ -1333,7 +1351,7 @@ class SMessageUser : Message
 
 class SFileSearch : Message
 	{	// Send a filesearch
-	this (string username, int token, string text)
+	this (string username, uint token, string text)
 		{
 		super (FileSearch);
 
@@ -1343,7 +1361,7 @@ class SFileSearch : Message
 		}
 	
 	string username;
-	int    token;
+	uint   token;
 	string text;
 
 	this (Stream s)
@@ -1366,7 +1384,7 @@ class SServerPing : Message
 
 class SGetUserStats : Message
 	{	// Send the stats of user user
-	this (string username, int speed, int upload_number, int something, int shared_files, int shared_folders)
+	this (string username, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders)
 		{
 		super (GetUserStats);
 
@@ -1379,11 +1397,11 @@ class SGetUserStats : Message
 		}
 	
 	string username;
-	int    speed;
-	int    upload_number;
-	int    something;
-	int    shared_files;
-	int    shared_folders;
+	uint   speed;
+	uint   upload_number;
+	uint   something;
+	uint   shared_files;
+	uint   shared_folders;
 
 	this (Stream s)
 		{
@@ -1400,7 +1418,7 @@ class SGetUserStats : Message
 
 class SGetRecommendations : Message
 	{	// Send the list of recommendations for this client
-	this (int[string] list)	// list[artist] = level
+	this (uint[string] list)	// list[artist] = level
 		{
 		super (GetRecommendations);
 
@@ -1408,21 +1426,21 @@ class SGetRecommendations : Message
 		foreach (string artist, int level ; list)
 			{
 			writes (artist);	// artist name
-			writei (level);		// « level » of recommendation
+			writesi (level);	// « level » of recommendation
 			}
 		}
 	
-	int[string] list;
+	uint[string] list;
 
 	this (Stream s)
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string artist = reads ();
-			int    level  = readi ();
+			int    level  = readsi ();
 
 			list[artist] = level;
 			}
@@ -1432,7 +1450,7 @@ class SGetRecommendations : Message
 class SGetGlobalRecommendations : Message
 	{	// Send the list of global recommendations
 		// the code is exactly the same as for GetRecommendations.
-	this (int[string] list)
+	this (uint[string] list)
 		{
 		super (GlobalRecommendations);
 
@@ -1440,21 +1458,21 @@ class SGetGlobalRecommendations : Message
 		foreach (string artist, int level ; list)
 			{
 			writes (artist);	// artist name
-			writei (level);		// « level » of recommendation
+			writesi (level);	// « level » of recommendation
 			}
 		}
 	
-	int[string] list;
+	uint[string] list;
 
 	this (Stream s)
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string artist = reads ();
-			int    level  = readi ();
+			int    level  = readsi ();
 
 			list[artist] = level;
 			}
@@ -1491,15 +1509,15 @@ class SUserInterests : Message
 
 		user = reads ();
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string thing = reads ();
 			likes[thing] = thing;
 			}
 
 		n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string thing = reads ();
 			hates[thing] = thing;
@@ -1517,7 +1535,7 @@ class SRelogged : Message
 
 class SUserSearch : Message
 	{	// User user has sent a buddy search to a client
-	this (string user, int token, string query)
+	this (string user, uint token, string query)
 		{
 		super (UserSearch);
 
@@ -1527,7 +1545,7 @@ class SUserSearch : Message
 		}
 	
 	string user;
-	int    token;
+	uint   token;
 	string query;
 
 	this (Stream s)
@@ -1561,14 +1579,14 @@ class SAdminMessage : Message
 
 class SCheckPrivileges : Message
 	{	// Tell a client how many seconds of privileges he has left
-	this (int time)
+	this (uint time)
 		{
 		super (CheckPrivileges);
 
 		writei (time);		// time left
 		}
 
-	int time;
+	uint time;
 
 	this (Stream s)
 		{
@@ -1580,14 +1598,14 @@ class SCheckPrivileges : Message
 
 class SWishlistInterval	: Message
 	{
-	this (int interval)
+	this (uint interval)
 		{
 		super (WishlistInterval);
 
 		writei (interval);	// interval in seconds for searches
 		}
 
-	int interval;
+	uint interval;
 
 	this (Stream s)
 		{
@@ -1599,29 +1617,29 @@ class SWishlistInterval	: Message
 
 class SSimilarUsers : Message
 	{	// Send a list of users with similar tastes
-	this (int[string] list)
+	this (uint[string] list)
 		{
 		super (SimilarUsers);
 
 		writei (list.length);
 		foreach (string user, int weight ; list)
 			{
-			writes (user);
-			writei (weight);
+			writes  (user);
+			writesi (weight);
 			}
 		}
 
-	int[string] list;
+	uint[string] list;
 
 	this (Stream s)
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string user   = reads ();
-			int    weight = readi ();
+			int    weight = readsi ();
 
 			list[user] = weight;
 			}
@@ -1630,7 +1648,7 @@ class SSimilarUsers : Message
 
 class SGetItemRecommendations : Message
 	{	// Send a list of recommendations for a particular item
-	this (string item, int[string] list)
+	this (string item, uint[string] list)
 		{
 		super (ItemRecommendations);
 
@@ -1638,22 +1656,22 @@ class SGetItemRecommendations : Message
 		writei (list.length);
 		foreach (string recommendation, int weight ; list)
 			{
-			writes (recommendation);
-			writei (weight);
+			writes  (recommendation);
+			writesi (weight);
 			}
 		}
 
-	int[string] list;
+	uint[string] list;
 
 	this (Stream s)
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string recommendation = reads ();
-			int    weight         = readi ();
+			int    weight         = readsi ();
 
 			list[recommendation] = weight;
 			}
@@ -1680,9 +1698,9 @@ class SItemSimilarUsers : Message
 		{
 		super (s);
 
-		int n = readi ();
+		uint n = readi ();
 		list.length = n;
-		for (int i = 0 ; i < n ; i++)
+		for (uint i = 0 ; i < n ; i++)
 			{
 			list[i] = reads ();
 			}
@@ -1713,8 +1731,8 @@ class SRoomTicker : Message
 		
 		room = reads ();
 		
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string user   = reads ();
 			string ticker = reads ();
@@ -1773,7 +1791,7 @@ class SRoomTickerRemove : Message
 
 class SRoomSearch : Message
 	{	// User user has sent a room search
-	this (string user, int token, string query)
+	this (string user, uint token, string query)
 		{
 		super (RoomSearch);
 
@@ -1783,7 +1801,7 @@ class SRoomSearch : Message
 		}
 	
 	string user;
-	int    token;
+	uint   token;
 	string query;
 
 	this (Stream s)
@@ -1798,7 +1816,7 @@ class SRoomSearch : Message
 
 class SUserPrivileges : Message
 	{	// Send the privileges status of user
-	this (string username, int privileges)
+	this (string username, uint privileges)
 		{
 		super (UserPrivileges);
 
@@ -1806,7 +1824,7 @@ class SUserPrivileges : Message
 		writes (username);	// user name
 		}
 
-	int    privileges;
+	uint   privileges;
 	string username;
 
 	this (Stream s)
@@ -1864,14 +1882,14 @@ class SGlobalRoomMessage : Message
 
 class SCantConnectToPeer : Message
 	{	// A connection couldn't be established for some message
-	this (int token)
+	this (uint token)
 		{
 		super (CantConnectToPeer);
 
 		writei (token);	// token of the message
 		}
 
-	int token;
+	uint token;
 
 	this (Stream s)
 		{
@@ -1883,7 +1901,7 @@ class SCantConnectToPeer : Message
 
 class SServerInfo : Message
 	{	// Specific to Soulfind, info about the server
-		// int    : number of fields
+		// uint   : number of fields
 		// string : field name
 		// string : field value
 		// string : field name
@@ -1907,8 +1925,8 @@ class SServerInfo : Message
 		{
 		super (s);
 
-		int n = readi ();
-		for (int i = 0 ; i < n ; i++)
+		uint n = readi ();
+		for (uint i = 0 ; i < n ; i++)
 			{
 			string field = reads ();
 			string value = reads ();
@@ -1917,20 +1935,3 @@ class SServerInfo : Message
 			}
 		}
 	}
-
-void send_byte (OutBuffer b, byte o)
-	{
-	b.write (o);
-	}
-
-void send_int (OutBuffer b, int i)
-	{
-	b.write (i);
-	}
-
-void send_string (OutBuffer b, string str)
-	{
-	b.write (str.length);
-	b.write (str);
-	}
-

@@ -24,72 +24,65 @@ module message_codes;
 // Constants
 const struct Status
 	{
-	const int Unknown = -1;
-	const int Offline =  0;
-	const int Away    =  1;
-	const int Online  =  2;
-	}
-
-const struct Transfer
-	{
-	const int Download = 0;
-	const int Upload   = 1;
+	const uint Offline =  0;
+	const uint Away    =  1;
+	const uint Online  =  2;
 	}
 
 // Server Messages
-const int Login				= 1;
-const int SetWaitPort			= 2;
-const int GetPeerAddress		= 3;
-const int WatchUser			= 5;
-const int UnwatchUser			= 6;
-const int GetUserStatus			= 7;
-const int SayChatroom			= 13;
-const int JoinRoom			= 14;
-const int LeaveRoom			= 15;
-const int UserJoinedRoom		= 16;
-const int UserLeftRoom			= 17;
-const int ConnectToPeer			= 18;
-const int MessageUser			= 22;
-const int MessageAcked			= 23;
-const int FileSearch			= 26;
-const int SetStatus			= 28;
-const int ServerPing			= 32;
-const int SharedFoldersFiles		= 35;
-const int GetUserStats			= 36;
-const int Relogged			= 41;
-const int UserSearch			= 42;
-const int AddThingILike			= 51;
-const int RemoveThingILike		= 52;
-const int GetRecommendations		= 54;
-const int GlobalRecommendations		= 56;
-const int UserInterests			= 57;
-const int RoomList			= 64;
-const int AdminMessage			= 66;
-const int AddToPrivileged		= 91;
-const int CheckPrivileges		= 92;
-const int WishlistSearch		= 103;
-const int WishlistInterval		= 104;
-const int SimilarUsers			= 110;
-const int ItemRecommendations		= 111;
-const int ItemSimilarUsers		= 112;
-const int RoomTicker			= 113;
-const int RoomTickerAdd			= 114;
-const int RoomTickerRemove		= 115;
-const int SetRoomTicker			= 116;
-const int AddThingIHate			= 117;
-const int RemoveThingIHate		= 118;
-const int RoomSearch			= 120;
-const int SendUploadSpeed		= 121;
-const int UserPrivileges		= 122;
-const int GivePrivileges		= 123;
-const int ChangePassword		= 142;
-const int MessageUsers			= 149;
-const int JoinGlobalRoom		= 150;
-const int LeaveGlobalRoom		= 151;
-const int GlobalRoomMessage		= 152;
-const int CantConnectToPeer		= 1001;
+const uint Login			= 1;
+const uint SetWaitPort			= 2;
+const uint GetPeerAddress		= 3;
+const uint WatchUser			= 5;
+const uint UnwatchUser			= 6;
+const uint GetUserStatus		= 7;
+const uint SayChatroom			= 13;
+const uint JoinRoom			= 14;
+const uint LeaveRoom			= 15;
+const uint UserJoinedRoom		= 16;
+const uint UserLeftRoom			= 17;
+const uint ConnectToPeer		= 18;
+const uint MessageUser			= 22;
+const uint MessageAcked			= 23;
+const uint FileSearch			= 26;
+const uint SetStatus			= 28;
+const uint ServerPing			= 32;
+const uint SharedFoldersFiles		= 35;
+const uint GetUserStats			= 36;
+const uint Relogged			= 41;
+const uint UserSearch			= 42;
+const uint AddThingILike		= 51;
+const uint RemoveThingILike		= 52;
+const uint GetRecommendations		= 54;
+const uint GlobalRecommendations	= 56;
+const uint UserInterests		= 57;
+const uint RoomList			= 64;
+const uint AdminMessage			= 66;
+const uint AddToPrivileged		= 91;
+const uint CheckPrivileges		= 92;
+const uint WishlistSearch		= 103;
+const uint WishlistInterval		= 104;
+const uint SimilarUsers			= 110;
+const uint ItemRecommendations		= 111;
+const uint ItemSimilarUsers		= 112;
+const uint RoomTicker			= 113;
+const uint RoomTickerAdd		= 114;
+const uint RoomTickerRemove		= 115;
+const uint SetRoomTicker		= 116;
+const uint AddThingIHate		= 117;
+const uint RemoveThingIHate		= 118;
+const uint RoomSearch			= 120;
+const uint SendUploadSpeed		= 121;
+const uint UserPrivileges		= 122;
+const uint GivePrivileges		= 123;
+const uint ChangePassword		= 142;
+const uint MessageUsers			= 149;
+const uint JoinGlobalRoom		= 150;
+const uint LeaveGlobalRoom		= 151;
+const uint GlobalRoomMessage		= 152;
+const uint CantConnectToPeer		= 1001;
 
-const int ServerInfo			= 1789; // specific to Soulfind
+const uint ServerInfo			= 1789; // specific to Soulfind
 
 // Useful for debugging
 string[] message_name = [
