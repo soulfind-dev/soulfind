@@ -25,9 +25,6 @@ Valid targets are:
  - `all` (default target)
  - `soulfind`
  - `soulsetup`
- - `install`
- - `install_soulfind`
- - `install_soulsetup`
 
 You'll also need to have the sqlite3 library installed, since it's the database
 Soulfind uses to store its configuration and user info.

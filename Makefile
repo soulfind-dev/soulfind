@@ -7,8 +7,6 @@ SRCDIR=src
 OBJDIR=obj
 DOCDIR=doc
 
-PREFIX=/usr
-
 SOULFINDFILES=client.d \
          db.d \
          message_codes.d \
@@ -66,27 +64,6 @@ else
 		$(DC) $(SOULSETUPFILES) -I$(SRCDIR) -od$(OBJDIR) -of$(SOULSETUP) -L-lsqlite3 -version=Soulsetup -debug=$(DEBUG)
 endif
 
-install: install_soulfind install_soulsetup install_doc
-
-install_soulfind: $(SOULFIND)
-	install -D --strip $(SOULFIND)  $(PREFIX)/$(SOULFIND)
-
-install_soulsetup: $(SOULSETUP)
-	install -D --strip $(SOULSETUP) $(PREFIX)/$(SOULSETUP)
-
 clean:
 	-rm -rf $(OBJDIR)
 	-rm -rf $(BINDIR)
-
-clean_doc:
-	-rm -f $(DOCDIR)/soulfind.1
-	-rm -f $(DOCDIR)/soulsetup.1
-
-documentation: $(DOCDIR)/soulfind.1 $(DOCDIR)/soulsetup.1
-
-$(DOCDIR)/soulfind.1 $(DOCDIR)/soulsetup.1:
-	cd $(DOCDIR) ; docbook2manxml.pl `basename $@ .1`.xml | man_xml.pl
-
-install_doc: $(DOCDIR)/soulfind.1 $(DOCDIR)/soulsetup.1
-	install --mode=644 -D $(DOCDIR)/soulfind.1  $(PREFIX)/share/man/man1/soulfind.1
-	install --mode=644 -D $(DOCDIR)/soulsetup.1 $(PREFIX)/share/man/man1/soulsetup.1
