@@ -22,11 +22,11 @@
 module message_codes;
 
 // Constants
-const struct Status
+const enum Status
 	{
-	const uint Offline =  0;
-	const uint Away    =  1;
-	const uint Online  =  2;
+	offline = 0,
+	away    = 1,
+	online  = 2
 	}
 
 // Server Messages

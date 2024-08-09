@@ -596,7 +596,7 @@ class User
 						}
 					else
 						{
-						status = 0;
+						status = Status.offline;
 						country_code = "";
 					}
 
@@ -606,7 +606,7 @@ class User
 					}
 				else if (o.user == server_user)
 					{
-					status = 2;
+					status = Status.online;
 					}
 				else
 					{
@@ -635,12 +635,12 @@ class User
 				else if (server.db.user_exists (o.user))
 					{	// user is offline but exists
 					debug (2) writeln ("offline.");
-					status = 0;
+					status = Status.offline;
 					}
 				else if (o.user == server_user)
 					{	// user is the server administration interface
 					debug (2) writeln ("server (online)");
-					status = 2;
+					status = Status.online;
 					}
 				else
 					{	// user doesn't exist
@@ -925,7 +925,7 @@ class User
 
 		send_message (new SRoomList (Room.room_stats ()));
 		send_message (new SWishlistInterval (wishlist_interval));
-		this.set_status (2);
+		this.set_status (Status.online);
 
 		foreach (PM pm ; PM.get_pms_for (this.username))
 			{
