@@ -154,9 +154,9 @@ class Server
 			if (sockset.isSet (socket))
 				{
 				nb--;
-				debug (3) writeln ("Waiting for a connection...");
+				debug (user) writeln ("Waiting for a connection...");
 				Socket sock = socket.accept ();
-				debug (3)
+				debug (user)
 					{
 					try {writeln ("Connection accepted from ", sock.remoteAddress().toString());}
 					catch (Exception e) {writeln ("?");}
@@ -283,13 +283,13 @@ class Server
 	
 	void send_to_all (Message m)
 		{
-		debug (2) write("Sending message (", blue,  message_name[m.code], black, " - code ", blue, m.code, black, ") to all users");
+		debug (msg) write("Sending message (", blue,  message_name[m.code], black, " - code ", blue, m.code, black, ") to all users");
 		foreach (User u ; users ())
 			{
-			debug (2) write (".");
+			debug (msg) write (".");
 			u.send_message (m);
 			}
-		debug (2) writeln ();
+		debug (msg) writeln ();
 		}
 	
 	// recommendations
@@ -388,7 +388,7 @@ class Server
 				this.adminpm (admin, this.show_user (join (command[1 .. $], " ")));
 				break;
 			case "killall":
-				debug (1) writeln ("Admin request to kill ALL users...");
+				debug (user) writeln ("Admin request to kill ALL users...");
 				this.kill_all_users ();
 				break;
 			case "kill":
@@ -649,13 +649,13 @@ class Server
 				return false;
 				}
 
-			debug (2) writeln ("Adding user ", user, "...");
+			debug (user) writeln ("Adding user ", user, "...");
 			db.add_user (user, encode_password (pass));
 			return true;
 			}
 		else
 			{
-			debug (2) writeln ("User ", user, " is registered, checking banned status and password...");
+			debug (user) writeln ("User ", user, " is registered, checking banned status and password...");
 			if (db.is_banned (user))
 				{
 				error = "BANNED";

@@ -208,7 +208,7 @@ class Sdb
 			string query = format ("INSERT INTO %s (username, password) VALUES ('%s', '%s');",
 					       users_table, escape (username), escape (password));
 			this.query (query);
-			debug (4) writeln (query);
+			debug (db) writeln (query);
 			}
 		}
 	
@@ -229,7 +229,7 @@ class Sdb
 	
 	bool get_user (string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 		{
-		debug (4) writeln ("DB: Requested ", username, "'s info...");
+		debug (db) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -251,7 +251,7 @@ class Sdb
 	
 	bool get_user (string username, out string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 		{
-		debug (4) writeln ("DB: Requested ", username, "'s info...");
+		debug (db) writeln ("DB: Requested ", username, "'s info...");
 		string query = format ("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape (username));
 		string[][] res = this.query (query);
 		if (res.length > 0)
@@ -274,7 +274,7 @@ class Sdb
 	
 	string[][] query (string query)
 		{
-		debug (4) writeln ("DB query : \"", query, "%s\"");
+		debug (db) writeln ("DB query : \"", query, "%s\"");
 		string[][] ret;
 		
 		sqlite3_reset (stmt);

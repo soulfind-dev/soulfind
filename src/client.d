@@ -33,6 +33,7 @@ private import message_codes;
 private import undead.stream : Stream;
 private import undead.cstream : EndianStream, MemoryStream, ReadException;
 private import undead.socketstream : SocketStream;
+private import std.conv : to;
 private import std.socket : Socket, InternetAddress;
 private import std.stdio : write, writeln;
 
@@ -154,21 +155,21 @@ class User
 	// privileges
 	void add_privileges (uint privileges)
 		{
-		debug (2) writeln ("Adding ", privileges, " seconds of privileges to user ", username);
+		debug (user) writeln ("Adding ", privileges, " seconds of privileges to user ", username);
 		this.privileges += privileges;
-		debug (2) writeln ("Now ", this.privileges, " seconds.");
+		debug (user) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
 		send_message (new SCheckPrivileges (this.privileges));
 		}
 	
 	void remove_privileges (uint privileges)
 		{
-		debug (2) writeln ("Removing ", privileges, " seconds of privileges to user ", username);
+		debug (user) writeln ("Removing ", privileges, " seconds of privileges to user ", username);
 		if (privileges > this.privileges)
 			this.privileges = 0;
 		else
 			this.privileges -= privileges;
-		debug (2) writeln ("Now ", this.privileges, " seconds.");
+		debug (user) writeln ("Now ", this.privileges, " seconds.");
 		server.db.user_update_field (this.username, "privileges", this.privileges);
 		send_message (new SCheckPrivileges (this.privileges));
 		}
@@ -376,17 +377,17 @@ class User
 	
 	void send_to_watching (Message m)
 		{
-		debug (3) write ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ");
+		debug (msg) write ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ");
 		if (this.watched_by().length == 0)
 			{
-			debug (3) write ("nobody");
+			debug (msg) write ("nobody");
 			}
 		else foreach (User user ; this.watched_by ())
 			{
-			debug (3) writeln (user.username);
+			debug (msg) writeln (user.username);
 			user.send_message (m);
 			}
-		debug (3) writeln ();
+		debug (msg) writeln ();
 		}
 	
 	void set_status (uint status)
@@ -484,8 +485,8 @@ class User
 			stream.write (cast (uint) boeuf.length);
 			stream.write (cast (ubyte[]) boeuf);
 			socket.blocking = true;
-			debug (4) writeln ("Sent ", boeuf.length, " bytes to user " ~ blue, this.username, black);
-			debug (3) writeln ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ", this.username);
+			debug (msg) writeln ("Sent ", boeuf.length, " bytes to user " ~ blue, this.username, black);
+			debug (msg) writeln ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ", this.username);
 			boeuf.length = 0;
 			}
 		catch (Exception e)
@@ -513,7 +514,7 @@ class User
 
 			if (read != length)
 				{
-				debug (1) writeln ("Couldn't read the whole message (", read, "/", length,
+				debug (msg) writeln ("Couldn't read the whole message (", read, "/", length,
 				          ")... the client is probably disconnected");
 				return false;
 				}
@@ -524,7 +525,7 @@ class User
 			}
 		catch (ReadException e)
 			{
-			debug (2) writeln (username, " : ", e);
+			debug (msg) writeln (username, " : ", e);
 
 			return false;
 			}
@@ -534,7 +535,7 @@ class User
 		{
 		uint code;
 		s.read (code);
-		debug (3) if (code != 32 && code < message_name.length) writeln ("Received message ", blue, message_name[code], black, " (code ", blue, code, black ~ ")");
+		debug (msg) if (code != 32 && code < message_name.length) writeln ("Received message ", blue, message_name[code], black, " (code ", blue, code, black ~ ")");
 
 		if (!loggedin && code != Login) return false;
 		if (loggedin  && code == Login) return true;
@@ -542,25 +543,25 @@ class User
 		switch (code)
 			{
 			case Login:
-				debug (1) write ("User logging in : ");
+				write ("User logging in : ");
 				ULogin o = new ULogin (s);
 				string error;
 
 				if (!server.check_login (o.name, o.pass, o.vers, error))
 					{
-					debug (1) writeln (o.name, ": Impossible to login (", error, ")");
+					writeln (o.name, ": Impossible to login (", error, ")");
 					send_message (new SLogin (false, error));
 					return false;
 					}
 				else if (server.find_user (o.name) && server.get_user (o.name).loggedin)
 					{
-					debug (1) writeln (o.name, ": Already logged in");
+					writeln (o.name, ": Already logged in");
 					User u = server.get_user (o.name);
 					u.send_message (new SRelogged ());
 					u.exit ();
 					}
 
-				debug (1) writeln (blue, o.name, black ~ ", version ", o.vers);
+				writeln (blue, o.name, black ~ ", version ", o.vers);
 				return (this.login (o));
 				break;
 			case SetWaitPort:
@@ -624,27 +625,27 @@ class User
 				uint status;
 				bool privileged;
 
-				debug (2) write ("Sending ", o.user, "'s status... ");
+				debug (user) write ("Sending ", o.user, "'s status... ");
 				if (server.find_user (o.user))
 					{	// user is online
 					User u = server.get_user (o.user);
-					debug (2) writeln ("online.");
+					debug (user) writeln ("online.");
 					status = u.status;
 					privileged = u.privileges > 0;
 					}
 				else if (server.db.user_exists (o.user))
 					{	// user is offline but exists
-					debug (2) writeln ("offline.");
+					debug (user) writeln ("offline.");
 					status = Status.offline;
 					}
 				else if (o.user == server_user)
 					{	// user is the server administration interface
-					debug (2) writeln ("server (online)");
+					debug (user) writeln ("server (online)");
 					status = Status.online;
 					}
 				else
 					{	// user doesn't exist
-					debug (2) writeln ("doesn't exist.");
+					debug (user) writeln ("doesn't exist.");
 					}
 
 				send_message (new SGetUserStatus (o.user, status, privileged));
@@ -682,7 +683,7 @@ class User
 					{
 					User user = server.get_user (o.user);
 					InternetAddress ia = new InternetAddress (user.address, cast(ushort)user.port);
-					debug (2) writeln (this.username, " cannot connect to ", o.user, "/", ia.toString(), ", asking us to tell the other...");
+					debug (user) writeln (this.username, " cannot connect to ", o.user, "/", ia.toString(), ", asking us to tell the other...");
 					user.send_message (new SConnectToPeer (user.username, o.type, user.address, user.port, o.token, user.privileges > 0));
 					}
 				break;
@@ -724,7 +725,7 @@ class User
 				break;
 			case SharedFoldersFiles:
 				USharedFoldersFiles o = new USharedFoldersFiles (s);
-				debug (2) writeln (this.username, " is sharing ", o.nb_files, " files and ", o.nb_folders, " folders");
+				debug (user) writeln (this.username, " is sharing ", o.nb_files, " files and ", o.nb_folders, " folders");
 				this.set_shared_folders (o.nb_folders);
 				this.set_shared_files (o.nb_files);
 
@@ -833,7 +834,7 @@ class User
 					User u = server.get_user (this.username);
 					u.calc_speed (o.speed);
 
-					debug (2) writeln ("User ", this.username, " reports a speed of ", o.speed, " B/s (their speed is now ", u.speed, " B/s)");
+					debug (user) writeln ("User ", this.username, " reports a speed of ", o.speed, " B/s (their speed is now ", u.speed, " B/s)");
 					}
 				break;
 			case UserPrivileged:
@@ -888,9 +889,9 @@ class User
 					}
 				break;
 			default:
-				debug (2)
+				debug (msg)
 					{
-					write (red, "Un-implemented message", black, "from user ", underline,
+					write (red, "Unimplemented message", black, " from user ", blue,
 						username.length > 0 ? username : to!string(address), black,
 						", code ", red, code, black, " and length ", s.size (), "\n> ");
 					try {writeln (s.toString ());}
@@ -920,7 +921,7 @@ class User
 			}
 
 		if (this.username in server.admins) this.admin = true;
-		debug (1) if (admin) writeln (this.username, " is an admin.", this.username);
+		if (admin) writeln (this.username, " is an admin.", this.username);
 		server.add_user (this);
 
 		send_message (new SRoomList (Room.room_stats ()));
@@ -930,7 +931,7 @@ class User
 		foreach (PM pm ; PM.get_pms_for (this.username))
 			{
 			bool new_message = false;
-			debug (3) writeln ("Sending offline PM (id ", pm.id, ") to ", this.username);
+			debug (user) writeln ("Sending offline PM (id ", pm.id, ") to ", this.username);
 			send_pm (pm, new_message);
 			}
 		
@@ -947,6 +948,6 @@ class User
 		Room.remove_global_room_user (username);
 		this.loggedin = false;
 		this.set_status (0);
-		debug (1) if (this.username.length > 0) writeln ("User " ~ blue, username, black ~ " has quit.");
+		if (this.username.length > 0) writeln ("User " ~ blue, username, black ~ " has quit.");
 		}
 	}

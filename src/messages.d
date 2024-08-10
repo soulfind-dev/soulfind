@@ -74,7 +74,7 @@ class Message
 		{
 		try
 			{
-			debug (3) writeln("Sending string '", s, "', length ", s.length);
+			debug (msg) writeln("Sending string '", s, "', length ", s.length);
 			writei (s.length);
 			b.write (s);
 			}

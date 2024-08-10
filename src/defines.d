@@ -7,10 +7,7 @@ const uint max_users		= 65535;
 const uint max_message_size	= 16384;
 const string server_user	= "server";
 
-
 // colours
 const char[] blue      = "\033[01;94m";
 const char[] black     = "\033[0m";
 const char[] red       = "\033[01;91m";
-const char[] underline = "\033[04;30m";
-
