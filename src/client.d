@@ -42,392 +42,350 @@ private import core.stdc.time : time;
 class User
 	{
 	// some attributes...
-	string	username;
-	string	password;
-	uint	cversion;
+	string		username;
+	string		password;
+	uint		cversion;
 
-	uint	address;
-	uint	port;
+	uint		address;
+	ushort		port;
 
-	bool	admin;
+	bool		admin;
 
-	uint	privileges;		// in seconds
-	ulong	last_checked_privileges;// privileges length is counted from this date
-	uint	speed;			// received in B/s, sent in kB/s
-	uint	upload_number;
-	uint	something;
-	uint	shared_files;
-	uint	shared_folders;
-	uint	slots_full;
-	string  country_code;
+	uint		privileges;			// in seconds
+	ulong		last_priv_check;	// privileges length counted from this date
+	uint		speed;				// in B/s
+	uint		upload_number;
+	uint		something;
+	uint		shared_files;
+	uint		shared_folders;
+	uint		slots_full;
+	string		country_code;
 
-	uint	status;			// 0,1,2
-	bool	loggedin;
-	ulong	connected_at;		// in seconds
-	ulong	last_message_date;	// in seconds
+	uint		status;				// 0, 1, 2
+	bool		logged_in;
+	ulong		connected_at;		// in seconds
+	ulong		last_message_date;	// in seconds
 
-	string[string]	things_he_likes;
-	string[string]	things_he_hates;
+	string[string]	liked_things;
+	string[string]	hated_things;
 
-	Socket	socket;
-	Server	server;
+	Socket		sock;
+	Server		server;
 
-	ubyte[] in_buf;
-	auto    in_message_size = -1;
-	ubyte[] out_buf;
-	auto    msg_size_buf = new OutBuffer();
+	ubyte[]		in_buf;
+	auto		in_msg_size = -1;
+	ubyte[]		out_buf;
+	auto		msg_size_buf = new OutBuffer();
 
 	// constructors
-	this (Server serv, Socket s, uint address)
+	this (Server serv, Socket sock, uint address)
 		{
-		this.server            = serv;
-		this.socket            = s;
-		this.address           = address;
-		this.loggedin          = false;
-		this.admin             = false;
-		this.connected_at      = time(null);
-		this.last_message_date = time(null);
+		this.server				= serv;
+		this.sock				= sock;
+		this.address			= address;
+		this.logged_in			= false;
+		this.admin				= false;
+		this.connected_at		= time (null);
+		this.last_message_date	= time (null);
 		}
-	
-	this () {}
-	
+
 	// misc
 	string list_joined_rooms ()
 		{
-		string list;
-		foreach (Room r ; joined_rooms ())
-			{
-			list ~= r.name ~ " ";
-			}
-		return list;
-		}
-	
-	string print_privileges ()
-		{
-		return this.privileges > 0 ? print_length(this.privileges) : "None";
+		string rooms;
+		foreach (room_name, room ; joined_rooms) rooms ~= room_name ~ " ";
+		return rooms;
 		}
 
-	void calc_speed (uint speed)
+	string print_privileges ()
 		{
-		if (this.upload_number == 0)
+		return privileges > 0 ? print_length(privileges) : "None";
+		}
+
+	void calc_speed (uint new_speed)
+		{
+		if (upload_number == 0)
 			{
-			this.upload_number = 1;
-			this.speed = speed;
+			upload_number = 1;
+			speed = new_speed;
 			}
 		else
 			{
-			this.speed = (this.speed*upload_number + speed)/(upload_number + 1);
-			this.upload_number++;
+			speed = (speed * upload_number + new_speed) / (upload_number + 1);
+			upload_number++;
 			}
 
-		send_to_watching (new SGetUserStats (this.username, this.speed, this.upload_number, this.something, this.shared_files, this.shared_folders));
+		send_to_watching (
+			new SGetUserStats (
+				username, speed, upload_number, something, shared_files,
+				shared_folders
+			)
+		);
+		server.db.user_update_field (username, "speed", speed);
+		}
 
-		server.db.user_update_field (this.username, "speed", this.speed);
-		}
-	
-	void set_shared_files (uint files)
+	void set_shared_files (uint new_files)
 		{
-		this.shared_files = files;
-		server.db.user_update_field (this.username, "files", this.shared_files);
+		shared_files = new_files;
+		server.db.user_update_field (username, "files", shared_files);
 		}
-	
-	void set_shared_folders (uint folders)
+
+	void set_shared_folders (uint new_folders)
 		{
-		this.shared_folders = folders;
-		server.db.user_update_field (this.username, "folders", this.shared_folders);
+		shared_folders = new_folders;
+		server.db.user_update_field (username, "folders", shared_folders);
 		}
-	
+
 	void send_pm (PM pm, bool new_message)
 		{
-		this.send_message (new SMessageUser (pm.id, cast(uint) pm.timestamp, pm.from, pm.content, new_message));
+		send_message (
+			new SMessageUser (
+				pm.id, cast(uint) pm.timestamp, pm.from, pm.content,
+				new_message
+			)
+		);
 		}
 
-	void change_password (string password)
+	void change_password (string new_password)
 		{
-		this.password = password;
-		server.db.user_update_field (this.username, "password", this.password);
+		password = new_password;
+		server.db.user_update_field (username, "password", password);
 		}
 
 	// privileges
-	void add_privileges (uint privileges)
+	void add_privileges (uint new_privileges)
 		{
-		debug (user) writeln ("Adding ", privileges, " seconds of privileges to user ", username);
-		this.privileges += privileges;
-		debug (user) writeln ("Now ", this.privileges, " seconds.");
-		server.db.user_update_field (this.username, "privileges", this.privileges);
-		send_message (new SCheckPrivileges (this.privileges));
+		debug (user) writeln (
+			"Adding ", new_privileges, " seconds of privileges to user ",
+			username
+		);
+		privileges += new_privileges;
+		debug (user) writeln ("Now ", privileges, " seconds.");
+		server.db.user_update_field (username, "privileges", privileges);
+		send_message (new SCheckPrivileges (privileges));
 		}
-	
-	void remove_privileges (uint privileges)
+
+	void remove_privileges (uint new_privileges)
 		{
-		debug (user) writeln ("Removing ", privileges, " seconds of privileges to user ", username);
-		if (privileges > this.privileges)
-			this.privileges = 0;
+		debug (user) writeln (
+			"Removing ", new_privileges, " seconds of privileges to user ",
+			username
+		);
+		if (new_privileges > privileges)
+			privileges = 0;
 		else
-			this.privileges -= privileges;
-		debug (user) writeln ("Now ", this.privileges, " seconds.");
-		server.db.user_update_field (this.username, "privileges", this.privileges);
-		send_message (new SCheckPrivileges (this.privileges));
+			privileges -= new_privileges;
+		debug (user) writeln ("Now ", privileges, " seconds.");
+		server.db.user_update_field (username, "privileges", privileges);
+		send_message (new SCheckPrivileges (privileges));
 		}
-	
+
 	void update_privileges ()
 		{
 		ulong now = time(null);
-		ulong difference = now - this.last_checked_privileges;
-		if (this.last_checked_privileges > now) difference = 0;
-		if (this.privileges < difference)
-			this.privileges = 0;
+		ulong difference = now - last_priv_check;
+		if (last_priv_check > now) difference = 0;
+		if (privileges < difference)
+			privileges = 0;
 		else
-			this.privileges -= now - this.last_checked_privileges;
-		this.last_checked_privileges = now;
-		server.db.user_update_field (this.username, "privileges", this.privileges);
+			privileges -= now - last_priv_check;
+		last_priv_check = now;
+		server.db.user_update_field (username, "privileges", privileges);
 		}
-	
+
 	uint get_privileges ()
 		{
 		update_privileges ();
-		return this.privileges;
+		return privileges;
 		}
-	
+
 	// things I like
 	void add_thing_he_likes (string thing)
 		{
-		if (!this.likes (thing))
-			{
-			things_he_likes[thing] = thing;
-			}
+		if (!likes (thing)) liked_things[thing] = thing;
 		}
-	
+
 	void del_thing_he_likes (string thing)
 		{
-		if (this.likes (thing))
-			{
-			things_he_likes.remove (thing);
-			}
+		if (likes (thing)) liked_things.remove (thing);
 		}
-	
+
 	void add_thing_he_hates (string thing)
 		{
-		if (!this.hates (thing))
-			{
-			things_he_hates[thing] = thing;
-			}
+		if (!hates (thing)) hated_things[thing] = thing;
 		}
-	
+
 	void del_thing_he_hates (string thing)
 		{
-		if (this.hates (thing))
-			{
-			things_he_hates.remove (thing);
-			}
+		if (hates (thing)) hated_things.remove (thing);
 		}
-	
+
 	bool likes (string thing)
 		{
-		return (!(!(thing in things_he_likes)));
+		return (!(!(thing in liked_things)));
 		}
-	
+
 	bool hates (string thing)
 		{
-		return (!(!(thing in things_he_hates)));
+		return (!(!(thing in hated_things)));
 		}
-	
+
 	uint[string] get_recommendations ()
 		{
-		uint[string] list;
+		uint[string] recommendations;
 
-		foreach (User u ; server.users ())
+		foreach (user ; server.users ())
 			{
-			if (this is u) continue;
-			int weight = 0;
-			foreach (string thing ; this.things_he_likes)
+			if (user is this) continue;
+
+			int weight;
+			foreach (thing ; liked_things)
 				{
-				if (u.likes (thing))
-					{
-					weight++;
-					}
-				if (u.hates (thing) && weight > 0)
-					{
-					weight--;
-					}
+				if (user.likes (thing)) weight++;
+				if (user.hates (thing) && weight > 0) weight--;
 				}
-			foreach (string thing ; things_he_hates)
+			foreach (thing ; hated_things)
 				{
-				if (u.hates (thing))
-					{
-					weight++;
-					}
-				if (u.likes (thing) && weight > 0)
-					{
-					weight--;
-					}
+				if (user.hates (thing)) weight++;
+				if (user.likes (thing) && weight > 0) weight--;
 				}
-			if (weight > 0) foreach (string thing ; u.things_he_likes)
-				{
-				list[thing] += weight;
-				}
+			if (weight > 0) foreach (thing ; user.liked_things)
+				recommendations[thing] += weight;
 			}
 
-		return list;
+		return recommendations;
 		}
-	
+
 	uint[string] get_similar_users ()
 		{
 		uint[string] users;
 
-		foreach (User u ; server.users ())
+		foreach (user ; server.users ())
 			{
-			if (this is u) continue;
-			int weight = 0;
-			foreach (string thing ; things_he_likes)
+			if (user is this) continue;
+
+			int weight;
+			foreach (thing ; liked_things)
 				{
-				if (u.likes (thing))
-					{
-					weight++;
-					}
-				if (u.hates (thing) && weight > 0)
-					{
-					weight--;
-					}
+				if (user.likes (thing)) weight++;
+				if (user.hates (thing) && weight > 0) weight--;
 				}
-			foreach (string thing ; things_he_hates)
+			foreach (thing ; hated_things)
 				{
-				if (u.hates (thing))
-					{
-					weight++;
-					}
-				if (u.likes (thing) && weight > 0)
-					{
-					weight--;
-					}
+				if (user.hates (thing)) weight++;
+				if (user.likes (thing) && weight > 0) weight--;
 				}
-			if (weight > 0) users[u.username] = weight;
+			if (weight > 0) users[user.username] = weight;
 			}
 
 		return users;
 		}
-	
+
 	uint[string] get_item_recommendations (string item)
 		{
 		uint[string] list;
 
-		foreach (User u ; server.users ())
+		foreach (user ; server.users ())
 			{
-			if (this is u) continue;
-			int weight = 0;
-			if (u.likes (item))
-				{
-				weight++;
-				}
-			if (u.hates (item) && weight > 0)
-				{
-				weight--;
-				}
+			if (user is this) continue;
 
-			if (weight > 0) foreach (string thing ; u.things_he_likes)
-				{
+			int weight;
+			if (user.likes (item)) weight++;
+			if (user.hates (item) && weight > 0) weight--;
+			if (weight > 0) foreach (thing ; user.liked_things)
 				list[thing] += weight;
-				}
 			}
 
 		return list;
 		}
-	
+
 	string[] get_item_similar_users (string item)
 		{
 		string[] list;
 
-		foreach (User u ; server.users ())
+		foreach (user ; server.users ())
 			{
-			if (this is u) continue;
-			if (u.likes (item))
-				{
-				list ~= u.username;
-				}
+			if (user is this) continue;
+			if (user.likes (item)) list ~= user.username;
 			}
 
 		return list;
 		}
-	
+
 	// watching
 	string list_watching ()
 		{
 		string list;
-
-		foreach (User user ; watching ())
-			{
-			list ~= user.username ~ " ";
-			}
+		foreach (user ; watching ()) list ~= user.username ~ " ";
 		return list;
 		}
-	
+
 	string list_watched_by ()
 		{
 		string list;
-		foreach (User user ; watched_by ())
-			{
-			list ~= user.username ~ " ";
-			}
+		foreach (user ; watched_by ()) list ~= user.username ~ " ";
 		return list;
 		}
-	
+
 	void send_to_watching (Message m)
 		{
-		debug (msg) write ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ");
-		if (this.watched_by().length == 0)
+		debug (msg) write (
+			"Sending message code ", blue, message_name[m.code], black,
+			" (", m.code, ") to "
+		);
+		if (watched_by().length == 0)
 			{
 			debug (msg) write ("nobody");
 			}
-		else foreach (User user ; this.watched_by ())
+		else foreach (user ; watched_by ())
 			{
 			debug (msg) writeln (user.username);
 			user.send_message (m);
 			}
 		debug (msg) writeln ();
 		}
-	
-	void set_status (uint status)
+
+	void set_status (uint new_status)
 		{
-		this.status = status;
-		this.send_to_watching (new SGetUserStatus (this.username, this.status, this.privileges > 0));
+		status = new_status;
+		if (status == Status.offline) logged_in = false;
+		send_to_watching (
+			new SGetUserStatus (username, new_status, privileges > 0)
+		);
 		}
-	
-	
+
 	// watchlist, etc
 	string[string] watch_list;	// watch_list[username] = username
-	
+
 	void watch (string username)
 		{
 		watch_list[username] = username;
 		}
-	
+
 	void unwatch (string username)
 		{
-		if (username in watch_list)
-			{
-			watch_list.remove (username);
-			}
+		if (username !in watch_list) return;
+		watch_list.remove (username);
 		}
-	
+
 	User[] watched_by ()
 		{
 		User[] list;
-		foreach (User user ; server.users ())
-			{
-			if (user.watching().length > 0 && user !is this && this.username in user.watching ())
-				list ~= user;
-			}
+		foreach (user ; server.users ())
+			if (user !is this && username in user.watching ()) list ~= user;
+
 		return list;
 		}
-	
+
 	User[string] watching ()
 		{
 		User[string] list;
-		if (watch_list.length > 0) foreach (string username ; watch_list)
+		foreach (username ; watch_list)
 			{
-			if (server.find_user (username)) list[username] = server.get_user (username);
+			auto user = server.get_user (username);
+			if (user) list[username] = user;
 			}
-		if (joined_rooms().length > 0) foreach (Room room ; joined_rooms ())
+		foreach (room_name, room ; joined_rooms)
 			{
 			foreach (User user ; room.users ())
 				{
@@ -436,34 +394,24 @@ class User
 			}
 		return list;
 		}
-	
-	// rooms, etc
-	string[string] room_list;	// room_list[roomname] = roomname
 
-	void join_room (string roomname)
+	// rooms, etc
+	Room[string] joined_rooms;
+
+	void join_room (Room room)
 		{
-		room_list[roomname] = roomname;
+		joined_rooms[room.name] = room;
 		}
-	
-	 void leave_room (string roomname)
+
+	 void leave_room (string room_name)
 		{
-		if (roomname in room_list) room_list.remove (roomname);
+		if (room_name in joined_rooms) joined_rooms.remove (room_name);
 		}
-	
-	Room[] joined_rooms ()
-		{
-		Room[] tmp;
-		if (room_list.length > 0) foreach (string roomname ; room_list)
-			{
-			if (Room.find_room (roomname)) tmp ~= Room.get_room (roomname);
-			}
-		return tmp;
-		}
-	
+
 	// messages
 	bool send_buffer ()
 		{
-		auto send_len = socket.send (out_buf);
+		auto send_len = sock.send (out_buf);
 		if (send_len == Socket.ERROR) return false;
 		out_buf = out_buf[send_len .. out_buf.length];
 		return true;
@@ -477,14 +425,19 @@ class User
 		out_buf ~= msg_buf;
 		msg_size_buf.clear ();
 
-		debug (msg) writeln ("Sent ", out_buf.length, " bytes to user " ~ blue, this.username, black);
-		debug (msg) writeln ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ", this.username);
+		debug (msg) writeln (
+			"Sent ", out_buf.length, " bytes to user " ~ blue, username, black
+		);
+		debug (msg) writeln (
+			"Sending message code ", blue, message_name[m.code], black,
+			" (", m.code, ") to ", username
+		);
 		}
 
 	bool recv_buffer ()
 		{
-		ubyte[max_message_size] receive_buf;
-		auto receive_len = socket.receive(receive_buf);
+		ubyte[max_msg_size] receive_buf;
+		auto receive_len = sock.receive(receive_buf);
 		if (receive_len == Socket.ERROR || receive_len == 0) return false;
 
 		last_message_date = time(null);
@@ -493,7 +446,7 @@ class User
 		while (recv_message ())
 			{
 			// disconnect the user if message is incorrect/bogus
-			if (in_message_size < 0 || in_message_size > max_message_size) return false;
+			if (in_msg_size < 0 || in_msg_size > max_msg_size) return false;
 			if (!proc_message ()) return false;
 			}
 
@@ -502,127 +455,137 @@ class User
 
 	bool recv_message ()
 		{
-		if (in_message_size == -1)
+		if (in_msg_size == -1)
 			{
 			if (in_buf.length < uint.sizeof) return false;
-			in_message_size = in_buf.read!(uint, Endian.littleEndian);
+			in_msg_size = in_buf.read!(uint, Endian.littleEndian);
 			}
 
-		return in_buf.length >= in_message_size;
+		return in_buf.length >= in_msg_size;
 		}
 
 	bool proc_message ()
 		{
-		auto msg_buf = in_buf[0 .. in_message_size];
+		auto msg_buf = in_buf[0 .. in_msg_size];
 		auto code = msg_buf.read!(uint, Endian.littleEndian);
 
-		in_buf = in_buf[in_message_size .. in_buf.length];
-		in_message_size = -1;
+		in_buf = in_buf[in_msg_size .. in_buf.length];
+		in_msg_size = -1;
 
-		debug (msg) if (code != 32 && code < message_name.length) writeln ("Received message ", blue, message_name[code], black, " (code ", blue, code, black ~ ")");
+		debug (msg) writeln (
+			"Received message ", blue, message_name[code], black, " (code ",
+			blue, code, black ~ ")"
+		);
 
-		if (!loggedin && code != Login) return false;
-		if (loggedin  && code == Login) return true;
+		if (!logged_in && code != Login) return false;
+		if (logged_in  && code == Login) return true;
 
 		switch (code)
 			{
 			case Login:
 				write ("User logging in : ");
-				ULogin o = new ULogin (msg_buf);
+				auto msg = new ULogin (msg_buf);
 				string error;
 
-				if (!server.check_login (o.name, o.pass, o.vers, error))
+				if (!server.check_login (msg.name, msg.pass, msg.vers, error))
 					{
-					writeln (o.name, ": Impossible to login (", error, ")");
+					writeln (msg.name, ": Impossible to login (", error, ")");
 					send_message (new SLogin (false, error));
 					return false;
 					}
-				else if (server.find_user (o.name) && server.get_user (o.name).loggedin)
+
+				auto user = server.get_user (msg.name);
+
+				if (user && user.logged_in)
 					{
-					writeln (o.name, ": Already logged in");
-					User u = server.get_user (o.name);
-					u.send_message (new SRelogged ());
-					u.exit ();
+					writeln (msg.name, ": Already logged in");
+					user.send_message (new SRelogged ());
+					user.exit ();
 					}
 
-				writeln (blue, o.name, black ~ ", version ", o.vers);
-				return (this.login (o));
-				break;
+				writeln (blue, msg.name, black ~ ", version ", msg.vers);
+				return (login (msg));
+
 			case SetWaitPort:
-				USetWaitPort o = new USetWaitPort (msg_buf);
-				this.port = o.port;
+				auto msg = new USetWaitPort (msg_buf);
+				port = cast(ushort) msg.port;
 				break;
+
 			case GetPeerAddress:
-				UGetPeerAddress o = new UGetPeerAddress (msg_buf);
-				
-				if (server.find_user (o.user))
+				auto msg = new UGetPeerAddress (msg_buf);
+				auto user = server.get_user (msg.user);
+				uint address;
+				uint port;
+
+				if (user)
 					{
-					User user = server.get_user (o.user);
-					send_message (new SGetPeerAddress (user.username, user.address, user.port));
-					}
-				else
-					{
-					send_message (new SGetPeerAddress (o.user, 0, 0));
-					}
-				break;
-			case WatchUser:
-				UWatchUser o = new UWatchUser (msg_buf);
-				bool exists = true;
-				uint status, speed, upload_number, something, shared_files, shared_folders;
-				string country_code;
-				
-				if (server.db.user_exists (o.user))
-					{
-					User u = server.get_user (o.user);
-					if (u)
-						{
-						status = u.status;
-						country_code = u.country_code;
-						}
-					else
-						{
-						status = Status.offline;
-						country_code = "";
+					address = user.address;
+					port = user.port;
 					}
 
-					server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
-					send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
-					watch (o.user);
-					}
-				else if (o.user == server_user)
+				send_message (new SGetPeerAddress (msg.user, address, port));
+				break;
+
+			case WatchUser:
+				auto msg = new UWatchUser (msg_buf);
+				bool exists;
+				uint status = Status.offline;
+				uint speed, upload_number, something;
+				uint shared_files, shared_folders;
+				string country_code;
+
+				if (server.db.user_exists (msg.user))
 					{
+					auto user = server.get_user (msg.user);
+					if (user)
+						{
+						status = user.status;
+						country_code = user.country_code;
+						}
+
+					server.db.get_user (
+						msg.user, speed, upload_number, something, shared_files,
+						shared_folders
+					);
+					watch (msg.user);
+					}
+				else if (msg.user == server_user)
+					{
+					exists = true;
 					status = Status.online;
 					}
-				else
-					{
-					exists = false;
-					}
 
-				send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
+				send_message (
+					new SWatchUser (
+						msg.user, exists, status, speed, upload_number,
+						something, shared_files, shared_folders, country_code
+						)
+					);
 				break;
+
 			case UnwatchUser:
-				UUnwatchUser o = new UUnwatchUser (msg_buf);
-				unwatch(o.user);
+				auto msg = new UUnwatchUser (msg_buf);
+				unwatch(msg.user);
 				break;
+
 			case GetUserStatus:
-				UGetUserStatus o = new UGetUserStatus (msg_buf);
-				uint status;
+				auto msg = new UGetUserStatus (msg_buf);
+				auto user = server.get_user (msg.user);
+				uint status = Status.offline;
 				bool privileged;
 
-				debug (user) write ("Sending ", o.user, "'s status... ");
-				if (server.find_user (o.user))
+				debug (user) write ("Sending ", msg.user, "'s status... ");
+				if (user)
 					{	// user is online
-					User u = server.get_user (o.user);
 					debug (user) writeln ("online.");
-					status = u.status;
-					privileged = u.privileges > 0;
+					status = user.status;
+					privileged = user.privileges > 0;
 					}
-				else if (server.db.user_exists (o.user))
+				else if (server.db.user_exists (msg.user))
 					{	// user is offline but exists
 					debug (user) writeln ("offline.");
-					status = Status.offline;
 					}
-				else if (o.user == server_user)
+				else if (msg.user == server_user)
 					{	// user is the server administration interface
 					debug (user) writeln ("server (online)");
 					status = Status.online;
@@ -632,306 +595,367 @@ class User
 					debug (user) writeln ("doesn't exist.");
 					}
 
-				send_message (new SGetUserStatus (o.user, status, privileged));
+				send_message (
+					new SGetUserStatus (msg.user, status, privileged)
+				);
 				break;
+
 			case SayChatroom:
-				USayChatroom o = new USayChatroom (msg_buf);
-				if (Room.find_room (o.room))
-					{
-					Room.get_room (o.room).say (this.username, o.message);
+				auto msg = new USayChatroom (msg_buf);
+				auto room = Room.get_room (msg.room);
+				if (!room) break;
 
-					foreach (string global_username ; Room.get_global_room_users ())
-						{
-						User u = server.get_user (global_username);
-						u.send_message (new SGlobalRoomMessage (o.room, this.username, o.message));
-						}
+				room.say (username, msg.message);
+				foreach (global_username ; Room.get_global_room_users ())
+					{
+					auto user = server.get_user (global_username);
+					user.send_message (
+						new SGlobalRoomMessage (
+							msg.room, username, msg.message
+						)
+					);
 					}
 				break;
+
 			case JoinRoom:
-				UJoinRoom o = new UJoinRoom (msg_buf);
-
-				if (server.check_string (o.room)) Room.join_room (o.room, this);
+				auto msg = new UJoinRoom (msg_buf);
+				if (!server.check_string (msg.room)) break;
+				Room.join_room (msg.room, this);
 				break;
+
 			case LeaveRoom:
-				ULeaveRoom o = new ULeaveRoom (msg_buf);
+				auto msg = new ULeaveRoom (msg_buf);
+				auto room = Room.get_room (msg.room);
+				if (!room) break;
 
-				if (Room.find_room (o.room)) Room.get_room (o.room).leave (this);
-				this.leave_room (o.room);
-				
-				send_message (new SLeaveRoom (o.room));
+				room.leave (this);
+				leave_room (msg.room);
+				send_message (new SLeaveRoom (msg.room));
 				break;
+
 			case ConnectToPeer:
-				UConnectToPeer o = new UConnectToPeer (msg_buf);
+				auto msg = new UConnectToPeer (msg_buf);
+				auto user = server.get_user (msg.user);
+				if (!user) break;
+				auto ia = new InternetAddress (user.address, user.port);
 
-				if (server.find_user (o.user))
-					{
-					User user = server.get_user (o.user);
-					InternetAddress ia = new InternetAddress (user.address, cast(ushort)user.port);
-					debug (user) writeln (this.username, " cannot connect to ", o.user, "/", ia.toString(), ", asking us to tell the other...");
-					user.send_message (new SConnectToPeer (user.username, o.type, user.address, user.port, o.token, user.privileges > 0));
-					}
+				debug (user) writeln (
+					username, " cannot connect to ", msg.user, "/",
+					ia.toString(), ", asking us to tell the other..."
+				);
+				user.send_message (
+					new SConnectToPeer (
+						user.username, msg.type, user.address, user.port,
+						msg.token, user.privileges > 0
+					)
+				);
 				break;
+
 			case MessageUser:
-				UMessageUser o = new UMessageUser (msg_buf);
+				auto msg = new UMessageUser (msg_buf);
+				auto user = server.get_user (msg.user);
 
-				if (this.admin && o.user == server_user)
+				if (admin && msg.user == server_user)
 					{
-					server.admin_message (this, o.message);
+					server.admin_message (this, msg.message);
 					}
-				else if (server.find_user (o.user))
+				else if (user)
 					{ // user is connected
-					PM pm = new PM (o.message, this.username, o.user);
-					User dest = server.get_user (o.user);
-					bool new_message = true;
+					auto pm = new PM (msg.message, username, msg.user);
+					auto new_message = true;
+
 					PM.add_pm (pm);
-					dest.send_pm (pm, new_message);
+					user.send_pm (pm, new_message);
 					}
-				else if (server.db.user_exists (o.user))
+				else if (server.db.user_exists (msg.user))
 					{ // user is not connected but exists
-					PM pm = new PM (o.message, this.username, o.user);
+					auto pm = new PM (msg.message, username, msg.user);
 					PM.add_pm (pm);
 					}
 				break;
+
 			case MessageAcked:
-				UMessageAcked o = new UMessageAcked (msg_buf);
-				PM.del_pm (o.id);
+				auto msg = new UMessageAcked (msg_buf);
+				PM.del_pm (msg.id);
 				break;
+
 			case FileSearch:
-				UFileSearch o = new UFileSearch (msg_buf);
-				server.do_FileSearch (o.token, o.strng, this.username);
+				auto msg = new UFileSearch (msg_buf);
+				server.do_FileSearch (msg.token, msg.strng, username);
 				break;
+
 			case SetStatus:
-				USetStatus o = new USetStatus (msg_buf);
-				set_status (o.status);
+				auto msg = new USetStatus (msg_buf);
+				set_status (msg.status);
 				break;
+
 			case ServerPing:
 				send_message (new SServerPing ());
 				break;
+
 			case SharedFoldersFiles:
-				USharedFoldersFiles o = new USharedFoldersFiles (msg_buf);
-				debug (user) writeln (this.username, " is sharing ", o.nb_files, " files and ", o.nb_folders, " folders");
-				this.set_shared_folders (o.nb_folders);
-				this.set_shared_files (o.nb_files);
+				auto msg = new USharedFoldersFiles (msg_buf);
+				debug (user) writeln (
+					username, " is sharing ", msg.nb_files, " files and ",
+					msg.nb_folders, " folders"
+				);
+				set_shared_folders (msg.nb_folders);
+				set_shared_files (msg.nb_files);
 
-				this.send_to_watching (new SGetUserStats (this.username, this.speed, this.upload_number, this.something, this.shared_files, this.shared_folders));
+				send_to_watching (
+					new SGetUserStats (
+						username, speed, upload_number, something,
+						shared_files, shared_folders
+					)
+				);
 				break;
+
 			case GetUserStats:
-				UGetUserStats o = new UGetUserStats (msg_buf);
-				
-				uint speed, upload_number, something, shared_files, shared_folders;
-				server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
-				send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
+				auto msg = new UGetUserStats (msg_buf);
+				uint speed, upload_number, something;
+				uint shared_files, shared_folders;
+
+				server.db.get_user (
+					msg.user, speed, upload_number, something, shared_files,
+					shared_folders
+				);
+				send_message (
+					new SGetUserStats (
+						msg.user, speed, upload_number, something,
+						shared_files, shared_folders
+					)
+				);
 				break;
+
 			case UserSearch:
-				UUserSearch o = new UUserSearch (msg_buf);
-
-				server.do_UserSearch (o.token, o.query, this.username, o.user);
+				auto msg = new UUserSearch (msg_buf);
+				server.do_UserSearch (msg.token, msg.query, username, msg.user);
 				break;
+
 			case AddThingILike:
-				UAddThingILike o = new UAddThingILike (msg_buf);
-
-				this.add_thing_he_likes (o.thing);
-
+				auto msg = new UAddThingILike (msg_buf);
+				add_thing_he_likes (msg.thing);
 				break;
+
 			case RemoveThingILike:
-				URemoveThingILike o = new URemoveThingILike (msg_buf);
-
-				this.del_thing_he_likes (o.thing);
-
+				auto msg = new URemoveThingILike (msg_buf);
+				del_thing_he_likes (msg.thing);
 				break;
+
 			case AddThingIHate:
-				UAddThingIHate o = new UAddThingIHate (msg_buf);
-
-				this.add_thing_he_hates (o.thing);
-
+				auto msg = new UAddThingIHate (msg_buf);
+				add_thing_he_hates (msg.thing);
 				break;
+
 			case RemoveThingIHate:
-				URemoveThingIHate o = new URemoveThingIHate (msg_buf);
-
-				this.del_thing_he_hates (o.thing);
-
+				auto msg = new URemoveThingIHate (msg_buf);
+				del_thing_he_hates (msg.thing);
 				break;
+
 			case GetRecommendations:
-				send_message (new SGetRecommendations (get_recommendations ()));
+				auto recommendations = get_recommendations ();
+				send_message (new SGetRecommendations (recommendations));
 				break;
+
 			case GlobalRecommendations:
-				send_message (new SGetGlobalRecommendations (server.global_recommendations ()));
+				auto recommendations = server.global_recommendations ();
+				send_message (new SGetGlobalRecommendations (recommendations));
 				break;
+
 			case SimilarUsers:
-				send_message (new SSimilarUsers (get_similar_users ()));
+				auto users = get_similar_users ();
+				send_message (new SSimilarUsers (users));
 				break;
+
 			case UserInterests:
-				UUserInterests o = new UUserInterests (msg_buf);
+				auto msg = new UUserInterests (msg_buf);
+				auto user = server.get_user (msg.user);
 
-				if (server.find_user (o.user)) {
-					User u = server.get_user (o.user);
-					send_message (new SUserInterests (u.username, u.things_he_likes, u.things_he_hates));
-
-				}
+				if (user) send_message (
+					new SUserInterests (
+						user.username, user.liked_things, user.hated_things
+					)
+				);
 				break;
+
 			case RoomList:
-				send_message (new SRoomList (Room.room_stats ()));
+				auto room_list = Room.room_stats ();
+				send_message (new SRoomList (room_list));
 				break;
+
 			case AdminMessage:
-				if (this.admin)
-					{
-					UAdminMessage o = new UAdminMessage (msg_buf);
+				if (!admin) break;
+				auto msg = new UAdminMessage (msg_buf);
 
-					foreach (User user ; server.users ())
-						{
-						user.send_message (new SAdminMessage (o.mesg));
-						}
-					}
+				foreach (User user ; server.users ())
+					user.send_message (new SAdminMessage (msg.mesg));
 				break;
+
 			case CheckPrivileges:
-				send_message (new SCheckPrivileges (this.get_privileges ()));
+				auto privileges = get_privileges ();
+				send_message (new SCheckPrivileges (privileges));
 				break;
+
 			case WishlistSearch:
-				UWishlistSearch o = new UWishlistSearch (msg_buf);
-				server.do_FileSearch (o.token, o.strng, this.username);
+				auto msg = new UWishlistSearch (msg_buf);
+				server.do_FileSearch (msg.token, msg.strng, username);
 				break;
+
 			case ItemRecommendations:
-				UGetItemRecommendations o = new UGetItemRecommendations (msg_buf);
-				send_message (new SGetItemRecommendations (o.item, get_item_recommendations (o.item)));
+				auto msg = new UGetItemRecommendations (msg_buf);
+				auto recommendations = get_item_recommendations (msg.item);
+				send_message (
+					new SGetItemRecommendations (msg.item, recommendations)
+				);
 				break;
+
 			case ItemSimilarUsers:
-				UItemSimilarUsers o = new UItemSimilarUsers (msg_buf);
-				send_message (new SItemSimilarUsers (o.item, get_item_similar_users (o.item)));
+				auto msg = new UItemSimilarUsers (msg_buf);
+				auto similar_users = get_item_similar_users (msg.item);
+				send_message (new SItemSimilarUsers (msg.item, similar_users));
 				break;
+
 			case SetRoomTicker:
-				USetRoomTicker o = new USetRoomTicker (msg_buf);
-				if (Room.find_room (o.room))
-					{
-					Room.get_room (o.room).add_ticker (this.username, o.tick);
-					}
+				auto msg = new USetRoomTicker (msg_buf);
+				auto room = Room.get_room (msg.room);
+				if (room) room.add_ticker (username, msg.tick);
 				break;
+
 			case RoomSearch:
-				URoomSearch o = new URoomSearch (msg_buf);
-
-				server.do_RoomSearch (o.token, o.query, this.username, o.room);
+				auto msg = new URoomSearch (msg_buf);
+				server.do_RoomSearch (msg.token, msg.query, username, msg.room);
 				break;
+
 			case SendUploadSpeed:
-				USendUploadSpeed o = new USendUploadSpeed (msg_buf);
+				auto msg = new USendUploadSpeed (msg_buf);
+				auto user = server.get_user (username);
 
-				if (server.find_user (this.username))
-					{
-					User u = server.get_user (this.username);
-					u.calc_speed (o.speed);
-
-					debug (user) writeln ("User ", this.username, " reports a speed of ", o.speed, " B/s (their speed is now ", u.speed, " B/s)");
-					}
+				if (!user) break;
+				user.calc_speed (msg.speed);
+				debug (user) writeln (
+					"User ", username, " reports a speed of ", msg.speed,
+					" B/s (their speed is now ", user.speed, " B/s)"
+				);
 				break;
+
 			case UserPrivileged:
-				UUserPrivileged o = new UUserPrivileged (msg_buf);
-				
-				if (server.find_user (o.user))
-					{
-					User u = server.get_user (o.user);
-					send_message (new SUserPrivileged (u.username, u.privileges > 0));
-					}
+				auto msg = new UUserPrivileged (msg_buf);
+				auto user = server.get_user (msg.user);
+				if (user) send_message (
+					new SUserPrivileged (user.username, user.privileges > 0)
+				);
 				break;
+
 			case GivePrivileges:
-				UGivePrivileges o = new UGivePrivileges (msg_buf);
+				auto msg = new UGivePrivileges (msg_buf);
+				auto user = server.get_user (msg.user);
+				if (!user) break;
+				if (msg.time > privileges && !admin) break;
 
-				if ((o.time <= this.privileges || admin) && server.find_user (o.user))
-					{
-					server.get_user (o.user).add_privileges (o.time*3600*24);
-					if (!admin) this.remove_privileges (o.time*3600*24);
-					}
+				user.add_privileges (msg.time * 3600 * 24);
+				if (!admin) remove_privileges (msg.time * 3600 * 24);
 				break;
+
 			case ChangePassword:
-				UChangePassword o = new UChangePassword (msg_buf);
+				auto msg = new UChangePassword (msg_buf);
 
-				this.change_password(o.password);
-				send_message (new SChangePassword (this.password));
+				change_password(msg.password);
+				send_message (new SChangePassword (password));
 				break;
+
 			case MessageUsers:
-				UMessageUsers o = new UMessageUsers (msg_buf);
+				auto msg = new UMessageUsers (msg_buf);
 				bool new_message = true;
 
-				foreach (string user ; o.users)
+				foreach (target_username ; msg.users)
 					{
-					if (server.find_user (user))
-						{
-						PM pm = new PM (o.message, this.username, user);
-						server.get_user (user).send_pm (pm, new_message);
-						}
-					}
-				break;
-			case JoinGlobalRoom:
-				Room.add_global_room_user (this.username);
-				break;
-			case LeaveGlobalRoom:
-				Room.remove_global_room_user (this.username);
-				break;
-			case CantConnectToPeer:
-				UCantConnectToPeer o = new UCantConnectToPeer (msg_buf);
+					auto user = server.get_user (target_username);
+					if (!user) continue;
 
-				if (server.find_user (o.user))
-					{
-					server.get_user (o.user).send_message (new SCantConnectToPeer (o.token));
+					PM pm = new PM (msg.message, username, target_username);
+					user.send_pm (pm, new_message);
 					}
 				break;
+
+			case JoinGlobalRoom:
+				Room.add_global_room_user (username);
+				break;
+
+			case LeaveGlobalRoom:
+				Room.remove_global_room_user (username);
+				break;
+
+			case CantConnectToPeer:
+				auto msg = new UCantConnectToPeer (msg_buf);
+				auto user = server.get_user (msg.user);
+				if (user) user.send_message (
+					new SCantConnectToPeer (msg.token)
+				);
+				break;
+
 			default:
 				debug (msg)
 					{
-					write (red, "Unimplemented message", black, " from user ", blue,
-						username.length > 0 ? username : to!string(address), black,
-						", code ", red, code, black, " and length ", msg_buf.length, "\n> ");
-					try {writeln (msg_buf);}
-					catch (Exception e) {writeln ();}
+					write (
+						red, "Unimplemented message", black, " from user ",
+						blue, username, black, ", code ", red, code, black,
+						" and length ", msg_buf.length, "\n> "
+					);
+					writeln (msg_buf);
 					}
 				break;
 			}
 		return true;
 		}
-	
-	bool login (ULogin m)
+
+	bool login (ULogin msg)
 		{
-		string message = this.server.get_motd (m.name, m.vers);
-		bool supporter = this.get_privileges () > 0;
-		uint wishlist_interval = 720;  // in seconds
-		if (supporter) wishlist_interval = 120;
+		auto message = server.get_motd (msg.name, msg.vers);
+		auto supporter = get_privileges () > 0;
+		auto wishlist_interval = supporter ? 120 : 720;  // in seconds
 
-		this.username = m.name;
-		this.password = m.pass;
-		this.cversion = m.vers;
-		send_message (new SLogin (true, message, this.address, this.password, supporter));
-		this.loggedin = true;
+		username = msg.name;
+		password = msg.pass;
+		cversion = msg.vers;
+		logged_in = true;
 
-		if (!server.db.get_user (this.username, this.password, this.speed, this.upload_number, this.shared_files, this.shared_folders, this.privileges))
-			{
-			throw new Exception ("User " ~ this.username ~ " does not exist.");
-			}
+		send_message (
+			new SLogin (true, message, address, password, supporter)
+		);
 
-		if (this.username in server.admins) this.admin = true;
-		if (admin) writeln (this.username, " is an admin.", this.username);
+		if (!server.db.get_user (
+			username, password, speed, upload_number,
+			shared_files, shared_folders, privileges)
+		)
+			throw new Exception ("User " ~ username ~ " does not exist.");
+
+		if (username in server.admins) admin = true;
+		if (admin) writeln (username, " is an admin.");
 		server.add_user (this);
 
 		send_message (new SRoomList (Room.room_stats ()));
 		send_message (new SWishlistInterval (wishlist_interval));
-		this.set_status (Status.online);
+		set_status (Status.online);
 
-		foreach (PM pm ; PM.get_pms_for (this.username))
+		foreach (pm ; PM.get_pms_for (username))
 			{
-			bool new_message = false;
-			debug (user) writeln ("Sending offline PM (id ", pm.id, ") to ", this.username);
+			auto new_message = false;
+			debug (user) writeln (
+				"Sending offline PM (id ", pm.id, ") to ", username
+			);
 			send_pm (pm, new_message);
 			}
-		
+
 		return true;
 		}
 
 	void exit ()
 		{
 		update_privileges ();
-		foreach (Room room ; this.joined_rooms ())
-			{
-			room.leave (this);
-			}
+		foreach (room ; joined_rooms) room.leave (this);
 		Room.remove_global_room_user (username);
-		this.loggedin = false;
-		this.set_status (0);
-		if (this.username.length > 0) writeln ("User " ~ blue, username, black ~ " has quit.");
+
+		set_status (Status.offline);
+		writeln ("User " ~ blue, username, black ~ " has quit.");
 		}
 	}

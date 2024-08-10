@@ -287,7 +287,7 @@ class Room
 
 			user.send_message (new SJoinRoom   (this.name, this.user_names (), this.statuses (), this.speeds (), this.upload_numbers (), this.somethings (), this.shared_files (), this.shared_folders (), this.slots_full (), this.country_codes ()));
 			user.send_message (new SRoomTicker (this.name, this.tickers));
-			user.join_room    (this.name);
+			user.join_room    (this);
 			}
 		}
 	
