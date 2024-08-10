@@ -25,11 +25,11 @@ import defines;
 
 private import db;
 
-private import std.stdio : writeln;
-private import undead.cstream;
+private import std.stdio : readf, readln, write, writeln;
 private import std.conv : to;
 private import std.format : format;
 private import std.algorithm : sort;
+private import std.string : chomp, strip;
 
 private import core.sys.posix.stdlib : exit;
 
@@ -64,7 +64,7 @@ void main (string[] args)
 
 void main_menu ()
 	{
-	Menu m = new Menu ("Soulfind " ~ VERSION ~ " configuration");
+	auto m = new Menu ("Soulfind " ~ VERSION ~ " configuration");
 	
 	m.add ("0", "Admins",            &admins);
 	m.add ("1", "Listen port",       &listen_port);
@@ -79,13 +79,13 @@ void main_menu ()
 
 void exit ()
 	{
-	dout.writeLine ("\nA la prochaine...");
+	writeln ("\nA la prochaine...");
 	exit(0);
 	}
 
 void admins ()
 	{
-	Menu m = new Menu ("Admins");
+	auto m = new Menu ("Admins");
 	
 	m.add ("1", "Add an admin",    &add_admin);
 	m.add ("2", "Remove an admin", &del_admin);
@@ -97,32 +97,34 @@ void admins ()
 
 void add_admin ()
 	{
-	dout.writef ("Admin to add : ");
-	sdb.add_admin (to!string(din.readLine ()));
+	write ("Admin to add : ");
+	auto admin = strip (to!string (readln ()));
+	sdb.add_admin (admin);
 	admins ();
 	}
 
 void del_admin ()
 	{
-	dout.writef ("Admin to remove : ");
-	sdb.del_admin (to!string(din.readLine ()));
+	write ("Admin to remove : ");
+	auto admin = strip (to!string (readln ()));
+	sdb.del_admin (admin);
 	admins ();
 	}
 
 void list_admins ()
 	{
-	string[] names = sdb.get_admins ();
+	auto names = sdb.get_admins ();
 
 	if (names.length == 0)
 		{
-		dout.writeLine ("No admin on this server.");
+		writeln ("No admin on this server.");
 		}
 	else
 		{
-		dout.writeLine ("\nAdmins :");
-		foreach (string admin ; names)
+		writeln ("\nAdmins :");
+		foreach (admin ; names)
 			{
-			dout.writeLine (format ("- %s", admin));
+			writeln (format ("- %s", admin));
 			}
 		}
 	
@@ -132,7 +134,7 @@ void list_admins ()
 
 void listen_port ()
 	{
-	Menu m = new Menu (format ("Listen port : %d", sdb.conf_get_int ("port")));
+	auto m = new Menu (format ("Listen port : %d", sdb.conf_get_int ("port")));
 
 	m.add ("1", "Change listen port", &set_listen_port);
 	m.add ("q", "Return",             &main_menu);
@@ -142,14 +144,15 @@ void listen_port ()
 
 void set_listen_port ()
 	{
-	dout.writef ("New listen port : ");
-	sdb.conf_set_field ("port", to!string(din.readLine()));
+	write ("New listen port : ");
+	auto port = strip (to!string (readln ()));
+	sdb.conf_set_field ("port", port);
 	listen_port ();
 	}
 
 void max_users ()
 	{
-	Menu m = new Menu (format ("Max users allowed : %d", sdb.conf_get_int ("max_users")));
+	auto m = new Menu (format ("Max users allowed : %d", sdb.conf_get_int ("max_users")));
 
 	m.add ("1", "Change max users", &set_max_users);
 	m.add ("q", "Return",           &main_menu);
@@ -159,14 +162,15 @@ void max_users ()
 
 void set_max_users ()
 	{
-	dout.writef ("Max users : ");
-	sdb.conf_set_field ("max_users", to!string(din.readLine()));
+	write ("Max users : ");
+	auto max_num_users = strip (to!string (readln ()));
+	sdb.conf_set_field ("max_users", max_num_users);
 	max_users ();
 	}
 
 void motd ()
 	{
-	Menu m = new Menu (format ("Current message of the day :\n--\n%s\n--\n", sdb.conf_get_str ("motd")));
+	auto m = new Menu (format ("Current message of the day :\n--\n%s\n--\n", sdb.conf_get_str ("motd")));
 
 	m.add ("1", "Change MOTD", &set_motd);
 	m.add ("q", "Return",      &main_menu);
@@ -184,44 +188,40 @@ void set_motd ()
 	        ~ "New MOTD (end with a dot on a single line) :");
 
 	string MOTD;
-	char c, old;
 
 	do
 		{
-		old = c;
+		string line;
 		try
 			{
-			din.read (c);
+			line = chomp (readln ());
 			}
 		catch (Exception e)
 			{ // hopefully an EOF
 			break;
 			}
-		if (c == '.' && old == '\n')
+
+		if (strip (line) == ".")
 			{
-			din.read (c); // there should be a \n left
 			break;
 			}
-		else if (old == '\n')
+
+		if (MOTD.length > 0)
 			{
-			MOTD ~= old;
+			MOTD ~= "\n";
 			}
-		
-		if (c != '\n')
-			{
-			MOTD ~= old;
-			}
+
+		MOTD ~= line;
 		}
 	while (true);
 
 	sdb.conf_set_field ("motd", MOTD);
-
 	motd ();
 	}
 
 void info ()
 	{
-	Menu m = new Menu ("Misc. information :");
+	auto m = new Menu ("Misc. information :");
 
 	m.info  = format ("Soulsetup for Soulfind %s, compiled on %s\n", VERSION, __DATE__);
 	m.info ~= format ("%d registered users", sdb.nb_users ());
@@ -233,7 +233,7 @@ void info ()
 
 void banned_users ()
 	{
-	Menu m = new Menu ("Banned users");
+	auto m = new Menu ("Banned users");
 	
 	m.add ("1", "Ban an user",       &ban_user);
 	m.add ("2", "Unban an user",     &unban_user);
@@ -245,32 +245,34 @@ void banned_users ()
 
 void ban_user ()
 	{
-	dout.writef ("User to ban : ");
-	sdb.user_update_field (to!string(din.readLine()), "banned", 1);
+	write ("User to ban : ");
+	auto user = strip (to!string (readln ()));
+	sdb.user_update_field (user, "banned", 1);
 	banned_users ();
 	}
 
 void unban_user ()
 	{
-	dout.writef ("User to unban : ");
-	sdb.user_update_field (to!string(din.readLine()), "banned", 0);
+	write ("User to unban : ");
+	auto user = strip (to!string (readln ()));
+	sdb.user_update_field (user, "banned", 0);
 	banned_users ();
 	}
 
 void list_banned ()
 	{
-	string[] users = sdb.get_banned_usernames ();
+	auto users = sdb.get_banned_usernames ();
 
 	if (users.length == 0)
 		{
-		dout.writeLine ("No user is banned.");
+		writeln ("No user is banned.");
 		}
 	else
 		{
-		dout.writeLine ("\nBanned users :");
-		foreach (string user ; users)
+		writeln ("\nBanned users :");
+		foreach (user ; users)
 			{
-			dout.writeLine (format ("- %s", user));
+			writeln (format ("- %s", user));
 			}
 		}
 	
@@ -297,18 +299,18 @@ class Menu
 	
 	void show ()
 		{
-		dout.writeLine (format( "\n%s\n", title));
+		writeln (format( "\n%s\n", title));
 
-		if (info.length > 0) dout.writeLine (format ("%s\n", info));
+		if (info.length > 0) writeln (format ("%s\n", info));
 		
-		foreach (string index ; sort(entries.keys))
+		foreach (index ; sort(entries.keys))
 			{
-			dout.writeLine (format ("%s. %s", index, entries[index]));
+			writeln (format ("%s. %s", index, entries[index]));
 			}
 
-		dout.write ("\nYour choice : ");
+		write ("\nYour choice : ");
 
-		string answer = to!string(din.readLine());
+		auto answer = strip (to!string (readln ()));
 
 		if (answer in actions)
 			{
@@ -316,7 +318,7 @@ class Menu
 			}
 		else
 			{
-			dout.writeLine ("Next time, try a number which has an action assigned to it...");
+			writeln ("Next time, try a number which has an action assigned to it...");
 			show ();
 			}
 		}
