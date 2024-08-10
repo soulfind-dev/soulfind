@@ -31,7 +31,6 @@ private import pm;
 
 private import std.stdio : write, writeln;
 private import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel, SocketSet, InternetAddress;
-private import undead.socketstream : SocketStream;
 private import std.conv : to;
 private import std.array : split, join, replace;
 private import core.stdc.stdlib : exit;
@@ -514,7 +513,7 @@ class Server
 					        user.username,
 						    user.connected_at,
 						    user.cversion,
-						    (cast (SocketStream) user.stream).socket.remoteAddress().toString(),
+						    user.socket.remoteAddress().toString(),
 						    user.admin,
 						    user.shared_files,
 						    user.shared_folders,
