@@ -181,10 +181,10 @@ void motd ()
 void set_motd ()
 	{
 	writeln ("You can use the following variables :\n"
-	        ~ "%%version%%     : server version (", VERSION, ")\n"
-	        ~ "%%nbusers%%     : number of users already connected\n"
-	        ~ "%%username%%    : name of the connecting user\n"
-	        ~ "%%userversion%% : version of the user's client software\n"
+	        ~ "%version%     : server version (", VERSION, ")\n"
+	        ~ "%nbusers%     : number of users already connected\n"
+	        ~ "%username%    : name of the connecting user\n"
+	        ~ "%userversion% : version of the user's client software\n"
 	        ~ "New MOTD (end with a dot on a single line) :");
 
 	string MOTD;
