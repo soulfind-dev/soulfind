@@ -131,7 +131,7 @@ class Message
 		{ // read a string
 		auto slen = readi ();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
-		string str = cast(string) in_buf[0 .. slen];
+		auto str = cast(string) in_buf[0 .. slen];
 
 		in_buf = in_buf[slen .. in_buf.length];
 		return str;
@@ -802,13 +802,7 @@ class UMessageUsers : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
-			{
-			string user = reads ();
-			users ~= user;
-			}
-
+		foreach (i ; 0 .. readi ()) users ~= reads ();
 		message = reads ();
 		}
 
@@ -817,10 +811,7 @@ class UMessageUsers : Message
 		super (MessageUsers);
 
 		writei (users.length);
-		foreach (string user ; users)
-			{
-			writes (user);
-			}
+		foreach (user ; users) writes (user);
 
 		writes (message);
 		}
@@ -863,7 +854,7 @@ class SLogin : Message
 			ubyte[16] digest;
 			digest = md5Of (password);
 			string sum;
-			foreach (ubyte u ; digest)
+			foreach (u ; digest)
 				sum ~= format ("%02x", u);
 			writes (sum);
 			writeb (supporter);
@@ -1019,16 +1010,11 @@ class SRoomList : Message
 		super (RoomList);
 		
 		writei (rooms.length);	// number of room names we will send
-		foreach (string room ; rooms.keys)
-			{	// list of all the rooms
-			writes (room);
-			}
+		foreach (room ; rooms.keys) writes (room);
 		
 		writei (rooms.length);	// number of user counts
-		foreach (ulong users ; rooms.values)
-			{	// list of all the user counts, in the same order
-			writei (users);
-			}
+		foreach (users ; rooms.values) writei (users);
+
 		writei (0);	// number of owned private rooms (unimplemented)
 		writei (0);	// number of owned private rooms (unimplemented)
 		writei (0);	// number of other private rooms (unimplemented)
@@ -1042,23 +1028,10 @@ class SRoomList : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		
 		string[] room_names;
-		
-		room_names.length = n;
-		
-		for (uint i = 0 ; i < n ; i++)
-			{
-			room_names[i] = reads ();
-			}
 
-		n = readi ();
-
-		for (uint i = 0 ; i < n ; i++)
-			{
-			rooms[room_names[i]] = readi ();
-			}
+		foreach (i ; 0 .. readi ()) room_names[i] = reads ();
+		foreach (i ; 0 .. readi ()) rooms[room_names[i]] = readi ();
 		}
 	}
 
@@ -1069,22 +1042,16 @@ class SJoinRoom : Message
 		super (JoinRoom);
 
 		writes (room);	// the room the user just joined
-		ulong n = usernames.length;
+		auto n = usernames.length;
 
 		writei (n);	// number of user names we will send
-		foreach (string username ; usernames)
-			{	// list of all the user names
-			writes (username);
-			}
+		foreach (username ; usernames) writes (username);
 		
 		writei (n);	// number of user statuses we will send
-		foreach (string username ; usernames)
-			{	// list of all the user statuses
-			writei (statuses        [username]);
-			}
+		foreach (username ; usernames) writei (statuses[username]);
 		
 		writei (n);	// number of stats we will send
-		foreach (string username ; usernames)
+		foreach (username ; usernames)
 			{
 			writei (speeds          [username]);	// speed of each user
 			writei (upload_numbers	[username]);	// number of files uploaded ever
@@ -1094,26 +1061,21 @@ class SJoinRoom : Message
 			}
 		
 		writei (n);	// number of slots records we will send...
-		foreach (string username ; usernames)
-			{	// list of nb of full slots for each user
-			writei (slots_full	[username]);
-			}
+		foreach (username ; usernames) writei (slots_full[username]);
+
 		writei (n);	// number of country codes we will send
-		foreach (string username ; usernames)
-			{	// list of all the country codes
-			writes (country_codes	[username]);
-			}
+		foreach (username ; usernames) writes (country_codes[username]);
 		}
 	
-	string room;
-	string[]    usernames;
-	uint[string] statuses;
-	uint[string] speeds;
-	uint[string] upload_numbers;
-	uint[string] somethings;
-	uint[string] shared_files;
-	uint[string] shared_folders;
-	uint[string] slots_full;
+	string         room;
+	string[]       usernames;
+	uint[string]   statuses;
+	uint[string]   speeds;
+	uint[string]   upload_numbers;
+	uint[string]   somethings;
+	uint[string]   shared_files;
+	uint[string]   shared_folders;
+	uint[string]   slots_full;
 	string[string] country_codes;
 	
 	this (ubyte[] in_buf)
@@ -1122,24 +1084,9 @@ class SJoinRoom : Message
 
 		room = reads ();
 
-		uint n = readi ();
-		usernames.length = n;
-
-		for (uint i = 0 ; i < n ; i++)
-			{
-			usernames[i] = reads ();
-			}
-
-		n = readi ();
-
-		for (uint i = 0 ; i < n ; i++)
-			{
-			statuses        [usernames[i]] = readi ();
-			}
-
-		n = readi ();
-
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ()) usernames[i] = reads ();
+		foreach (i ; 0 .. readi ()) statuses[usernames[i]] = readi ();
+		foreach (i ; 0 .. readi ())
 			{
 			speeds          [usernames[i]] = readi ();
 			upload_numbers	[usernames[i]] = readi ();
@@ -1147,20 +1094,8 @@ class SJoinRoom : Message
 			shared_files    [usernames[i]] = readi ();
 			shared_folders  [usernames[i]] = readi ();
 			}
-
-		n = readi ();
-
-		for (uint i = 0 ; i < n ; i++)
-			{
-			slots_full      [usernames[i]] = readi ();
-			}
-
-		n = readi ();
-
-		for (uint i = 0 ; i < n ; i++)
-			{
-			country_codes	[usernames[i]] = reads ();
-			}
+		foreach (i ; 0 .. readi ()) slots_full[usernames[i]] = readi ();
+		foreach (i ; 0 .. readi ()) country_codes[usernames[i]] = reads ();
 		}
 	}
 	
@@ -1396,7 +1331,7 @@ class SGetRecommendations : Message
 		super (GetRecommendations);
 
 		writei (list.length);	// if you can't guess, stop reading now !
-		foreach (string artist, int level ; list)
+		foreach (artist, level ; list)
 			{
 			writes (artist);	// artist name
 			writesi (level);	// « level » of recommendation
@@ -1409,11 +1344,10 @@ class SGetRecommendations : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string artist = reads ();
-			int    level  = readsi ();
+			auto artist = reads ();
+			auto level  = readsi ();
 
 			list[artist] = level;
 			}
@@ -1428,24 +1362,23 @@ class SGetGlobalRecommendations : Message
 		super (GlobalRecommendations);
 
 		writei (list.length);	// if you can't guess, you should have stopped several lines ago...
-		foreach (string artist, int level ; list)
+		foreach (artist, level ; list)
 			{
 			writes (artist);	// artist name
 			writesi (level);	// « level » of recommendation
 			}
 		}
 	
-	uint[string] list;
+	int[string] list;
 
 	this (ubyte[] in_buf)
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string artist = reads ();
-			int    level  = readsi ();
+			auto artist = reads ();
+			auto level  = readsi ();
 
 			list[artist] = level;
 			}
@@ -1461,15 +1394,10 @@ class SUserInterests : Message
 		writes (user);
 
 		writei (likes.length);
-		foreach (string thing ; likes)
-			{
-			writes (thing);
-			}
+		foreach (thing ; likes) writes (thing);
+
 		writei (hates.length);
-		foreach (string thing ; hates)
-			{
-			writes (thing);
-			}
+		foreach (thing ; hates) writes (thing);
 		}
 
 	string         user;
@@ -1482,17 +1410,15 @@ class SUserInterests : Message
 
 		user = reads ();
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string thing = reads ();
+			auto thing = reads ();
 			likes[thing] = thing;
 			}
 
-		n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string thing = reads ();
+			auto thing = reads ();
 			hates[thing] = thing;
 			}
 		}
@@ -1595,7 +1521,7 @@ class SSimilarUsers : Message
 		super (SimilarUsers);
 
 		writei (list.length);
-		foreach (string user, int weight ; list)
+		foreach (user, weight ; list)
 			{
 			writes  (user);
 			writesi (weight);
@@ -1608,11 +1534,10 @@ class SSimilarUsers : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string user   = reads ();
-			int    weight = readsi ();
+			auto user   = reads ();
+			auto weight = readsi ();
 
 			list[user] = weight;
 			}
@@ -1627,7 +1552,8 @@ class SGetItemRecommendations : Message
 
 		writes (item);
 		writei (list.length);
-		foreach (string recommendation, int weight ; list)
+
+		foreach (recommendation, weight ; list)
 			{
 			writes  (recommendation);
 			writesi (weight);
@@ -1640,11 +1566,10 @@ class SGetItemRecommendations : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string recommendation = reads ();
-			int    weight         = readsi ();
+			auto recommendation = reads ();
+			auto weight         = readsi ();
 
 			list[recommendation] = weight;
 			}
@@ -1659,10 +1584,7 @@ class SItemSimilarUsers : Message
 
 		writes (item);
 		writei (list.length);
-		foreach (string user ; list)
-			{
-			writes (user);
-			}
+		foreach (user ; list) writes (user);
 		}
 
 	string[] list;
@@ -1671,12 +1593,7 @@ class SItemSimilarUsers : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		list.length = n;
-		for (uint i = 0 ; i < n ; i++)
-			{
-			list[i] = reads ();
-			}
+		foreach (i ; 0 .. readi ()) list[i] = reads ();
 		}
 	}
 
@@ -1703,12 +1620,11 @@ class SRoomTicker : Message
 		super (in_buf);
 		
 		room = reads ();
-		
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+
+		foreach (i ; 0 .. readi ())
 			{
-			string user   = reads ();
-			string ticker = reads ();
+			auto user   = reads ();
+			auto ticker = reads ();
 
 			tickers[user] = ticker;
 			}
@@ -1885,7 +1801,7 @@ class SServerInfo : Message
 		
 		writei (info.length);	// number of fields being sent
 
-		foreach (string field, string value ; info)
+		foreach (field, value ; info)
 			{
 			writes (field);
 			writes (value);
@@ -1898,11 +1814,10 @@ class SServerInfo : Message
 		{
 		super (in_buf);
 
-		uint n = readi ();
-		for (uint i = 0 ; i < n ; i++)
+		foreach (i ; 0 .. readi ())
 			{
-			string field = reads ();
-			string value = reads ();
+			auto field = reads ();
+			auto value = reads ();
 
 			info[field]  = value;
 			}
