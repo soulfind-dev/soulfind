@@ -4,7 +4,7 @@ is sent :
 - %version%	: server version (like "0.3a")
 - %nbusers%	: number of users already connected
 - %username%	: name of the user who is connecting
-- %userversion%	: version of the user's client ("198" for nicotine, for example)
+- %userversion%	: version of the user's client
 
 A simple MOTD could be :
 Welcome, %username% !

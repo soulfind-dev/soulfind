@@ -147,7 +147,7 @@ class ULogin : Message
 	{		// New login
 	string name;	// user name
 	string pass;	// user password
-	uint   vers;	// client version (198 for nicotine and museek, 180 for pyslsk)
+	uint   vers;	// client version
 
 	this (Stream s)
 		{

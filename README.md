@@ -42,7 +42,7 @@ configuration in the sqlite database. When starting, it will look for the file
 
 Only the `conf` table is filled with some default values:
 
- - port: `2241`
+ - port: `2242`
  - max_users: `65535`
  - motd: `Soulfind <version>`
 
