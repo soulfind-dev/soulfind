@@ -41,6 +41,7 @@ private import std.format : format;
 private import std.algorithm : canFind;
 private import std.datetime : Duration, dur;
 private import std.digest.md : md5Of;
+private import std.string : strip;
 
 private import core.sys.posix.unistd : fork, getpid;
 
@@ -610,6 +611,12 @@ class Server
 			}
 		catch (UTFException)
 			{
+			return false;
+			}
+
+		if (strip (str) != str)
+			{
+			// leading/trailing whitespace
 			return false;
 			}
 
