@@ -36,7 +36,7 @@ jobs:
       matrix:
         arch: [x86_64]
     env:
-      DC: ldmd2 -static
+      DC: ldmd2 -static -O
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
