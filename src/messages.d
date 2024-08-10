@@ -23,34 +23,33 @@ module messages;
 
 import defines;
 
+private import std.bitmanip;
 private import std.outbuffer : OutBuffer;
 private import std.stdio : writeln;
 private import std.format : format;
 private import std.digest.md : md5Of;
 private import std.conv : to;
 
-private import undead.stream : Stream, WriteException, ReadException;
-
 private import message_codes;
 
 class Message
 	{	// Server message
 	uint code;
-	OutBuffer b;
+	OutBuffer out_buf;
 
-	ubyte[] toBytes () {return b.toBytes ();}
+	ubyte[] toBytes () {return out_buf.toBytes ();}
 
 	this (uint code)
 		{
-		b = new OutBuffer ();
+		out_buf = new OutBuffer ();
 		this.code = code;
 		writei (code);
 		}
 
 	void writei (uint i)
 		{
-		try {b.write (i);}
-		catch (WriteException e) {writeln (e, " when trying to send an int : ", i);}
+		try {out_buf.write (i);}
+		catch (Exception e) {writeln (e, " when trying to send an int : ", i);}
 		}
 
 	void writei (ulong i)
@@ -60,14 +59,14 @@ class Message
 
 	void writesi (int i)
 		{
-		try {b.write (i);}
-		catch (WriteException e) {writeln (e, " when trying to send an int : ", i);}
+		try {out_buf.write (i);}
+		catch (Exception e) {writeln (e, " when trying to send an int : ", i);}
 		}
 		
 	void writeb (byte o)
 		{
-		try {b.write (o);}
-		catch (WriteException e) {writeln (e, " when trying to send a byte : ", o);}
+		try {out_buf.write (o);}
+		catch (Exception e) {writeln (e, " when trying to send a byte : ", o);}
 		}
 	
 	void writes (string s)
@@ -76,69 +75,65 @@ class Message
 			{
 			debug (msg) writeln("Sending string '", s, "', length ", s.length);
 			writei (s.length);
-			b.write (s);
+			out_buf.write (s);
 			}
-		catch (WriteException e) {writeln (e, " when trying to send a string : ", s, "(", s.length, ")");}
+		catch (Exception e) {writeln (e, " when trying to send a string : ", s, "(", s.length, ")");}
 		}
 
 	uint length;
-	Stream s;
+	ubyte[] in_buf;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		this.s = s;
+		this.in_buf = in_buf;
 		}
 
 	uint readi ()
 		{ // read an int
 		uint i;
-		try {s.read (i);}
-		catch (ReadException e)
+		if (in_buf.length < uint.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read an int : ", e);
-			i = 0;
+			writeln ("message code ", code, ", length ", length, " not enough data trying to read an int");
+			return i;
 			}
+
+		i = in_buf.read!(uint, Endian.littleEndian);
 		return i;
 		}
 
 	uint readsi ()
 		{ // read a signed int
 		int i;
-		try {s.read (i);}
-		catch (ReadException e)
+		if (in_buf.length < int.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read a signed int : ", e);
-			i = 0;
+			writeln ("message code ", code, ", length ", length, " not enough data trying to read a signed int");
+			return i;
 			}
+
+		i = in_buf.read!(int, Endian.littleEndian);
 		return i;
 		}
 	
 	byte readb ()
 		{ // read a byte
-		byte b;
-		try {s.read (b);}
-		catch (ReadException e)
+		byte i;
+		if (in_buf.length < byte.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " trying to read a byte : ", e);
-			b = 0;
+			writeln ("message code ", code, ", length ", length, " not enough data trying to read a byte");
+			return i;
 			}
-		return b;
+
+		i = in_buf.read!(byte, Endian.littleEndian);
+		return i;
 		}
 	
 	string reads ()
 		{ // read a string
-		uint    slen;
-		string  str;
-		try
-			{
-			slen = readi ();
-			str = to!string(s.readString (slen));
-			}
-		catch (ReadException e)
-			{
-			writeln ("message code ", code, ", length ", length, " trying to read a string : ", e);
-			str = "";
-			}
+		auto slen = readi ();
+		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
+		string str = cast(string) in_buf[0 .. slen];
+
+		in_buf = in_buf[slen .. in_buf.length];
 		return str;
 		}
 	}
@@ -149,9 +144,9 @@ class ULogin : Message
 	string pass;	// user password
 	uint   vers;	// client version
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		name = reads ();
 		pass = reads ();
@@ -171,9 +166,9 @@ class ULogin : Message
 class USetWaitPort : Message
 	{		// A client is telling us which port it is listening on
 	uint port;	// port number
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		port = readi ();
 		}
@@ -190,9 +185,9 @@ class UGetPeerAddress : Message
 	{		// A client is asking for someone's address
 	string user;	// name of the user to get the address of
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -209,9 +204,9 @@ class UWatchUser : Message
 	{		// A client wants to watch a user
 	string user;	// name of the user to watch
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -228,9 +223,9 @@ class UUnwatchUser : Message
 	{		// A client wants to unwatch a user
 	string user;	// name of the user to unwatch
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -247,9 +242,9 @@ class UGetUserStatus : Message
 	{		// A client wants to know the status of someone
 	string user;	// name of the user
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -267,9 +262,9 @@ class USayChatroom : Message
 	string room;	// room to talk in
 	string message;	// what to say
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 		
 		room   = reads ();
 		message = reads ();
@@ -288,9 +283,9 @@ class UJoinRoom : Message
 	{		// Client wants to join a room
 	string room;	// room the client wants to join
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		}
@@ -307,9 +302,9 @@ class ULeaveRoom : Message
 	{		// Client wants to leave a room
 	string room;	// room the client wants to leave
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		}
@@ -328,9 +323,9 @@ class UConnectToPeer : Message
 	string user;	// user name
 	string type;	// connection type ("F" if for a file transfers, "P" otherwise)
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		token = readi ();
 		user  = reads ();
@@ -352,9 +347,9 @@ class UMessageUser : Message
 	string user;	// user to send the message to
 	string message; // message content
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user    = reads ();
 		message = reads ();
@@ -373,9 +368,9 @@ class UMessageAcked : Message
 	{		// Client acknowledges a private message
 	uint id;	// message id
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		id = readi ();
 		}
@@ -393,9 +388,9 @@ class UFileSearch : Message
 	uint token;	// search token
 	string strng;	// search string
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		token = readi ();
 		strng = reads ();
@@ -415,9 +410,9 @@ class UWishlistSearch : Message
 	uint token;	// search token
 	string strng;	// search string
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		token = readi ();
 		strng = reads ();
@@ -436,9 +431,9 @@ class USetStatus : Message
 	{		// Client sets its status
 	uint status;	// 0 : Offline - 1 : Away - 2 : Online
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		status = readi ();
 		}
@@ -455,9 +450,9 @@ class USendUploadSpeed : Message
 	{		// Client reports a transfer speed
 	uint    speed;  // speed
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		speed = readi ();
 		}
@@ -475,9 +470,9 @@ class USharedFoldersFiles : Message
 	uint nb_folders;	// number of folders
 	uint nb_files;		// number of files
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		nb_folders = readi ();
 		nb_files   = readi ();
@@ -496,9 +491,9 @@ class UGetUserStats : Message
 	{		// Client wants the stats of someone
 	string user;	// user name
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -518,9 +513,9 @@ class UUserSearch : Message
 	uint   token;	// search token
 	string query;	// search string
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user  = reads ();
 		token = readi ();
@@ -541,9 +536,9 @@ class UAddThingILike : Message
 	{		// Client likes thing
 	string thing;	// thing (s)he likes
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		thing = reads ();
 		}
@@ -560,9 +555,9 @@ class URemoveThingILike : Message
 	{		// Client doesn't like thing anymore
 	string thing;	// the thing
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		thing = reads ();
 		}
@@ -579,9 +574,9 @@ class UUserInterests : Message
 	{		// A user wants to know this user's likes and hates
 	string user;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		}
@@ -598,9 +593,9 @@ class UAddThingIHate : Message
 	{		// Client hates thing
 	string thing;	// thing (s)he likes
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		thing = reads ();
 		}
@@ -617,9 +612,9 @@ class URemoveThingIHate : Message
 	{		// Client doesn't hate thing anymore
 	string thing;	// the thing
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		thing = reads ();
 		}
@@ -637,9 +632,9 @@ class UGetItemRecommendations : Message
 			// for a particular item
 	string item;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		item = reads ();
 		}
@@ -657,9 +652,9 @@ class UItemSimilarUsers : Message
 			// likes a particular item
 	string item;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		item = reads ();
 		}
@@ -677,9 +672,9 @@ class USetRoomTicker : Message
 	string room;	// room name
 	string tick;	// ticker content
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		tick = reads ();
@@ -700,9 +695,9 @@ class URoomSearch : Message
 	uint   token;	// search token
 	string query;	// search string
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room  = reads ();
 		token = readi ();
@@ -723,9 +718,9 @@ class UUserPrivileged : Message
         {               // Client wants to know if someone has privileges
         string user;    // user name
 
-        this (Stream s)
+        this (ubyte[] buf)
                 {
-                super (s);
+                super (buf);
         
                 user = reads ();
                 }
@@ -742,9 +737,9 @@ class UAdminMessage : Message
 	{		// An admin sends a message
 	string mesg;	// the message
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		mesg = reads ();
 		}
@@ -762,9 +757,9 @@ class UGivePrivileges : Message
 	string user;	// user to give the privileges to
 	uint   time;	// time to give
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 		time = readi ();
@@ -783,9 +778,9 @@ class UChangePassword : Message
 	{		// A user wants to change their password
 	string password;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		password = reads ();
 		}
@@ -803,9 +798,9 @@ class UMessageUsers : Message
 	string[] users;		// users to send the message to
 	string   message;	// message content
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)
@@ -836,9 +831,9 @@ class UCantConnectToPeer : Message
 	uint token;	// message token
 	string user;	// user who requested the connection
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		token = readi ();
 		user  = reads ();
@@ -879,9 +874,9 @@ class SLogin : Message
 	string mesg;
 	uint   addr;
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		success = readb ();
 		mesg    = reads ();
@@ -908,9 +903,9 @@ class SGetPeerAddress : Message
 	uint   unknown;
 	uint   obfuscated_port;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username        = reads ();
 		address         = readi ();
@@ -949,9 +944,9 @@ class SWatchUser : Message
 	uint   shared_folders;
 	string country_code;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user            = reads ();
 		exists          = readb ();
@@ -982,9 +977,9 @@ class SGetUserStatus : Message
 	uint   status;
 	byte   privileged;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username   = reads ();
 		status     = readi ();
@@ -1007,9 +1002,9 @@ class SSayChatroom : Message
 	string user;
 	string mesg;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		user = reads ();
@@ -1043,9 +1038,9 @@ class SRoomList : Message
 	
 	uint[string] rooms;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		
@@ -1121,9 +1116,9 @@ class SJoinRoom : Message
 	uint[string] slots_full;
 	string[string] country_codes;
 	
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 
@@ -1180,9 +1175,9 @@ class SLeaveRoom : Message
 	
 	string room;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		}
@@ -1217,9 +1212,9 @@ class SUserJoinedRoom : Message
 	uint   slots_full;
 	string country_code;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room		= reads ();
 		username        = reads ();
@@ -1247,9 +1242,9 @@ class SUserLeftRoom : Message
 	string room;
 	string username;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room     = reads ();
 		username = reads ();
@@ -1281,9 +1276,9 @@ class SConnectToPeer : Message
 	uint   unknown;
 	uint   obfuscated_port;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username        = reads ();
 		type            = reads ();
@@ -1315,9 +1310,9 @@ class SMessageUser : Message
 	string content;
 	byte   new_message;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		id          = readi ();
 		timestamp   = readi ();
@@ -1342,9 +1337,9 @@ class SFileSearch : Message
 	uint   token;
 	string text;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username = reads ();
 		token    = readi ();
@@ -1381,9 +1376,9 @@ class SGetUserStats : Message
 	uint   shared_files;
 	uint   shared_folders;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username        = reads ();
 		speed           = readi ();
@@ -1410,9 +1405,9 @@ class SGetRecommendations : Message
 	
 	uint[string] list;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)
@@ -1442,9 +1437,9 @@ class SGetGlobalRecommendations : Message
 	
 	uint[string] list;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)
@@ -1481,9 +1476,9 @@ class SUserInterests : Message
 	string[string] likes;
 	string[string] hates;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user = reads ();
 
@@ -1526,9 +1521,9 @@ class SUserSearch : Message
 	uint   token;
 	string query;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user   = reads ();
 		token  = readi ();
@@ -1547,9 +1542,9 @@ class SAdminMessage : Message
 
 	string message;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		message = reads ();
 		}
@@ -1566,9 +1561,9 @@ class SCheckPrivileges : Message
 
 	uint time;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		time = readi ();
 		}
@@ -1585,9 +1580,9 @@ class SWishlistInterval	: Message
 
 	uint interval;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		interval = readi ();
 		}
@@ -1609,9 +1604,9 @@ class SSimilarUsers : Message
 
 	uint[string] list;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)
@@ -1641,9 +1636,9 @@ class SGetItemRecommendations : Message
 
 	uint[string] list;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)
@@ -1672,9 +1667,9 @@ class SItemSimilarUsers : Message
 
 	string[] list;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		list.length = n;
@@ -1703,9 +1698,9 @@ class SRoomTicker : Message
 	string room;
 	string[string] tickers;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 		
 		room = reads ();
 		
@@ -1735,9 +1730,9 @@ class SRoomTickerAdd : Message
 	string user;
 	string ticker;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room   = reads ();
 		user   = reads ();
@@ -1758,9 +1753,9 @@ class SRoomTickerRemove : Message
 	string room;
 	string user;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room   = reads ();
 		user   = reads ();
@@ -1782,9 +1777,9 @@ class SRoomSearch : Message
 	uint   token;
 	string query;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		user   = reads ();
 		token  = readi ();
@@ -1805,9 +1800,9 @@ class SUserPrivileged : Message
 	string username;
 	byte   privileged;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		username   = reads ();
 		privileged = readb ();
@@ -1825,9 +1820,9 @@ class SChangePassword : Message
 
 	string password;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		password = reads ();
 		}
@@ -1848,9 +1843,9 @@ class SGlobalRoomMessage : Message
 	string user;
 	string mesg;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		room = reads ();
 		user = reads ();
@@ -1869,9 +1864,9 @@ class SCantConnectToPeer : Message
 
 	uint token;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		token = readi ();
 		}
@@ -1899,9 +1894,9 @@ class SServerInfo : Message
 
 	string[string] info;
 
-	this (Stream s)
+	this (ubyte[] in_buf)
 		{
-		super (s);
+		super (in_buf);
 
 		uint n = readi ();
 		for (uint i = 0 ; i < n ; i++)

@@ -138,24 +138,31 @@ class Server
 			}
 		writeln("Process ", getpid(), " listening on port ", port);
 
-		SocketSet sockset = new SocketSet (max_users + 1);
+		SocketSet sockset_read = new SocketSet (max_users + 1);
+		SocketSet sockset_write = new SocketSet (max_users + 1);
 		
 		
 		while (true)
 			{
-			sockset.reset ();
-			sockset.add (socket);
-			foreach (Socket s ; user_sockets.keys) sockset.add (s);
-			uint nb = Socket.select (sockset, null, null, timeout);
+			sockset_read.reset ();
+			sockset_write.reset ();
+			sockset_read.add (socket);
+			foreach (Socket s ; user_sockets.keys)
+				{
+				sockset_read.add (s);
+				sockset_write.add (s);
+				}
+			uint nb = Socket.select (sockset_read, sockset_write, null, timeout);
 			if (nb == 0)
 				{
 				send_pings ();
 				}
-			if (sockset.isSet (socket))
+			if (sockset_read.isSet (socket))
 				{
 				nb--;
 				debug (user) writeln ("Waiting for a connection...");
 				Socket sock = socket.accept ();
+				sock.blocking = false;
 				debug (user)
 					{
 					try {writeln ("Connection accepted from ", sock.remoteAddress().toString());}
@@ -163,23 +170,31 @@ class Server
 					}
 				User user = new User (this, sock, (cast (InternetAddress) sock.remoteAddress()).addr());
 				user_sockets[sock] = user;
-				sockset.remove (socket);
+				sockset_read.remove (socket);
 				}
-			foreach (Socket s ; user_sockets.keys)
+			foreach (Socket s, User user ; user_sockets)
 				{
 				if (nb == 0) break;
-				if (s !is null && sockset.isSet (s))
+				auto recv_success = true;
+				auto send_success = true;
+
+				if (sockset_read.isSet (s))
+					recv_success = user.recv_buffer ();
+				if (sockset_write.isSet (s))
+					send_success = user.send_buffer ();
+
+				if (recv_success && send_success)
 					{
 					nb--;
-					if (!user_sockets[s].recv_message ())
-						{
-						user_sockets[s].exit ();
-						sockset.remove (s);
-						this.del_user (user_sockets[s]);
-						user_sockets.remove (s);
-						s.close ();
-						}
+					continue;
 					}
+
+				user.exit ();
+				sockset_read.remove (s);
+				sockset_write.remove (s);
+				this.del_user (user);
+				user_sockets.remove (s);
+				s.close ();
 				}
 			}
 		}

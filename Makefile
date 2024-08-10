@@ -15,25 +15,13 @@ SOULFINDFILES=client.d \
          room.d \
          server.d \
          defines.d \
-         sqlite3_imp.d \
-         undead/doformat.d \
-         undead/internal/file.d \
-         undead/cstream.d \
-         undead/socketstream.d \
-         undead/stream.d \
-         undead/utf.d
+         sqlite3_imp.d
 SOULFINDFILES:=$(addprefix $(SRCDIR)/,$(SOULFINDFILES))
 
 
 SOULSETUPFILES=soulsetup.d \
                defines.d \
-               db.d \
-               undead/doformat.d \
-               undead/internal/file.d \
-               undead/cstream.d \
-               undead/socketstream.d \
-               undead/stream.d \
-               undead/utf.d
+               db.d
 SOULSETUPFILES:=$(addprefix $(SRCDIR)/,$(SOULSETUPFILES))
 
 

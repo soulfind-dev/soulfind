@@ -30,10 +30,9 @@ private import pm;
 private import db;
 private import message_codes;
 
-private import undead.stream : Stream;
-private import undead.cstream : EndianStream, MemoryStream, ReadException;
-private import undead.socketstream : SocketStream;
+private import std.bitmanip;
 private import std.conv : to;
+private import std.outbuffer : OutBuffer;
 private import std.socket : Socket, InternetAddress;
 private import std.stdio : write, writeln;
 
@@ -70,22 +69,19 @@ class User
 	string[string]	things_he_likes;
 	string[string]	things_he_hates;
 
-	Stream	stream;
 	Socket	socket;
 	Server	server;
 
-	ubyte[] boeuf;
+	ubyte[] in_buf;
+	auto    in_message_size = -1;
+	ubyte[] out_buf;
+	auto    msg_size_buf = new OutBuffer();
 
 	// constructors
 	this (Server serv, Socket s, uint address)
 		{
 		this.server            = serv;
 		this.socket            = s;
-		if (endian == Endian.bigEndian) {
-			this.stream    = new EndianStream (new SocketStream (s), Endian.littleEndian);
-		} else {
-			this.stream    = new SocketStream (s);
-		}
 		this.address           = address;
 		this.loggedin          = false;
 		this.admin             = false;
@@ -465,76 +461,64 @@ class User
 		}
 	
 	// messages
-	uint run ()
+	bool send_buffer ()
 		{
-		while (recv_message ()) {}
-
-		if (server.find_user (this.username)) server.del_user (this);
-
-		exit ();
-		return 0;
+		auto send_len = socket.send (out_buf);
+		if (send_len == Socket.ERROR) return false;
+		out_buf = out_buf[send_len .. out_buf.length];
+		return true;
 		}
 
 	void send_message (Message m)
 		{
-		boeuf ~= m.toBytes ();
+		auto msg_buf = m.toBytes ();
+		msg_size_buf.write(cast(uint) msg_buf.length);
+		out_buf ~= msg_size_buf.toBytes ();
+		out_buf ~= msg_buf;
+		msg_size_buf.clear ();
 
-		try
-			{
-			socket.blocking = false;
-			stream.write (cast (uint) boeuf.length);
-			stream.write (cast (ubyte[]) boeuf);
-			socket.blocking = true;
-			debug (msg) writeln ("Sent ", boeuf.length, " bytes to user " ~ blue, this.username, black);
-			debug (msg) writeln ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ", this.username);
-			boeuf.length = 0;
-			}
-		catch (Exception e)
-			{
-			writeln (this.username, ": ", e);
-			}
+		debug (msg) writeln ("Sent ", out_buf.length, " bytes to user " ~ blue, this.username, black);
+		debug (msg) writeln ("Sending message code ", blue, message_name[m.code], black, " (", m.code, ") to ", this.username);
 		}
-	
+
+	bool recv_buffer ()
+		{
+		ubyte[max_message_size] receive_buf;
+		auto receive_len = socket.receive(receive_buf);
+		if (receive_len == Socket.ERROR || receive_len == 0) return false;
+
+		last_message_date = time(null);
+		in_buf ~= receive_buf[0 .. receive_len];
+
+		while (recv_message ())
+			{
+			// disconnect the user if message is incorrect/bogus
+			if (in_message_size < 0 || in_message_size > max_message_size) return false;
+			if (!proc_message ()) return false;
+			}
+
+		return true;
+		}
+
 	bool recv_message ()
 		{
-		try
+		if (in_message_size == -1)
 			{
-			uint length; stream.read (length);
-			
-			if (length < 0 || length > max_message_size)
-				{ // message is probably bogus, let's disconnect the user
-				return false;
-				}
-			
-			ubyte[] bœuf; bœuf.length = length;
-
-			last_message_date = time(null);
-
-			auto read = stream.readBlock (bœuf.ptr, length);
-
-			if (read != length)
-				{
-				debug (msg) writeln ("Couldn't read the whole message (", read, "/", length,
-				          ")... the client is probably disconnected");
-				return false;
-				}
-
-			MemoryStream ms = new MemoryStream (bœuf);
-		
-			return proc_message (ms);
+			if (in_buf.length < uint.sizeof) return false;
+			in_message_size = in_buf.read!(uint, Endian.littleEndian);
 			}
-		catch (ReadException e)
-			{
-			debug (msg) writeln (username, " : ", e);
 
-			return false;
-			}
+		return in_buf.length >= in_message_size;
 		}
-	
-	bool proc_message (Stream s)
+
+	bool proc_message ()
 		{
-		uint code;
-		s.read (code);
+		auto msg_buf = in_buf[0 .. in_message_size];
+		auto code = msg_buf.read!(uint, Endian.littleEndian);
+
+		in_buf = in_buf[in_message_size .. in_buf.length];
+		in_message_size = -1;
+
 		debug (msg) if (code != 32 && code < message_name.length) writeln ("Received message ", blue, message_name[code], black, " (code ", blue, code, black ~ ")");
 
 		if (!loggedin && code != Login) return false;
@@ -544,7 +528,7 @@ class User
 			{
 			case Login:
 				write ("User logging in : ");
-				ULogin o = new ULogin (s);
+				ULogin o = new ULogin (msg_buf);
 				string error;
 
 				if (!server.check_login (o.name, o.pass, o.vers, error))
@@ -565,11 +549,11 @@ class User
 				return (this.login (o));
 				break;
 			case SetWaitPort:
-				USetWaitPort o = new USetWaitPort (s);
+				USetWaitPort o = new USetWaitPort (msg_buf);
 				this.port = o.port;
 				break;
 			case GetPeerAddress:
-				UGetPeerAddress o = new UGetPeerAddress (s);
+				UGetPeerAddress o = new UGetPeerAddress (msg_buf);
 				
 				if (server.find_user (o.user))
 					{
@@ -582,7 +566,7 @@ class User
 					}
 				break;
 			case WatchUser:
-				UWatchUser o = new UWatchUser (s);
+				UWatchUser o = new UWatchUser (msg_buf);
 				bool exists = true;
 				uint status, speed, upload_number, something, shared_files, shared_folders;
 				string country_code;
@@ -617,11 +601,11 @@ class User
 				send_message (new SWatchUser (o.user, exists, status, speed, upload_number, something, shared_files, shared_folders, country_code));
 				break;
 			case UnwatchUser:
-				UUnwatchUser o = new UUnwatchUser (s);
+				UUnwatchUser o = new UUnwatchUser (msg_buf);
 				unwatch(o.user);
 				break;
 			case GetUserStatus:
-				UGetUserStatus o = new UGetUserStatus (s);
+				UGetUserStatus o = new UGetUserStatus (msg_buf);
 				uint status;
 				bool privileged;
 
@@ -651,7 +635,7 @@ class User
 				send_message (new SGetUserStatus (o.user, status, privileged));
 				break;
 			case SayChatroom:
-				USayChatroom o = new USayChatroom (s);
+				USayChatroom o = new USayChatroom (msg_buf);
 				if (Room.find_room (o.room))
 					{
 					Room.get_room (o.room).say (this.username, o.message);
@@ -664,12 +648,12 @@ class User
 					}
 				break;
 			case JoinRoom:
-				UJoinRoom o = new UJoinRoom (s);
+				UJoinRoom o = new UJoinRoom (msg_buf);
 
 				if (server.check_string (o.room)) Room.join_room (o.room, this);
 				break;
 			case LeaveRoom:
-				ULeaveRoom o = new ULeaveRoom (s);
+				ULeaveRoom o = new ULeaveRoom (msg_buf);
 
 				if (Room.find_room (o.room)) Room.get_room (o.room).leave (this);
 				this.leave_room (o.room);
@@ -677,7 +661,7 @@ class User
 				send_message (new SLeaveRoom (o.room));
 				break;
 			case ConnectToPeer:
-				UConnectToPeer o = new UConnectToPeer (s);
+				UConnectToPeer o = new UConnectToPeer (msg_buf);
 
 				if (server.find_user (o.user))
 					{
@@ -688,7 +672,7 @@ class User
 					}
 				break;
 			case MessageUser:
-				UMessageUser o = new UMessageUser (s);
+				UMessageUser o = new UMessageUser (msg_buf);
 
 				if (this.admin && o.user == server_user)
 					{
@@ -709,22 +693,22 @@ class User
 					}
 				break;
 			case MessageAcked:
-				UMessageAcked o = new UMessageAcked (s);
+				UMessageAcked o = new UMessageAcked (msg_buf);
 				PM.del_pm (o.id);
 				break;
 			case FileSearch:
-				UFileSearch o = new UFileSearch (s);
+				UFileSearch o = new UFileSearch (msg_buf);
 				server.do_FileSearch (o.token, o.strng, this.username);
 				break;
 			case SetStatus:
-				USetStatus o = new USetStatus (s);
+				USetStatus o = new USetStatus (msg_buf);
 				set_status (o.status);
 				break;
 			case ServerPing:
 				send_message (new SServerPing ());
 				break;
 			case SharedFoldersFiles:
-				USharedFoldersFiles o = new USharedFoldersFiles (s);
+				USharedFoldersFiles o = new USharedFoldersFiles (msg_buf);
 				debug (user) writeln (this.username, " is sharing ", o.nb_files, " files and ", o.nb_folders, " folders");
 				this.set_shared_folders (o.nb_folders);
 				this.set_shared_files (o.nb_files);
@@ -732,37 +716,37 @@ class User
 				this.send_to_watching (new SGetUserStats (this.username, this.speed, this.upload_number, this.something, this.shared_files, this.shared_folders));
 				break;
 			case GetUserStats:
-				UGetUserStats o = new UGetUserStats (s);
+				UGetUserStats o = new UGetUserStats (msg_buf);
 				
 				uint speed, upload_number, something, shared_files, shared_folders;
 				server.db.get_user (o.user, speed, upload_number, something, shared_files, shared_folders);
 				send_message (new SGetUserStats (o.user, speed, upload_number, something, shared_files, shared_folders));
 				break;
 			case UserSearch:
-				UUserSearch o = new UUserSearch (s);
+				UUserSearch o = new UUserSearch (msg_buf);
 
 				server.do_UserSearch (o.token, o.query, this.username, o.user);
 				break;
 			case AddThingILike:
-				UAddThingILike o = new UAddThingILike (s);
+				UAddThingILike o = new UAddThingILike (msg_buf);
 
 				this.add_thing_he_likes (o.thing);
 
 				break;
 			case RemoveThingILike:
-				URemoveThingILike o = new URemoveThingILike (s);
+				URemoveThingILike o = new URemoveThingILike (msg_buf);
 
 				this.del_thing_he_likes (o.thing);
 
 				break;
 			case AddThingIHate:
-				UAddThingIHate o = new UAddThingIHate (s);
+				UAddThingIHate o = new UAddThingIHate (msg_buf);
 
 				this.add_thing_he_hates (o.thing);
 
 				break;
 			case RemoveThingIHate:
-				URemoveThingIHate o = new URemoveThingIHate (s);
+				URemoveThingIHate o = new URemoveThingIHate (msg_buf);
 
 				this.del_thing_he_hates (o.thing);
 
@@ -777,7 +761,7 @@ class User
 				send_message (new SSimilarUsers (get_similar_users ()));
 				break;
 			case UserInterests:
-				UUserInterests o = new UUserInterests (s);
+				UUserInterests o = new UUserInterests (msg_buf);
 
 				if (server.find_user (o.user)) {
 					User u = server.get_user (o.user);
@@ -791,7 +775,7 @@ class User
 			case AdminMessage:
 				if (this.admin)
 					{
-					UAdminMessage o = new UAdminMessage (s);
+					UAdminMessage o = new UAdminMessage (msg_buf);
 
 					foreach (User user ; server.users ())
 						{
@@ -803,31 +787,31 @@ class User
 				send_message (new SCheckPrivileges (this.get_privileges ()));
 				break;
 			case WishlistSearch:
-				UWishlistSearch o = new UWishlistSearch (s);
+				UWishlistSearch o = new UWishlistSearch (msg_buf);
 				server.do_FileSearch (o.token, o.strng, this.username);
 				break;
 			case ItemRecommendations:
-				UGetItemRecommendations o = new UGetItemRecommendations (s);
+				UGetItemRecommendations o = new UGetItemRecommendations (msg_buf);
 				send_message (new SGetItemRecommendations (o.item, get_item_recommendations (o.item)));
 				break;
 			case ItemSimilarUsers:
-				UItemSimilarUsers o = new UItemSimilarUsers (s);
+				UItemSimilarUsers o = new UItemSimilarUsers (msg_buf);
 				send_message (new SItemSimilarUsers (o.item, get_item_similar_users (o.item)));
 				break;
 			case SetRoomTicker:
-				USetRoomTicker o = new USetRoomTicker (s);
+				USetRoomTicker o = new USetRoomTicker (msg_buf);
 				if (Room.find_room (o.room))
 					{
 					Room.get_room (o.room).add_ticker (this.username, o.tick);
 					}
 				break;
 			case RoomSearch:
-				URoomSearch o = new URoomSearch (s);
+				URoomSearch o = new URoomSearch (msg_buf);
 
 				server.do_RoomSearch (o.token, o.query, this.username, o.room);
 				break;
 			case SendUploadSpeed:
-				USendUploadSpeed o = new USendUploadSpeed (s);
+				USendUploadSpeed o = new USendUploadSpeed (msg_buf);
 
 				if (server.find_user (this.username))
 					{
@@ -838,7 +822,7 @@ class User
 					}
 				break;
 			case UserPrivileged:
-				UUserPrivileged o = new UUserPrivileged (s);
+				UUserPrivileged o = new UUserPrivileged (msg_buf);
 				
 				if (server.find_user (o.user))
 					{
@@ -847,7 +831,7 @@ class User
 					}
 				break;
 			case GivePrivileges:
-				UGivePrivileges o = new UGivePrivileges (s);
+				UGivePrivileges o = new UGivePrivileges (msg_buf);
 
 				if ((o.time <= this.privileges || admin) && server.find_user (o.user))
 					{
@@ -856,13 +840,13 @@ class User
 					}
 				break;
 			case ChangePassword:
-				UChangePassword o = new UChangePassword (s);
+				UChangePassword o = new UChangePassword (msg_buf);
 
 				this.change_password(o.password);
 				send_message (new SChangePassword (this.password));
 				break;
 			case MessageUsers:
-				UMessageUsers o = new UMessageUsers (s);
+				UMessageUsers o = new UMessageUsers (msg_buf);
 				bool new_message = true;
 
 				foreach (string user ; o.users)
@@ -881,7 +865,7 @@ class User
 				Room.remove_global_room_user (this.username);
 				break;
 			case CantConnectToPeer:
-				UCantConnectToPeer o = new UCantConnectToPeer (s);
+				UCantConnectToPeer o = new UCantConnectToPeer (msg_buf);
 
 				if (server.find_user (o.user))
 					{
@@ -893,8 +877,8 @@ class User
 					{
 					write (red, "Unimplemented message", black, " from user ", blue,
 						username.length > 0 ? username : to!string(address), black,
-						", code ", red, code, black, " and length ", s.size (), "\n> ");
-					try {writeln (s.toString ());}
+						", code ", red, code, black, " and length ", msg_buf.length, "\n> ");
+					try {writeln (msg_buf);}
 					catch (Exception e) {writeln ();}
 					}
 				break;
