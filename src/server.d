@@ -42,12 +42,7 @@ private import std.algorithm : canFind;
 private import std.datetime : Duration, dur;
 private import std.digest.md : md5Of;
 
-private import core.sys.posix.unistd : getpid;
-
-version (linux)
-	{ // for SIGPIPE
-	private import core.sys.posix.signal : SIGPIPE;
-	}
+private import core.sys.posix.unistd : fork, getpid;
 
 
 void help (string[] args)
@@ -85,18 +80,7 @@ void main (string[] args)
 		}
 	
 	if (db.length == 0) db = default_db_file;
-
-	if (daemon)
-		{
-		version (linux)
-			{
-			if (fork ()) exit (0);
-			}
-		else
-			{
-			writeln ("--daemon: only supported under Linux");
-			}
-		}
+	if (daemon && fork ()) exit (0);
 	
 	Server s = new Server (db);
 	s.listen ();
@@ -125,13 +109,6 @@ class Server
 		db = new Sdb (db_file);
 	
 		config ();
-
-		version (linux)
-			{
-			sigaction_t sigp;
-			sigp.sa_handler = cast(int)(&sigpipe);
-			sigaction (SIGPIPE, &sigp, null);
-			}
 		}
 	
 	void listen ()
@@ -699,39 +676,6 @@ class Server
 					}
 				}
 			}
-		}
-	}
-
-version (linux)
-	{
-	// sigpipe handling
-	extern (C)
-		{
-		int sigaction (int, sigaction_t*, sigaction_t*);
-		//alias void (*__sighandler_t)(int);
-		//extern (C) void function(int) __sighandler_t;
-
-		static void sigpipe (int sig)
-			{
-			debug (3) writeln ("Broken pipe");
-			}
-
-		int fork ();
-		}
-
-	struct sigset_t
-		{
-		uint[1024 / (8 * (uint).sizeof)] __val;
-		}
-		
-	struct sigaction_t
-		{
-		//__sighandler_t sa_handler;
-		int sa_handler;
-		sigset_t sa_mask;
-		int sa_flags;
-		//void (*sa_restorer)();
-		void function() sa_restorer;
 		}
 	}
 

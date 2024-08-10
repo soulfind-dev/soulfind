@@ -40,16 +40,6 @@ class Sdb
 			}
 		else
 			{
-			version (linux)
-				{
-				uint a = getAttributes (file);
-				if (!((a & octal!700) >> 6 & 0b010))
-					{
-					throw new Exception ("Database file (" ~ file ~ ") not writable");
-					return;
-					}
-				}
-			
 			sqlite3_open (file.toStringz(), &db);
 			string[][] res = this.query (format ("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
 			if (res[0][0] != format (conf_table_format[0 .. $-1], conf_table))
