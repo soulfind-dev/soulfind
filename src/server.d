@@ -148,10 +148,10 @@ class Server
 			write_socks.reset ();
 			read_socks.add (sock);
 
-			foreach (user_sock ; user_socks.keys)
+			foreach (user_sock, user ; user_socks)
 				{
 				read_socks.add (user_sock);
-				write_socks.add (user_sock);
+				if (user.out_buf.length > 0) write_socks.add (user_sock);
 				}
 
 			auto nb = Socket.select (read_socks, write_socks, null, timeout);
