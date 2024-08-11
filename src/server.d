@@ -31,7 +31,8 @@ private import pm;
 
 private import std.stdio : write, writeln;
 private import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel,
-							SocketSet, InternetAddress, SocketAcceptException;
+							SocketSet, InternetAddress, SocketAcceptException,
+							SocketShutdown;
 private import std.conv : to;
 private import std.array : split, join, replace;
 private import core.stdc.stdlib : exit;
@@ -219,6 +220,7 @@ class Server
 				read_socks.remove (user_sock);
 				write_socks.remove (user_sock);
 				del_user (user);
+				user_sock.shutdown (SocketShutdown.BOTH);
 				user_sock.close ();
 				}
 			}
