@@ -133,7 +133,7 @@ class Message
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
 		auto str = cast(string) in_buf[0 .. slen];
 
-		in_buf = in_buf[slen .. in_buf.length];
+		in_buf = in_buf[slen .. $];
 		return str;
 		}
 	}

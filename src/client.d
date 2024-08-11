@@ -411,7 +411,7 @@ class User
 		{
 		auto send_len = sock.send (out_buf);
 		if (send_len == Socket.ERROR) return false;
-		out_buf = out_buf[send_len .. out_buf.length];
+		out_buf = out_buf[send_len .. $];
 		return true;
 		}
 
@@ -466,7 +466,7 @@ class User
 		auto msg_buf = in_buf[0 .. in_msg_size];
 		auto code = msg_buf.read!(uint, Endian.littleEndian);
 
-		in_buf = in_buf[in_msg_size .. in_buf.length];
+		in_buf = in_buf[in_msg_size .. $];
 		in_msg_size = -1;
 
 		debug (msg) writeln (
