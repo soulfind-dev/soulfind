@@ -153,15 +153,6 @@ class ULogin : Message
 		pass = reads ();
 		vers = readi ();
 		}
-
-	this (string name, string pass, uint vers)
-		{
-		super (Login);
-
-		writes (name);
-		writes (pass);
-		writei (vers);
-		}
 	}
 
 class USetWaitPort : Message
@@ -172,13 +163,6 @@ class USetWaitPort : Message
 		super (in_buf);
 
 		port = readi ();
-		}
-	
-	this (uint port)
-		{
-		super (SetWaitPort);
-
-		writei (port);
 		}
 	}
 	
@@ -192,13 +176,6 @@ class UGetPeerAddress : Message
 
 		user = reads ();
 		}
-	
-	this (string user)
-		{
-		super (GetPeerAddress);
-
-		writes (user);
-		}
 	}
 
 class UWatchUser : Message
@@ -210,13 +187,6 @@ class UWatchUser : Message
 		super (in_buf);
 
 		user = reads ();
-		}
-	
-	this (string user)
-		{
-		super (WatchUser);
-
-		writes (user);
 		}
 	}
 
@@ -230,13 +200,6 @@ class UUnwatchUser : Message
 
 		user = reads ();
 		}
-	
-	this (string user)
-		{
-		super (UnwatchUser);
-
-		writes (user);
-		}
 	}
 
 class UGetUserStatus : Message
@@ -248,13 +211,6 @@ class UGetUserStatus : Message
 		super (in_buf);
 
 		user = reads ();
-		}
-	
-	this (string user)
-		{
-		super (GetUserStatus);
-
-		writes (user);
 		}
 	}
 
@@ -270,14 +226,6 @@ class USayChatroom : Message
 		room   = reads ();
 		message = reads ();
 		}
-	
-	this (string room, string message)
-		{
-		super (SayChatroom);
-
-		writes (room);
-		writes (message);
-		}
 	}
 
 class UJoinRoom : Message
@@ -290,13 +238,6 @@ class UJoinRoom : Message
 
 		room = reads ();
 		}
-	
-	this (string room)
-		{
-		super (JoinRoom);
-
-		writes (room);
-		}
 	}
 
 class ULeaveRoom : Message
@@ -308,13 +249,6 @@ class ULeaveRoom : Message
 		super (in_buf);
 
 		room = reads ();
-		}
-	
-	this (string room)
-		{
-		super (LeaveRoom);
-
-		writes (room);
 		}
 	}
 
@@ -332,15 +266,6 @@ class UConnectToPeer : Message
 		user  = reads ();
 		type  = reads ();
 		}
-	
-	this (uint token, string user, string type)
-		{
-		super (ConnectToPeer);
-
-		writei (token);
-		writes (user);
-		writes (type);
-		}
 	}
 
 class UMessageUser : Message
@@ -355,14 +280,6 @@ class UMessageUser : Message
 		user    = reads ();
 		message = reads ();
 		}
-	
-	this (string user, string message)
-		{
-		super (MessageUser);
-
-		writes (user);
-		writes (message);
-		}
 	}
 
 class UMessageAcked : Message
@@ -374,13 +291,6 @@ class UMessageAcked : Message
 		super (in_buf);
 
 		id = readi ();
-		}
-	
-	this (uint id)
-		{
-		super (MessageAcked);
-
-		writei (id);
 		}
 	}
 
@@ -396,14 +306,6 @@ class UFileSearch : Message
 		token = readi ();
 		strng = reads ();
 		}
-	
-	this (uint token, string string)
-		{
-		super (FileSearch);
-
-		writei (token);
-		writes (string);
-		}
 	}
 
 class UWishlistSearch : Message
@@ -418,14 +320,6 @@ class UWishlistSearch : Message
 		token = readi ();
 		strng = reads ();
 		}
-
-	this (uint token, string string)
-		{
-		super (WishlistSearch);
-
-		writei (token);
-		writes (string);
-		}
 	}
 
 class USetStatus : Message
@@ -438,13 +332,6 @@ class USetStatus : Message
 
 		status = readi ();
 		}
-	
-	this (uint status)
-		{
-		super (SetStatus);
-
-		writei (status);
-		}
 	}
 
 class USendUploadSpeed : Message
@@ -456,13 +343,6 @@ class USendUploadSpeed : Message
 		super (in_buf);
 
 		speed = readi ();
-		}
-
-	this (string user, uint speed)
-		{
-		super (SendUploadSpeed);
-
-		writei (speed);
 		}
 	}
 
@@ -478,14 +358,6 @@ class USharedFoldersFiles : Message
 		nb_folders = readi ();
 		nb_files   = readi ();
 		}
-	
-	this (uint nb_folders, uint nb_files)
-		{
-		super (SharedFoldersFiles);
-
-		writei (nb_folders);
-		writei (nb_files);
-		}
 	}
 
 class UGetUserStats : Message
@@ -497,13 +369,6 @@ class UGetUserStats : Message
 		super (in_buf);
 
 		user = reads ();
-		}
-	
-	this (string user)
-		{
-		super (GetUserStats);
-
-		writes (user);
 		}
 	}
 
@@ -522,15 +387,6 @@ class UUserSearch : Message
 		token = readi ();
 		query = reads ();
 		}
-	
-	this (string user, uint token, string query)
-		{
-		super (RoomSearch);
-
-		writes (user);
-		writei (token);
-		writes (query);
-		}
 	}
 
 class UAddThingILike : Message
@@ -542,13 +398,6 @@ class UAddThingILike : Message
 		super (in_buf);
 
 		thing = reads ();
-		}
-	
-	this (string thing)
-		{
-		super (AddThingILike);
-
-		writes (thing);
 		}
 	}
 
@@ -562,13 +411,6 @@ class URemoveThingILike : Message
 
 		thing = reads ();
 		}
-	
-	this (string thing)
-		{
-		super (RemoveThingILike);
-
-		writes (thing);
-		}
 	}
 
 class UUserInterests : Message
@@ -580,13 +422,6 @@ class UUserInterests : Message
 		super (in_buf);
 
 		user = reads ();
-		}
-
-	this (string user)
-		{
-		super (UserInterests);
-
-		writes (user);
 		}
 	}
 
@@ -600,13 +435,6 @@ class UAddThingIHate : Message
 
 		thing = reads ();
 		}
-	
-	this (string thing)
-		{
-		super (AddThingIHate);
-
-		writes (thing);
-		}
 	}
 
 class URemoveThingIHate : Message
@@ -618,13 +446,6 @@ class URemoveThingIHate : Message
 		super (in_buf);
 
 		thing = reads ();
-		}
-	
-	this (string thing)
-		{
-		super (RemoveThingIHate);
-
-		writes (thing);
 		}
 	}
 
@@ -639,13 +460,6 @@ class UGetItemRecommendations : Message
 
 		item = reads ();
 		}
-	
-	this (string item)
-		{
-		super (ItemRecommendations);
-
-		writes (item);
-		}
 	}
 
 class UItemSimilarUsers : Message
@@ -658,13 +472,6 @@ class UItemSimilarUsers : Message
 		super (in_buf);
 
 		item = reads ();
-		}
-	
-	this (string item)
-		{
-		super (ItemSimilarUsers);
-
-		writes (item);
 		}
 	}
 
@@ -679,14 +486,6 @@ class USetRoomTicker : Message
 
 		room = reads ();
 		tick = reads ();
-		}
-	
-	this (string room, string tick)
-		{
-		super (SetRoomTicker);
-
-		writes (room);
-		writes (tick);
 		}
 	}
 
@@ -704,15 +503,6 @@ class URoomSearch : Message
 		token = readi ();
 		query = reads ();
 		}
-	
-	this (string room, uint token, string query)
-		{
-		super (RoomSearch);
-
-		writes (room);
-		writei (token);
-		writes (query);
-		}
 	}
 
 class UUserPrivileged : Message
@@ -725,13 +515,6 @@ class UUserPrivileged : Message
         
                 user = reads ();
                 }
-	
-	this (string user)
-		{
-		super (UserPrivileged);
-
-		writes (user);
-		}
         }
 
 class UAdminMessage : Message
@@ -743,13 +526,6 @@ class UAdminMessage : Message
 		super (in_buf);
 
 		mesg = reads ();
-		}
-	
-	this (string mesg)
-		{
-		super (AdminMessage);
-
-		writes (mesg);
 		}
 	}
 
@@ -765,14 +541,6 @@ class UGivePrivileges : Message
 		user = reads ();
 		time = readi ();
 		}
-	
-	this (string user, uint time)
-		{
-		super (GivePrivileges);
-
-		writes (user);
-		writei (time);
-		}
 	}
 
 class UChangePassword : Message
@@ -784,13 +552,6 @@ class UChangePassword : Message
 		super (in_buf);
 
 		password = reads ();
-		}
-
-	this (string password)
-		{
-		super (ChangePassword);
-
-		writes (password);
 		}
 	}
 
@@ -806,16 +567,6 @@ class UMessageUsers : Message
 		foreach (i ; 0 .. readi ()) users ~= reads ();
 		message = reads ();
 		}
-
-	this (string[] users, string message)
-		{
-		super (MessageUsers);
-
-		writei (users.length);
-		foreach (user ; users) writes (user);
-
-		writes (message);
-		}
 	}
 
 class UCantConnectToPeer : Message
@@ -829,14 +580,6 @@ class UCantConnectToPeer : Message
 
 		token = readi ();
 		user  = reads ();
-		}
-	
-	this (uint token, string user)
-		{
-		super (CantConnectToPeer);
-
-		writei (token);
-		writes (user);
 		}
 	}
 
@@ -861,19 +604,6 @@ class SLogin : Message
 			writeb (supporter);
 			}
 		}
-		
-	byte   success;
-	string mesg;
-	uint   addr;
-	
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		success = readb ();
-		mesg    = reads ();
-		if (success) addr = readi ();
-		}
 	}
 
 class SGetPeerAddress : Message
@@ -887,23 +617,6 @@ class SGetPeerAddress : Message
 		writei (port);		// port number
 		writei (unknown);
 		writei (obfuscated_port);
-		}
-	
-	string username;
-	uint   address;
-	uint   port;
-	uint   unknown;
-	uint   obfuscated_port;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username        = reads ();
-		address         = readi ();
-		port            = readi ();
-		unknown         = readi ();
-		obfuscated_port = readi();
 		}
 	}
 
@@ -925,33 +638,6 @@ class SWatchUser : Message
 		writei (shared_folders);	// shared folders
 		if (status > 0) writes (country_code);  // country code
 		}
-	
-	string user;
-	byte   exists;
-	uint   status;
-	uint   speed;
-	uint   upload_number;
-	uint   something;
-	uint   shared_files;
-	uint   shared_folders;
-	string country_code;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		user            = reads ();
-		exists          = readb ();
-		if (!exists) return;
-
-		status          = readi ();
-		speed           = readi ();
-		upload_number 	= readi ();
-		something       = readi ();
-		shared_files    = readi ();
-		shared_folders  = readi ();
-		if (status > 0) country_code = reads();
-		}
 	}
 
 class SGetUserStatus : Message
@@ -964,19 +650,6 @@ class SGetUserStatus : Message
 		writei (status);	// user status (see the class User)
 		writeb (privileged);    // is user privileged
 		}
-
-	string username;
-	uint   status;
-	byte   privileged;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username   = reads ();
-		status     = readi ();
-		privileged = readb ();
-		}
 	}
 
 class SSayChatroom : Message
@@ -988,19 +661,6 @@ class SSayChatroom : Message
 		writes (room); // room the message comes from
 		writes (user); // the user who said it
 		writes (mesg); // what (s)he said
-		}
-	
-	string room;
-	string user;
-	string mesg;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room = reads ();
-		user = reads ();
-		mesg = reads ();
 		}
 	}
 
@@ -1021,18 +681,6 @@ class SRoomList : Message
 		writei (0);	// number of other private rooms (unimplemented)
 		writei (0);	// number of other private rooms (unimplemented)
 		writei (0);	// number of operated private rooms (unimplemented)
-		}
-	
-	uint[string] rooms;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		string[] room_names;
-
-		foreach (i ; 0 .. readi ()) room_names[i] = reads ();
-		foreach (i ; 0 .. readi ()) rooms[room_names[i]] = readi ();
 		}
 	}
 
@@ -1067,37 +715,6 @@ class SJoinRoom : Message
 		writei (n);	// number of country codes we will send
 		foreach (username ; usernames) writes (country_codes[username]);
 		}
-	
-	string         room;
-	string[]       usernames;
-	uint[string]   statuses;
-	uint[string]   speeds;
-	uint[string]   upload_numbers;
-	uint[string]   somethings;
-	uint[string]   shared_files;
-	uint[string]   shared_folders;
-	uint[string]   slots_full;
-	string[string] country_codes;
-	
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room = reads ();
-
-		foreach (i ; 0 .. readi ()) usernames[i] = reads ();
-		foreach (i ; 0 .. readi ()) statuses[usernames[i]] = readi ();
-		foreach (i ; 0 .. readi ())
-			{
-			speeds          [usernames[i]] = readi ();
-			upload_numbers	[usernames[i]] = readi ();
-			somethings      [usernames[i]] = readi ();
-			shared_files    [usernames[i]] = readi ();
-			shared_folders  [usernames[i]] = readi ();
-			}
-		foreach (i ; 0 .. readi ()) slots_full[usernames[i]] = readi ();
-		foreach (i ; 0 .. readi ()) country_codes[usernames[i]] = reads ();
-		}
 	}
 	
 class SLeaveRoom : Message
@@ -1107,15 +724,6 @@ class SLeaveRoom : Message
 		super (LeaveRoom);
 
 		writes (room);	// the room the user left
-		}
-	
-	string room;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room = reads ();
 		}
 	}
 
@@ -1136,33 +744,6 @@ class SUserJoinedRoom : Message
 		writei (slots_full);		// slots full
 		writes (country_code);		// country code
 		}
-	
-	string room;
-	string username;
-	uint   status;
-	uint   speed;
-	uint   upload_number;
-	uint   something;
-	uint   shared_files;
-	uint   shared_folders;
-	uint   slots_full;
-	string country_code;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room		= reads ();
-		username        = reads ();
-		status          = readi ();
-		speed           = readi ();
-		upload_number 	= readi ();
-		something       = readi ();
-		shared_files    = readi ();
-		shared_folders  = readi ();
-		slots_full      = readi ();
-		country_code    = reads ();
-		}
 	}
 
 class SUserLeftRoom : Message
@@ -1173,17 +754,6 @@ class SUserLeftRoom : Message
 
 		writes (room);		// the room an user left
 		writes (username);	// name of the user who left
-		}
-
-	string room;
-	string username;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room     = reads ();
-		username = reads ();
 		}
 	}
 
@@ -1202,29 +772,6 @@ class SConnectToPeer : Message
 		writei (unknown);
 		writei (obfuscated_port);
 		}
-	
-	string username;
-	string type;
-	uint   address;
-	uint   port;
-	uint   token;
-	byte   privileged;
-	uint   unknown;
-	uint   obfuscated_port;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username        = reads ();
-		type            = reads ();
-		address         = readi ();
-		port            = readi ();
-		token           = readi ();
-		privileged      = readb ();
-		unknown         = readi ();
-		obfuscated_port = readi ();
-		}
 	}
 
 class SMessageUser : Message
@@ -1239,23 +786,6 @@ class SMessageUser : Message
 		writes (content);	// message content
 		writeb (new_message);
 		}
-	
-	uint   id;
-	uint   timestamp;
-	string from;
-	string content;
-	byte   new_message;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		id          = readi ();
-		timestamp   = readi ();
-		from        = reads ();
-		content     = reads ();
-		new_message = readb ();
-		}
 	}
 
 class SFileSearch : Message
@@ -1267,19 +797,6 @@ class SFileSearch : Message
 		writes (username);	// username of the one who is doing the search
 		writei (token);		// search token
 		writes (text);		// search string
-		}
-	
-	string username;
-	uint   token;
-	string text;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username = reads ();
-		token    = readi ();
-		text     = reads ();
 		}
 	}
 
@@ -1296,25 +813,6 @@ class SGetUserStats : Message
 		writei (shared_files);		// shared files
 		writei (shared_folders);	// shared folders
 		}
-	
-	string username;
-	uint   speed;
-	uint   upload_number;
-	uint   something;
-	uint   shared_files;
-	uint   shared_folders;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username        = reads ();
-		speed           = readi ();
-		upload_number 	= readi ();
-		something       = readi ();
-		shared_files    = readi ();
-		shared_folders  = readi ();
-		}
 	}
 
 class SGetRecommendations : Message
@@ -1328,21 +826,6 @@ class SGetRecommendations : Message
 			{
 			writes (artist);	// artist name
 			writesi (level);	// « level » of recommendation
-			}
-		}
-	
-	uint[string] list;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto artist = reads ();
-			auto level  = readsi ();
-
-			list[artist] = level;
 			}
 		}
 	}
@@ -1361,21 +844,6 @@ class SGetGlobalRecommendations : Message
 			writesi (level);	// « level » of recommendation
 			}
 		}
-	
-	int[string] list;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto artist = reads ();
-			auto level  = readsi ();
-
-			list[artist] = level;
-			}
-		}
 	}
 
 class SUserInterests : Message
@@ -1391,29 +859,6 @@ class SUserInterests : Message
 
 		writei (hates.length);
 		foreach (thing ; hates) writes (thing);
-		}
-
-	string         user;
-	string[string] likes;
-	string[string] hates;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		user = reads ();
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto thing = reads ();
-			likes[thing] = thing;
-			}
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto thing = reads ();
-			hates[thing] = thing;
-			}
 		}
 	}
 
@@ -1435,19 +880,6 @@ class SUserSearch : Message
 		writei (token);		// search token
 		writes (query);		// search string
 		}
-	
-	string user;
-	uint   token;
-	string query;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		user   = reads ();
-		token  = readi ();
-		query  = reads ();
-		}
 	}
 
 class SAdminMessage : Message
@@ -1457,15 +889,6 @@ class SAdminMessage : Message
 		super (AdminMessage);
 
 		writes (message);	// the message
-		}
-
-	string message;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		message = reads ();
 		}
 	}
 
@@ -1477,15 +900,6 @@ class SCheckPrivileges : Message
 
 		writei (time);		// time left
 		}
-
-	uint time;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		time = readi ();
-		}
 	}
 
 class SWishlistInterval	: Message
@@ -1495,15 +909,6 @@ class SWishlistInterval	: Message
 		super (WishlistInterval);
 
 		writei (interval);	// interval in seconds for searches
-		}
-
-	uint interval;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		interval = readi ();
 		}
 	}
 
@@ -1518,21 +923,6 @@ class SSimilarUsers : Message
 			{
 			writes  (user);
 			writesi (weight);
-			}
-		}
-
-	uint[string] list;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto user   = reads ();
-			auto weight = readsi ();
-
-			list[user] = weight;
 			}
 		}
 	}
@@ -1552,21 +942,6 @@ class SGetItemRecommendations : Message
 			writesi (weight);
 			}
 		}
-
-	uint[string] list;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto recommendation = reads ();
-			auto weight         = readsi ();
-
-			list[recommendation] = weight;
-			}
-		}
 	}
 
 class SItemSimilarUsers : Message
@@ -1578,15 +953,6 @@ class SItemSimilarUsers : Message
 		writes (item);
 		writei (list.length);
 		foreach (user ; list) writes (user);
-		}
-
-	string[] list;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ()) list[i] = reads ();
 		}
 	}
 
@@ -1604,24 +970,6 @@ class SRoomTicker : Message
 			writes (ticker);	// ticker content
 			}
 		}
-
-	string room;
-	string[string] tickers;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-		
-		room = reads ();
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto user   = reads ();
-			auto ticker = reads ();
-
-			tickers[user] = ticker;
-			}
-		}
 	}
 
 class SRoomTickerAdd : Message
@@ -1634,19 +982,6 @@ class SRoomTickerAdd : Message
 		writes (user);		// user name
 		writes (ticker);	// ticker content
 		}
-	
-	string room;
-	string user;
-	string ticker;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room   = reads ();
-		user   = reads ();
-		ticker = reads ();
-		}
 	}
 
 class SRoomTickerRemove : Message
@@ -1657,17 +992,6 @@ class SRoomTickerRemove : Message
 
 		writes (room);		// name of the room
 		writes (user);		// user name
-		}
-	
-	string room;
-	string user;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room   = reads ();
-		user   = reads ();
 		}
 	}
 
@@ -1681,19 +1005,6 @@ class SRoomSearch : Message
 		writei (token);		// search token
 		writes (query);		// search string
 		}
-	
-	string user;
-	uint   token;
-	string query;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		user   = reads ();
-		token  = readi ();
-		query  = reads ();
-		}
 	}
 
 class SUserPrivileged : Message
@@ -1705,17 +1016,6 @@ class SUserPrivileged : Message
 		writes (username);	// user name
 		writeb (privileged);	// user privileged
 		}
-
-	string username;
-	byte   privileged;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		username   = reads ();
-		privileged = readb ();
-		}
 	}
 
 class SChangePassword : Message
@@ -1725,15 +1025,6 @@ class SChangePassword : Message
 		super (ChangePassword);
 
 		writes (password);	// user's password
-		}
-
-	string password;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		password = reads ();
 		}
 	}
 
@@ -1747,19 +1038,6 @@ class SGlobalRoomMessage : Message
 		writes (user); // the user who said it
 		writes (mesg); // what (s)he said
 		}
-
-	string room;
-	string user;
-	string mesg;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		room = reads ();
-		user = reads ();
-		mesg = reads ();
-		}
 	}
 
 class SCantConnectToPeer : Message
@@ -1769,15 +1047,6 @@ class SCantConnectToPeer : Message
 		super (CantConnectToPeer);
 
 		writei (token);	// token of the message
-		}
-
-	uint token;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		token = readi ();
 		}
 	}
 
@@ -1798,21 +1067,6 @@ class SServerInfo : Message
 			{
 			writes (field);
 			writes (value);
-			}
-		}
-
-	string[string] info;
-
-	this (ubyte[] in_buf)
-		{
-		super (in_buf);
-
-		foreach (i ; 0 .. readi ())
-			{
-			auto field = reads ();
-			auto value = reads ();
-
-			info[field]  = value;
 			}
 		}
 	}
