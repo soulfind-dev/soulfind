@@ -165,6 +165,7 @@ class Server
 					try {new_sock = sock.accept ();}
 					catch (SocketAcceptException) {break;}
 					new_sock.setKeepAlive (keepalive_time, keepalive_interval);
+					new_sock.setOption (SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1);
 					new_sock.blocking = false;
 
 					debug (user)
