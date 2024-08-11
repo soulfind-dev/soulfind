@@ -14,7 +14,7 @@ make
 ```
 
 The Makefile uses LDC by default to build Soulfind. Set the DC environment
-variable to `dmd` or `gdc` to use the respective compilers instead:
+variable to `dmd` to use DMD instead:
 
 ```sh
 DC=dmd make

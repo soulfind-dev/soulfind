@@ -8,7 +8,7 @@ private import std.stdio : writeln, write;
 private import std.file : exists, isFile, getAttributes;
 private import std.conv : to, octal, ConvException;
 
-private import sqlite3_imp;
+private import etc.c.sqlite3;
 
 class Sdb
 	{
@@ -28,7 +28,7 @@ class Sdb
 		string default_conf_format = format ("INSERT INTO %%s (port, max_users, motd) VALUES (%d, %d, 'Soulfind %s');", port, max_users, VERSION);
 		if (!exists (file) || !isFile (file))
 			{
-			sqlite3_open (file.toStringz(), &db);
+			open_db (file);
 			if (!exists (file) || !isFile (file))
 				{
 				throw new Exception ("Cannot create database file " ~ file);
@@ -41,7 +41,7 @@ class Sdb
 			}
 		else
 			{
-			sqlite3_open (file.toStringz(), &db);
+			open_db (file);
 			string[][] res = this.query (format ("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
 			if (res[0][0] != format (conf_table_format[0 .. $-1], conf_table))
 				{
@@ -51,7 +51,13 @@ class Sdb
 				}
 			}
 		}
-	
+
+	@trusted
+	void open_db (string file)
+		{
+		sqlite3_open (file.toStringz(), &db);
+		}
+
 		// argh, I never realised that ALTER TABLE was so useful
 	void update_conf_table (string creation_string, string default_conf_format)
 		{

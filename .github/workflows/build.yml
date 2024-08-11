@@ -5,13 +5,14 @@ on: [push, pull_request]
 jobs:
 
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container: alpine:edge
     timeout-minutes: 15
     strategy:
       matrix:
         include:
-          - compiler: gdc
-            ccommand: gdc
+          - compiler: dmd
+            ccommand: dmd
           - compiler: ldc
             ccommand: ldmd2
     env:
@@ -22,9 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install ${{ matrix.compiler }} libsqlite3-dev
+        run: apk add ${{ matrix.compiler }} gcc make musl-dev sqlite-dev
 
       - name: Build
         run: make
