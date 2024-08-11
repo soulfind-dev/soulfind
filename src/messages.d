@@ -49,36 +49,31 @@ class Message
 
 	void writei (uint i)
 		{
-		try {out_buf.write (i);}
-		catch (Exception e) {writeln (e.msg, " when trying to send an int : ", i);}
+		out_buf.write (i);
 		}
 
 	void writei (ulong i)
 		{
-		this.writei(cast(uint)i);
+		out_buf.write (cast(uint) i);
 		}
 
 	void writesi (int i)
 		{
-		try {out_buf.write (i);}
-		catch (Exception e) {writeln (e.msg, " when trying to send an int : ", i);}
+		out_buf.write (i);
 		}
 		
 	void writeb (byte o)
 		{
-		try {out_buf.write (o);}
-		catch (Exception e) {writeln (e.msg, " when trying to send a byte : ", o);}
+		out_buf.write (o);
 		}
 	
 	void writes (string s)
 		{
-		try
-			{
-			debug (msg) writeln("Sending string '", s, "', length ", s.length);
-			writei (s.length);
-			out_buf.write (s);
-			}
-		catch (Exception e) {writeln (e.msg, " when trying to send a string : ", s, "(", s.length, ")");}
+		debug (msg) writeln (
+			"Sending string '", s, "', length ", s.length
+		);
+		writei (s.length);
+		out_buf.write (s);
 		}
 
 	uint length;
@@ -94,7 +89,10 @@ class Message
 		uint i;
 		if (in_buf.length < uint.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " not enough data trying to read an int");
+			writeln (
+				"message code ", code, ", length ", length,
+				" not enough data trying to read an int"
+			);
 			return i;
 			}
 
@@ -107,7 +105,10 @@ class Message
 		int i;
 		if (in_buf.length < int.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " not enough data trying to read a signed int");
+			writeln (
+				"message code ", code, ", length ", length,
+				" not enough data trying to read a signed int"
+			);
 			return i;
 			}
 
@@ -120,7 +121,10 @@ class Message
 		byte i;
 		if (in_buf.length < byte.sizeof)
 			{
-			writeln ("message code ", code, ", length ", length, " not enough data trying to read a byte");
+			writeln (
+				"message code ", code, ", length ", length,
+				" not enough data trying to read a byte"
+			);
 			return i;
 			}
 
@@ -253,7 +257,8 @@ class ULeaveRoom : Message
 	}
 
 class UConnectToPeer : Message
-	{		// Client cannot connect to another one and wants us to ask the other to connect to him
+	{		// Client cannot connect to another one and wants us to
+			// ask the other to connect to him
 	uint token;	// connection token
 	string user;	// user name
 	string type;	// connection type ("F" if for a file transfers, "P" otherwise)
@@ -347,9 +352,9 @@ class USendUploadSpeed : Message
 	}
 
 class USharedFoldersFiles : Message
-	{			// Client tells us how many files and folder it is sharing
-	uint nb_folders;	// number of folders
-	uint nb_files;		// number of files
+	{		// Client tells us how many files and folder it is sharing
+	uint nb_folders;// number of folders
+	uint nb_files;	// number of files
 
 	this (ubyte[] in_buf)
 		{
@@ -586,7 +591,8 @@ class UCantConnectToPeer : Message
 class SLogin : Message
 	{	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
-	this (byte success, string mesg, uint addr = 0, string password = null, byte supporter = false)
+	this (byte success, string mesg, uint addr = 0,
+			string password = null, byte supporter = false)
 		{
 		super (Login);
 		
@@ -608,7 +614,8 @@ class SLogin : Message
 
 class SGetPeerAddress : Message
 	{	// Send the address and port of user user
-	this (string username, uint address, uint port, uint unknown = 0, uint obfuscated_port = 0)
+	this (string username, uint address, uint port, uint unknown = 0,
+			uint obfuscated_port = 0)
 		{
 		super (GetPeerAddress);
 		
@@ -622,7 +629,9 @@ class SGetPeerAddress : Message
 
 class SWatchUser : Message
 	{	// Tell a client if a user exists and potential stats
-	this (string user, byte exists, uint status, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders, string country_code)
+	this (string user, byte exists, uint status, uint speed,
+			uint upload_number, uint something, uint shared_files,
+			uint shared_folders, string country_code)
 		{
 		super (WatchUser);
 
@@ -686,7 +695,11 @@ class SRoomList : Message
 
 class SJoinRoom : Message
 	{	// Give info on the room to a client who just joined it
-	this (string room, string[] usernames, uint[string] statuses, uint[string] speeds, uint[string] upload_numbers, uint[string] somethings, uint[string] shared_files, uint[string] shared_folders, uint[string] slots_full, string[string] country_codes)
+	this (string room, string[] usernames, uint[string] statuses,
+			uint[string] speeds, uint[string] upload_numbers,
+			uint[string] somethings, uint[string] shared_files,
+			uint[string] shared_folders, uint[string] slots_full,
+			string[string] country_codes)
 		{
 		super (JoinRoom);
 
@@ -729,7 +742,10 @@ class SLeaveRoom : Message
 
 class SUserJoinedRoom : Message
 	{	// User user has joined the room room
-	this (string room, string username, uint status, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders, uint slots_full, string country_code)
+	this (string room, string username, uint status,
+			uint speed, uint upload_number, uint something,
+			uint shared_files, uint shared_folders,
+			uint slots_full,string country_code)
 		{
 		super (UserJoinedRoom);
 
@@ -759,7 +775,9 @@ class SUserLeftRoom : Message
 
 class SConnectToPeer : Message
 	{	// Ask a peer to connect back to user
-	this (string username, string type, uint address, uint port, uint token, byte privileged, uint unknown = 0, uint obfuscated_port = 0)
+	this (string username, string type, uint address, uint port,
+			uint token, byte privileged, uint unknown = 0,
+			uint obfuscated_port = 0)
 		{
 		super (ConnectToPeer);
 
@@ -776,7 +794,8 @@ class SConnectToPeer : Message
 
 class SMessageUser : Message
 	{	// Send the PM
-	this (uint id, uint timestamp, string from, string content, byte new_message)
+	this (uint id, uint timestamp, string from, string content,
+			byte new_message)
 		{
 		super (MessageUser);
 
@@ -802,7 +821,8 @@ class SFileSearch : Message
 
 class SGetUserStats : Message
 	{	// Send the stats of user user
-	this (string username, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders)
+	this (string username, uint speed, uint upload_number, uint something,
+			uint shared_files, uint shared_folders)
 		{
 		super (GetUserStats);
 
