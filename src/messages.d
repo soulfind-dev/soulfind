@@ -136,7 +136,7 @@ class Message
 		{ // read a string
 		auto slen = readi ();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
-		auto str = in_buf[0 .. slen].to!string;
+		auto str = cast(string) in_buf[0 .. slen].idup;
 
 		in_buf = in_buf[slen .. $];
 		return str;
