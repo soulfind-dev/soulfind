@@ -38,7 +38,10 @@ class Message
 	uint code;
 	OutBuffer out_buf;
 
-	ubyte[] toBytes () {return out_buf.toBytes ();}
+	ubyte[] toBytes ()
+		{
+		return out_buf.toBytes ();
+		}
 
 	this (uint code)
 		{
@@ -62,9 +65,9 @@ class Message
 		out_buf.write (i);
 		}
 		
-	void writeb (byte o)
+	void writeb (bool b)
 		{
-		out_buf.write (o);
+		out_buf.write (cast(ubyte) b);
 		}
 	
 	void writes (string s)
@@ -116,19 +119,19 @@ class Message
 		return i;
 		}
 	
-	byte readb ()
-		{ // read a byte
-		byte i;
-		if (in_buf.length < byte.sizeof)
+	bool readb ()
+		{ // read a bool
+		bool i;
+		if (in_buf.length < bool.sizeof)
 			{
 			writeln (
 				"message code ", code, ", length ", length,
-				" not enough data trying to read a byte"
+				" not enough data trying to read a bool"
 			);
 			return i;
 			}
 
-		i = in_buf.read!(byte, Endian.littleEndian);
+		i = in_buf.read!(bool, Endian.littleEndian);
 		return i;
 		}
 	
@@ -591,8 +594,8 @@ class UCantConnectToPeer : Message
 class SLogin : Message
 	{	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
-	this (byte success, string mesg, uint addr = 0,
-			string password = null, byte supporter = false)
+	this (bool success, string mesg, uint addr = 0,
+			string password = null, bool supporter = false)
 		{
 		super (Login);
 		
@@ -629,7 +632,7 @@ class SGetPeerAddress : Message
 
 class SWatchUser : Message
 	{	// Tell a client if a user exists and potential stats
-	this (string user, byte exists, uint status, uint speed,
+	this (string user, bool exists, uint status, uint speed,
 			uint upload_number, uint something, uint shared_files,
 			uint shared_folders, string country_code)
 		{
@@ -651,7 +654,7 @@ class SWatchUser : Message
 
 class SGetUserStatus : Message
 	{	// Send the status of user user
-	this (string username, uint status, byte privileged)
+	this (string username, uint status, bool privileged)
 		{
 		super (GetUserStatus);
 
@@ -776,7 +779,7 @@ class SUserLeftRoom : Message
 class SConnectToPeer : Message
 	{	// Ask a peer to connect back to user
 	this (string username, string type, uint address, uint port,
-			uint token, byte privileged, uint unknown = 0,
+			uint token, bool privileged, uint unknown = 0,
 			uint obfuscated_port = 0)
 		{
 		super (ConnectToPeer);
@@ -795,7 +798,7 @@ class SConnectToPeer : Message
 class SMessageUser : Message
 	{	// Send the PM
 	this (uint id, uint timestamp, string from, string content,
-			byte new_message)
+			bool new_message)
 		{
 		super (MessageUser);
 
@@ -1029,7 +1032,7 @@ class SRoomSearch : Message
 
 class SUserPrivileged : Message
 	{	// Send the privileges status of user
-	this (string username, byte privileged)
+	this (string username, bool privileged)
 		{
 		super (UserPrivileged);
 
