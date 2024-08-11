@@ -20,6 +20,7 @@
 
 
 module server;
+@safe:
 
 import defines;
 
@@ -35,7 +36,6 @@ private import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel,
 							SocketShutdown;
 private import std.conv : to;
 private import std.array : split, join, replace;
-private import core.stdc.stdlib : exit;
 private import core.stdc.time : time;
 private import std.utf : validate, UTFException;
 private import std.format : format;
@@ -43,8 +43,9 @@ private import std.algorithm : canFind;
 private import std.datetime : Duration, dur;
 private import std.digest.md : md5Of;
 private import std.string : strip;
+private import std.process : thisProcessID;
 
-private import core.sys.posix.unistd : fork, getpid;
+private import core.sys.posix.unistd : fork;
 
 
 void help (string[] args)
@@ -55,10 +56,9 @@ void help (string[] args)
 		default_db_file, ")"
 	);
 	writeln ("\t-d, --daemon : fork in the background");
-	exit (0);
 	}
 
-void main (string[] args)
+int main (string[] args)
 	{
 	bool daemon;
 	string db = default_db_file;
@@ -72,7 +72,7 @@ void main (string[] args)
 			case "-h":
 			case "--help":
 				help (args);
-				break;
+				return 0;
 			case "-d":
 			case "--daemon":
 				daemon = true;
@@ -83,12 +83,10 @@ void main (string[] args)
 			}
 		}
 
-	if (daemon && fork ()) exit (0);
+	if (daemon && fork ()) return 0;
 
 	Server s = new Server (db);
-	s.listen ();
-
-	if (!daemon) writeln ("Exiting.");
+	return s.listen ();
 	}
 
 class Server
@@ -115,7 +113,7 @@ class Server
 		config ();
 		}
 
-	void listen ()
+	int listen ()
 		{
 		sock = new TcpSocket ();
 		sock.blocking = false;
@@ -136,10 +134,10 @@ class Server
 				);
 			else
 				writeln();
-			exit (1789);
+			return 1789;
 			}
 
-		writeln("Process ", getpid(), " listening on port ", port);
+		writeln("Process ", thisProcessID, " listening on port ", port);
 
 		auto read_socks = new SocketSet (max_users + 1);
 		auto write_socks = new SocketSet (max_users + 1);
@@ -224,6 +222,9 @@ class Server
 				user_sock.close ();
 				}
 			}
+
+		writeln ("Exiting.");
+		return 0;
 		}
 
 	// Filesearches
@@ -380,7 +381,7 @@ class Server
 				uint days;
 				try
 					{
-					days = to!uint(command[1]);
+					days = command[1].to!uint;
 					}
 				catch (Exception e)
 					{
@@ -599,9 +600,9 @@ class Server
 		{
 		string ret;
 		ret = replace (motd, "%version%", VERSION);
-		ret = replace (ret, "%nbusers%", to!string(nb_users ()));
+		ret = replace (ret, "%nbusers%", nb_users.to!string);
 		ret = replace (ret, "%username%", name);
-		ret = replace (ret, "%userversion%", to!string(vers));
+		ret = replace (ret, "%userversion%", vers.to!string);
 		return ret;
 		}
 

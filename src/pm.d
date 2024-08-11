@@ -20,6 +20,7 @@
 
 
 module pm;
+@safe:
 
 import defines;
 

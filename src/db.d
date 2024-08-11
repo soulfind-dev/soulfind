@@ -1,4 +1,5 @@
 module db;
+@safe:
 
 import defines;
 
@@ -271,7 +272,8 @@ class Sdb
 			return false;
 			}
 		}
-	
+
+	@trusted
 	string[][] query (string query)
 		{
 		debug (db) writeln ("DB query : \"", query, "%s\"");

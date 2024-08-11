@@ -20,6 +20,7 @@
 
 
 module messages;
+@safe:
 
 import defines;
 
@@ -49,7 +50,7 @@ class Message
 	void writei (uint i)
 		{
 		try {out_buf.write (i);}
-		catch (Exception e) {writeln (e, " when trying to send an int : ", i);}
+		catch (Exception e) {writeln (e.msg, " when trying to send an int : ", i);}
 		}
 
 	void writei (ulong i)
@@ -60,13 +61,13 @@ class Message
 	void writesi (int i)
 		{
 		try {out_buf.write (i);}
-		catch (Exception e) {writeln (e, " when trying to send an int : ", i);}
+		catch (Exception e) {writeln (e.msg, " when trying to send an int : ", i);}
 		}
 		
 	void writeb (byte o)
 		{
 		try {out_buf.write (o);}
-		catch (Exception e) {writeln (e, " when trying to send a byte : ", o);}
+		catch (Exception e) {writeln (e.msg, " when trying to send a byte : ", o);}
 		}
 	
 	void writes (string s)
@@ -77,7 +78,7 @@ class Message
 			writei (s.length);
 			out_buf.write (s);
 			}
-		catch (Exception e) {writeln (e, " when trying to send a string : ", s, "(", s.length, ")");}
+		catch (Exception e) {writeln (e.msg, " when trying to send a string : ", s, "(", s.length, ")");}
 		}
 
 	uint length;
@@ -131,7 +132,7 @@ class Message
 		{ // read a string
 		auto slen = readi ();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
-		auto str = cast(string) in_buf[0 .. slen];
+		auto str = in_buf[0 .. slen].to!string;
 
 		in_buf = in_buf[slen .. $];
 		return str;

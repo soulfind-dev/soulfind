@@ -1,4 +1,5 @@
 module defines;
+@safe:
 
 const string VERSION		= "0.4.8";
 const string default_db_file	= "soulfind.db";

@@ -20,6 +20,7 @@
 
 
 module setup;
+@safe:
 
 import defines;
 
@@ -30,8 +31,6 @@ private import std.conv : to;
 private import std.format : format;
 private import std.algorithm : sort;
 private import std.string : chomp, strip;
-
-private import core.sys.posix.stdlib : exit;
 
 Sdb sdb;
 
@@ -45,7 +44,7 @@ void main (string[] args)
 			{
 			writeln ("Usage: ", args[0], " [database_file]");
 			writeln ("\tdatabase_file: path to Soulfind's database (default: ", default_db_file, ")");
-			exit(0);
+			return;
 			}
 		else
 			{
@@ -60,6 +59,13 @@ void main (string[] args)
 	sdb = new Sdb (db_file);
 
 	main_menu ();
+	return;
+	}
+
+@trusted
+string input ()
+	{
+	return readln ();
 	}
 
 void main_menu ()
@@ -80,7 +86,6 @@ void main_menu ()
 void exit ()
 	{
 	writeln ("\nA la prochaine...");
-	exit(0);
 	}
 
 void admins ()
@@ -98,7 +103,7 @@ void admins ()
 void add_admin ()
 	{
 	write ("Admin to add : ");
-	auto admin = strip (to!string (readln ()));
+	auto admin = input.strip;
 	sdb.add_admin (admin);
 	admins ();
 	}
@@ -106,7 +111,7 @@ void add_admin ()
 void del_admin ()
 	{
 	write ("Admin to remove : ");
-	auto admin = strip (to!string (readln ()));
+	auto admin = input.strip;
 	sdb.del_admin (admin);
 	admins ();
 	}
@@ -145,7 +150,7 @@ void listen_port ()
 void set_listen_port ()
 	{
 	write ("New listen port : ");
-	auto port = strip (to!string (readln ()));
+	auto port = input.strip;
 	sdb.conf_set_field ("port", port);
 	listen_port ();
 	}
@@ -163,7 +168,7 @@ void max_users ()
 void set_max_users ()
 	{
 	write ("Max users : ");
-	auto max_num_users = strip (to!string (readln ()));
+	auto max_num_users = input.strip;
 	sdb.conf_set_field ("max_users", max_num_users);
 	max_users ();
 	}
@@ -194,7 +199,7 @@ void set_motd ()
 		string line;
 		try
 			{
-			line = chomp (readln ());
+			line = input.chomp;
 			}
 		catch (Exception e)
 			{ // hopefully an EOF
@@ -246,7 +251,7 @@ void banned_users ()
 void ban_user ()
 	{
 	write ("User to ban : ");
-	auto user = strip (to!string (readln ()));
+	auto user = input.strip;
 	sdb.user_update_field (user, "banned", 1);
 	banned_users ();
 	}
@@ -254,7 +259,7 @@ void ban_user ()
 void unban_user ()
 	{
 	write ("User to unban : ");
-	auto user = strip (to!string (readln ()));
+	auto user = input.strip;
 	sdb.user_update_field (user, "banned", 0);
 	banned_users ();
 	}
@@ -291,7 +296,7 @@ class Menu
 		this.title = title;
 		}
 	
-	void add (string index, string entry, void function () action)
+	void add (string index, string entry, void function () @safe action)
 		{
 		entries[index] = entry;
 		actions[index] = action;
@@ -310,7 +315,7 @@ class Menu
 
 		write ("\nYour choice : ");
 
-		auto answer = strip (to!string (readln ()));
+		auto answer = input.strip;
 
 		if (answer in actions)
 			{

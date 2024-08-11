@@ -20,6 +20,7 @@
 
 
 module room;
+@safe:
 
 import defines;
 

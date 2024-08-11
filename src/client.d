@@ -20,6 +20,7 @@
 
 
 module client;
+@safe:
 
 import defines;
 

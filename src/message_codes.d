@@ -20,6 +20,7 @@
 
 
 module message_codes;
+@safe:
 
 // Constants
 const enum Status
