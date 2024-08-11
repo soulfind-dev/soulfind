@@ -198,18 +198,22 @@ class Server
 				if (nb == 0) break;
 				auto recv_success = true;
 				auto send_success = true;
+				bool changed;
 
 				if (read_socks.isSet (user_sock))
+					{
 					recv_success = user.recv_buffer ();
+					changed = true;
+					}
 
 				if (write_socks.isSet (user_sock))
-					send_success = user.send_buffer ();
-
-				if (recv_success && send_success)
 					{
-					nb--;
-					continue;
+					send_success = user.send_buffer ();
+					changed = true;
 					}
+
+				if (changed) nb--;
+				if (recv_success && send_success) continue;
 
 				user.exit ();
 				read_socks.remove (user_sock);
@@ -294,8 +298,8 @@ class Server
 	void send_to_all (Message msg)
 		{
 		debug (msg) write(
-			"Sending message (", blue,  message_name[m.code], black,
-			" - code ", blue, m.code, black, ") to all users"
+			"Sending message (", blue,  message_name[msg.code], black,
+			" - code ", blue, msg.code, black, ") to all users"
 		);
 		foreach (user ; users ())
 			{
