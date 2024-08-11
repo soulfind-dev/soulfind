@@ -98,12 +98,13 @@ class Server
 
 	ulong			started_at;					// for server uptime
 
-	uint			timeoutval = 240 * 1000000; // 2 minutes (µseconds)
-	Duration		timeout = dur!"minutes"(2);
 	Sdb				db; 						// users database
 
 	Socket			sock;
 	User[Socket]	user_socks;
+	auto			keepalive_time = 60;
+	auto			keepalive_interval = 5;
+	Duration		select_timeout = dur!"minutes"(2);
 
 	this (string db_file)
 		{
@@ -154,8 +155,7 @@ class Server
 				if (user.out_buf.length > 0) write_socks.add (user_sock);
 				}
 
-			auto nb = Socket.select (read_socks, write_socks, null, timeout);
-			if (nb == 0) send_pings ();
+			auto nb = Socket.select (read_socks, write_socks, null, select_timeout);
 
 			if (read_socks.isSet (sock))
 				{
@@ -164,6 +164,7 @@ class Server
 					Socket new_sock;
 					try {new_sock = sock.accept ();}
 					catch (SocketAcceptException) {break;}
+					new_sock.setKeepAlive (keepalive_time, keepalive_interval);
 					new_sock.blocking = false;
 
 					debug (user)
@@ -287,15 +288,6 @@ class Server
 		{
 		if (user.sock in user_socks) user_socks.remove (user.sock);
 		if (user.username in user_list) user_list.remove (user.username);
-		}
-
-	void send_pings ()
-		{
-		foreach (User u ; users ())
-			{
-			if ((time(null) - u.last_message_date) >= timeout.total!"seconds")
-				u.send_message (new SServerPing ());
-			}
 		}
 
 	void send_to_all (Message msg)

@@ -64,7 +64,6 @@ class User
 	uint		status;				// 0, 1, 2
 	bool		logged_in;
 	ulong		connected_at;		// in seconds
-	ulong		last_message_date;	// in seconds
 
 	string[string]	liked_things;
 	string[string]	hated_things;
@@ -86,7 +85,6 @@ class User
 		this.logged_in			= false;
 		this.admin				= false;
 		this.connected_at		= time (null);
-		this.last_message_date	= time (null);
 		}
 
 	// misc
@@ -440,7 +438,6 @@ class User
 		auto receive_len = sock.receive(receive_buf);
 		if (receive_len == Socket.ERROR || receive_len == 0) return false;
 
-		last_message_date = time(null);
 		in_buf ~= receive_buf[0 .. receive_len];
 
 		while (recv_message ())
@@ -690,7 +687,6 @@ class User
 				break;
 
 			case ServerPing:
-				send_message (new SServerPing ());
 				break;
 
 			case SharedFoldersFiles:

@@ -1282,14 +1282,6 @@ class SFileSearch : Message
 		}
 	}
 
-class SServerPing : Message
-	{	// Pong, in response to a client ping
-	this ()
-		{
-		super (ServerPing);
-		}
-	}
-
 class SGetUserStats : Message
 	{	// Send the stats of user user
 	this (string username, uint speed, uint upload_number, uint something, uint shared_files, uint shared_folders)
