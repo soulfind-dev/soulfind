@@ -16,7 +16,7 @@ jobs:
             ccommand: ldmd2
     env:
       DC: ${{ matrix.ccommand }}
-      DEBUG: db,msg,user
+      DEBUG: 1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,8 +36,10 @@ jobs:
     strategy:
       matrix:
         arch: [x86_64]
+        type: [release, debug]
     env:
       DC: ldmd2 -static -O
+      DEBUG: ${{ matrix.type == 'debug' && '1' || '0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,5 +53,5 @@ jobs:
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: soulfind-${{ matrix.arch }}-linux
+          name: soulfind-${{ matrix.arch }}-linux-${{ matrix.type }}
           path: bin
