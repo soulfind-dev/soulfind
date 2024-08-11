@@ -5,7 +5,7 @@
 
 
 module sqlite3_imp;
-@trusted;
+@trusted:
 
 private import core.stdc.stdarg : va_list;
 
