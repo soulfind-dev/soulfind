@@ -28,6 +28,7 @@ private import std.bitmanip;
 private import std.outbuffer : OutBuffer;
 private import std.stdio : writeln;
 private import std.format : format;
+private import std.digest : LetterCase, toHexString;
 private import std.digest.md : md5Of;
 private import std.conv : to;
 
@@ -604,12 +605,7 @@ class SLogin : Message
 		if (success)
 			{
 			writei (addr);	// external IP address of the client
-			ubyte[16] digest;
-			digest = md5Of (password);
-			string sum;
-			foreach (u ; digest)
-				sum ~= format ("%02x", u);
-			writes (sum);
+			writes (md5Of (password).toHexString!(LetterCase.lower));
 			writeb (supporter);
 			}
 		}
