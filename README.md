@@ -60,4 +60,5 @@ have to be an admin already to add an admin when connected to the server
 
 ## Authors
 
-Originally created by SeeSchloss
+ - seeschloss (creator)
+ - mathiascode
