@@ -30,62 +30,41 @@ class PM
 	{
 	// static
 	private static PM[uint] pm_list;
-	private static int[string] nb_pms;
 
-	static int nb_messages (string user)
-		{
-		return (user in nb_pms) ? nb_pms[user] : 0;
-		}
-
-	static bool find_pm (uint id)
-		{
-		return (id in pm_list) ? true : false;
-		}
-
-	static PM get_pm (uint id)
-		{
-		if (find_pm (id))	return pm_list[id];
-		else			return null;
-		}
-	
-	static void del_pm (uint id)
-		{
-		if (find_pm (id)) pm_list.remove (id);
-		}
-	
 	static void add_pm (PM pm)
 		{
 		pm_list[pm.id] = pm;
 		}
 
-	static uint new_id ()
+	static void del_pm (uint id)
 		{
-		uint id = cast(uint)pm_list.length;
-		while (find_pm (id))
-			{
-			id++;
-			}
-		return id;
+		if (!find_pm (id)) return;
+		pm_list.remove (id);
 		}
-	
+
 	static PM[] get_pms_for (string user)
 		{
 		PM[] pms;
-		if (pm_list.length > 0) foreach (PM pm ; pm_list)
-			{
-			if (pm.to == user) pms ~= pm;
-			}
+		foreach (PM pm ; pm_list) if (pm.to == user) pms ~= pm;
 		return pms;
 		}
-	
-	static uint nb_pms_for (string user)
+
+	private static bool find_pm (uint id)
 		{
-		uint i;
-		if (pm_list.length > 0) foreach (PM pm ; pm_list)
-			{
-			if (pm.to == user) i++;
-			}
-		return i;
+		return (id in pm_list) ? true : false;
+		}
+
+	private static PM get_pm (uint id)
+		{
+		if (!find_pm (id)) return null;
+		return pm_list[id];
+		}
+
+	private static uint new_id ()
+		{
+		auto id = cast(uint)pm_list.length;
+		while (find_pm (id)) id++;
+		return id;
 		}
 	
 	// attributes
@@ -107,7 +86,5 @@ class PM
 
 		this.timestamp  = time(null);
 			// timestamp is in seconds since 01/01/1970
-
-		this.nb_pms[to]++;
 		}
 	}

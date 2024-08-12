@@ -44,16 +44,8 @@ class User
 	{
 	// some attributes...
 	string		username;
-	string		password;
 	uint		cversion;
 
-	uint		address;
-	ushort		port;
-
-	bool		admin;
-
-	uint		privileges;			// in seconds
-	ulong		last_priv_check;	// privileges length counted from this date
 	uint		speed;				// in B/s
 	uint		upload_number;
 	uint		something;
@@ -63,29 +55,22 @@ class User
 	string		country_code;
 
 	uint		status;				// 0, 1, 2
-	bool		logged_in;
 	ulong		connected_at;		// in seconds
-
-	string[string]	liked_things;
-	string[string]	hated_things;
 
 	Socket		sock;
 	Server		server;
 
-	ubyte[]		in_buf;
-	auto		in_msg_size = -1;
-	ubyte[]		out_buf;
-	auto		msg_size_buf = new OutBuffer();
+	private string		password;
+	private uint		address;
+	private ushort		port;
 
 	// constructors
 	this (Server serv, Socket sock, uint address)
 		{
-		this.server				= serv;
-		this.sock				= sock;
-		this.address			= address;
-		this.logged_in			= false;
-		this.admin				= false;
-		this.connected_at		= time (null);
+		this.server			= serv;
+		this.sock			= sock;
+		this.address		= address;
+		this.connected_at	= time (null);
 		}
 
 	// misc
@@ -101,7 +86,17 @@ class User
 		return privileges > 0 ? print_length(privileges) : "None";
 		}
 
-	void calc_speed (uint new_speed)
+	void send_pm (PM pm, bool new_message)
+		{
+		send_message (
+			new SMessageUser (
+				pm.id, cast(uint) pm.timestamp, pm.from, pm.content,
+				new_message
+			)
+		);
+		}
+
+	private void calc_speed (uint new_speed)
 		{
 		if (upload_number == 0)
 			{
@@ -123,35 +118,28 @@ class User
 		server.db.user_update_field (username, "speed", speed);
 		}
 
-	void set_shared_files (uint new_files)
+	private void set_shared_files (uint new_files)
 		{
 		shared_files = new_files;
 		server.db.user_update_field (username, "files", shared_files);
 		}
 
-	void set_shared_folders (uint new_folders)
+	private void set_shared_folders (uint new_folders)
 		{
 		shared_folders = new_folders;
 		server.db.user_update_field (username, "folders", shared_folders);
 		}
 
-	void send_pm (PM pm, bool new_message)
-		{
-		send_message (
-			new SMessageUser (
-				pm.id, cast(uint) pm.timestamp, pm.from, pm.content,
-				new_message
-			)
-		);
-		}
-
-	void change_password (string new_password)
+	private void change_password (string new_password)
 		{
 		password = new_password;
 		server.db.user_update_field (username, "password", password);
 		}
 
 	// privileges
+	private uint	privileges;			// in seconds
+	private ulong	last_priv_check;	// privileges length counted from this date
+
 	void add_privileges (uint new_privileges)
 		{
 		debug (user) writeln (
@@ -164,7 +152,7 @@ class User
 		send_message (new SCheckPrivileges (privileges));
 		}
 
-	void remove_privileges (uint new_privileges)
+	private void remove_privileges (uint new_privileges)
 		{
 		debug (user) writeln (
 			"Removing ", new_privileges, " seconds of privileges to user ",
@@ -179,7 +167,7 @@ class User
 		send_message (new SCheckPrivileges (privileges));
 		}
 
-	void update_privileges ()
+	private void update_privileges ()
 		{
 		ulong now = time(null);
 		ulong difference = now - last_priv_check;
@@ -192,48 +180,55 @@ class User
 		server.db.user_update_field (username, "privileges", privileges);
 		}
 
-	uint get_privileges ()
-		{
-		update_privileges ();
-		return privileges;
-		}
-
 	// things I like
-	void add_thing_he_likes (string thing)
+	private string[string]	liked_things;
+	private string[string]	hated_things;
+
+	private void add_thing_he_likes (string thing)
 		{
 		if (!likes (thing)) liked_things[thing] = thing;
 		}
 
-	void del_thing_he_likes (string thing)
+	private void del_thing_he_likes (string thing)
 		{
 		if (likes (thing)) liked_things.remove (thing);
 		}
 
-	void add_thing_he_hates (string thing)
+	private void add_thing_he_hates (string thing)
 		{
 		if (!hates (thing)) hated_things[thing] = thing;
 		}
 
-	void del_thing_he_hates (string thing)
+	private void del_thing_he_hates (string thing)
 		{
 		if (hates (thing)) hated_things.remove (thing);
 		}
 
-	bool likes (string thing)
+	private bool likes (string thing)
 		{
-		return (!(!(thing in liked_things)));
+		return thing in liked_things ? true : false;
 		}
 
-	bool hates (string thing)
+	private bool hates (string thing)
 		{
-		return (!(!(thing in hated_things)));
+		return thing in hated_things ? true : false;
 		}
 
-	uint[string] get_recommendations ()
+	private uint[string] global_recommendations ()
+		{
+		uint[string] list;
+
+		foreach (User user ; server.users)
+			foreach (thing ; user.liked_things) list[thing]++;
+
+		return list;
+		}
+
+	private uint[string] recommendations ()
 		{
 		uint[string] recommendations;
 
-		foreach (user ; server.users ())
+		foreach (user ; server.users)
 			{
 			if (user is this) continue;
 
@@ -255,11 +250,11 @@ class User
 		return recommendations;
 		}
 
-	uint[string] get_similar_users ()
+	private uint[string] similar_users ()
 		{
 		uint[string] users;
 
-		foreach (user ; server.users ())
+		foreach (user ; server.users)
 			{
 			if (user is this) continue;
 
@@ -280,11 +275,11 @@ class User
 		return users;
 		}
 
-	uint[string] get_item_recommendations (string item)
+	private uint[string] get_item_recommendations (string item)
 		{
 		uint[string] list;
 
-		foreach (user ; server.users ())
+		foreach (user ; server.users)
 			{
 			if (user is this) continue;
 
@@ -298,11 +293,11 @@ class User
 		return list;
 		}
 
-	string[] get_item_similar_users (string item)
+	private string[] get_item_similar_users (string item)
 		{
 		string[] list;
 
-		foreach (user ; server.users ())
+		foreach (user ; server.users)
 			{
 			if (user is this) continue;
 			if (user.likes (item)) list ~= user.username;
@@ -311,103 +306,92 @@ class User
 		return list;
 		}
 
-	// watching
-	string list_watching ()
-		{
-		string list;
-		foreach (user ; watching ()) list ~= user.username ~ " ";
-		return list;
-		}
-
-	string list_watched_by ()
-		{
-		string list;
-		foreach (user ; watched_by ()) list ~= user.username ~ " ";
-		return list;
-		}
-
-	void send_to_watching (Message m)
-		{
-		debug (msg) write (
-			"Sending message code ", blue, message_name[m.code], black,
-			" (", m.code, ") to "
-		);
-		if (watched_by().length == 0)
-			{
-			debug (msg) write ("nobody");
-			}
-		else foreach (user ; watched_by ())
-			{
-			debug (msg) writeln (user.username);
-			user.send_message (m);
-			}
-		debug (msg) writeln ();
-		}
-
-	void set_status (uint new_status)
-		{
-		status = new_status;
-		if (status == Status.offline) logged_in = false;
-		send_to_watching (
-			new SGetUserStatus (username, new_status, privileges > 0)
-		);
-		}
-
 	// watchlist, etc
-	string[string] watch_list;	// watch_list[username] = username
+	private string[string] watch_list;	// watch_list[username] = username
 
-	void watch (string username)
+	private void watch (string username)
 		{
 		watch_list[username] = username;
 		}
 
-	void unwatch (string username)
+	private void unwatch (string username)
 		{
 		if (username !in watch_list) return;
 		watch_list.remove (username);
 		}
 
-	User[] watched_by ()
+	private User[] watched_by ()
 		{
 		User[] list;
-		foreach (user ; server.users ())
-			if (user !is this && username in user.watching ()) list ~= user;
+		foreach (user ; server.users)
+			if (user !is this && username in user.watching) list ~= user;
 
 		return list;
 		}
 
-	User[string] watching ()
+	private User[string] watching ()
 		{
 		User[string] list;
+
 		foreach (username ; watch_list)
 			{
 			auto user = server.get_user (username);
 			if (user) list[username] = user;
 			}
+
 		foreach (room_name, room ; joined_rooms)
-			{
-			foreach (User user ; room.users ())
-				{
-				list[user.username] = user;
-				}
-			}
+			foreach (User user ; room.users) list[user.username] = user;
+
 		return list;
 		}
 
+	private void send_to_watching (Message msg)
+		{
+		debug (msg) write (
+			"Sending message code ", blue, message_name[msg.code], black,
+			" (", msg.code, ") to "
+		);
+		foreach (user ; watched_by)
+			{
+			debug (msg) writeln (user.username);
+			user.send_message (msg);
+			}
+		debug (msg) writeln ();
+		}
+
+	private void set_status (uint new_status)
+		{
+		status = new_status;
+		send_to_watching (
+			new SGetUserStatus (username, new_status, privileges > 0)
+		);
+		}
+
 	// rooms, etc
-	Room[string] joined_rooms;
+	private Room[string] joined_rooms;
 
 	void join_room (Room room)
 		{
 		joined_rooms[room.name] = room;
 		}
 
-	 void leave_room (string room_name)
+	void leave_room (Room room)
 		{
-		if (room_name in joined_rooms) joined_rooms.remove (room_name);
+		if (room.name !in joined_rooms) return;
+		joined_rooms.remove (room.name);
 		}
 
 	// messages
+	private ubyte[]		in_buf;
+	private auto		in_msg_size = -1;
+	private ubyte[]		out_buf;
+	private auto		msg_size_buf = new OutBuffer();
+
+	bool is_sending ()
+		{
+		return out_buf.length > 0;
+		}
+
 	bool send_buffer ()
 		{
 		auto send_len = sock.send (out_buf);
@@ -416,11 +400,11 @@ class User
 		return true;
 		}
 
-	void send_message (Message m)
+	void send_message (Message msg)
 		{
-		auto msg_buf = m.toBytes ();
+		auto msg_buf = msg.toBytes;
 		msg_size_buf.write(cast(uint) msg_buf.length);
-		out_buf ~= msg_size_buf.toBytes ();
+		out_buf ~= msg_size_buf.toBytes;
 		out_buf ~= msg_buf;
 		msg_size_buf.clear ();
 
@@ -428,8 +412,8 @@ class User
 			"Sent ", out_buf.length, " bytes to user " ~ blue, username, black
 		);
 		debug (msg) writeln (
-			"Sending message code ", blue, message_name[m.code], black,
-			" (", m.code, ") to ", username
+			"Sending message code ", blue, message_name[msg.code], black,
+			" (", msg.code, ") to ", username
 		);
 		}
 
@@ -451,7 +435,7 @@ class User
 		return true;
 		}
 
-	bool recv_message ()
+	private bool recv_message ()
 		{
 		if (in_msg_size == -1)
 			{
@@ -462,7 +446,7 @@ class User
 		return in_buf.length >= in_msg_size;
 		}
 
-	bool proc_message ()
+	private bool proc_message ()
 		{
 		auto msg_buf = in_buf[0 .. in_msg_size];
 		auto code = msg_buf.read!(uint, Endian.littleEndian);
@@ -475,8 +459,8 @@ class User
 			blue, code, black ~ ")"
 		);
 
-		if (!logged_in && code != Login) return false;
-		if (logged_in  && code == Login) return true;
+		if (status == Status.offline && code != Login) return false;
+		if (status != Status.offline && code == Login) return true;
 
 		switch (code)
 			{
@@ -494,7 +478,7 @@ class User
 
 				auto user = server.get_user (msg.name);
 
-				if (user && user.logged_in)
+				if (user && user.status != Status.offline)
 					{
 					writeln (msg.name, ": Already logged in");
 					user.send_message (new SRelogged ());
@@ -604,7 +588,7 @@ class User
 				if (!room) break;
 
 				room.say (username, msg.message);
-				foreach (global_username ; Room.get_global_room_users ())
+				foreach (global_username ; Room.global_room_users)
 					{
 					auto user = server.get_user (global_username);
 					user.send_message (
@@ -627,7 +611,6 @@ class User
 				if (!room) break;
 
 				room.leave (this);
-				leave_room (msg.room);
 				send_message (new SLeaveRoom (msg.room));
 				break;
 
@@ -639,7 +622,7 @@ class User
 
 				debug (user) writeln (
 					username, " cannot connect to ", msg.user, "/",
-					ia.toString(), ", asking us to tell the other..."
+					ia, ", asking us to tell the other..."
 				);
 				user.send_message (
 					new SConnectToPeer (
@@ -653,7 +636,7 @@ class User
 				auto msg = new UMessageUser (msg_buf);
 				auto user = server.get_user (msg.user);
 
-				if (admin && msg.user == server_user)
+				if (msg.user == server_user && server.is_admin(username))
 					{
 					server.admin_message (this, msg.message);
 					}
@@ -750,25 +733,25 @@ class User
 				break;
 
 			case GetRecommendations:
-				auto recommendations = get_recommendations ();
 				send_message (new SGetRecommendations (recommendations));
 				break;
 
 			case GlobalRecommendations:
-				auto recommendations = server.global_recommendations ();
-				send_message (new SGetGlobalRecommendations (recommendations));
+				send_message (
+					new SGetGlobalRecommendations (global_recommendations)
+				);
 				break;
 
 			case SimilarUsers:
-				auto users = get_similar_users ();
-				send_message (new SSimilarUsers (users));
+				send_message (new SSimilarUsers (similar_users));
 				break;
 
 			case UserInterests:
 				auto msg = new UUserInterests (msg_buf);
 				auto user = server.get_user (msg.user);
+				if (!user) break;
 
-				if (user) send_message (
+				send_message (
 					new SUserInterests (
 						user.username, user.liked_things, user.hated_things
 					)
@@ -776,20 +759,19 @@ class User
 				break;
 
 			case RoomList:
-				auto room_list = Room.room_stats ();
-				send_message (new SRoomList (room_list));
+				send_message (new SRoomList (Room.room_stats));
 				break;
 
 			case AdminMessage:
-				if (!admin) break;
+				if (!server.is_admin(username)) break;
 				auto msg = new UAdminMessage (msg_buf);
 
-				foreach (User user ; server.users ())
+				foreach (User user ; server.users)
 					user.send_message (new SAdminMessage (msg.mesg));
 				break;
 
 			case CheckPrivileges:
-				auto privileges = get_privileges ();
+				update_privileges ();
 				send_message (new SCheckPrivileges (privileges));
 				break;
 
@@ -838,7 +820,9 @@ class User
 			case UserPrivileged:
 				auto msg = new UUserPrivileged (msg_buf);
 				auto user = server.get_user (msg.user);
-				if (user) send_message (
+				if (!user) break;
+
+				send_message (
 					new SUserPrivileged (user.username, user.privileges > 0)
 				);
 				break;
@@ -846,6 +830,7 @@ class User
 			case GivePrivileges:
 				auto msg = new UGivePrivileges (msg_buf);
 				auto user = server.get_user (msg.user);
+				auto admin = server.is_admin (msg.user);
 				if (!user) break;
 				if (msg.time > privileges && !admin) break;
 
@@ -885,7 +870,9 @@ class User
 			case CantConnectToPeer:
 				auto msg = new UCantConnectToPeer (msg_buf);
 				auto user = server.get_user (msg.user);
-				if (user) user.send_message (
+				if (!user) break;
+
+				user.send_message (
 					new SCantConnectToPeer (msg.token)
 				);
 				break;
@@ -905,20 +892,11 @@ class User
 		return true;
 		}
 
-	bool login (ULogin msg)
+	private bool login (ULogin msg)
 		{
-		auto message = server.get_motd (msg.name, msg.vers);
-		auto supporter = get_privileges () > 0;
-		auto wishlist_interval = supporter ? 120 : 720;  // in seconds
-
 		username = msg.name;
 		password = msg.pass;
 		cversion = msg.vers;
-		logged_in = true;
-
-		send_message (
-			new SLogin (true, message, address, password, supporter)
-		);
 
 		if (!server.db.get_user (
 			username, password, speed, upload_number,
@@ -926,12 +904,20 @@ class User
 		)
 			throw new Exception ("User " ~ username ~ " does not exist.");
 
-		if (username in server.admins) admin = true;
-		if (admin) writeln (username, " is an admin.");
+		auto motd = server.get_motd (username, cversion);
+		auto supporter = privileges > 0;
+
+		send_message (
+			new SLogin (true, motd, address, password, supporter)
+		);
+
+		if (server.is_admin (username)) writeln (username, " is an admin.");
 		server.add_user (this);
 
-		send_message (new SRoomList (Room.room_stats ()));
-		send_message (new SWishlistInterval (wishlist_interval));
+		send_message (new SRoomList (Room.room_stats));
+		send_message (
+			new SWishlistInterval (supporter ? 120 : 720)  // in seconds
+		);
 		set_status (Status.online);
 
 		foreach (pm ; PM.get_pms_for (username))

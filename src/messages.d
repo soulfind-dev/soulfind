@@ -51,27 +51,27 @@ class Message
 		writei (code);
 		}
 
-	void writei (uint i)
+	private void writei (uint i)
 		{
 		out_buf.write (i);
 		}
 
-	void writei (ulong i)
+	private void writei (ulong i)
 		{
 		out_buf.write (cast(uint) i);
 		}
 
-	void writesi (int i)
+	private void writesi (int i)
 		{
 		out_buf.write (i);
 		}
 		
-	void writeb (bool b)
+	private void writeb (bool b)
 		{
 		out_buf.write (cast(ubyte) b);
 		}
 	
-	void writes (string s)
+	private void writes (string s)
 		{
 		debug (msg) writeln (
 			"Sending string '", s, "', length ", s.length
@@ -88,7 +88,7 @@ class Message
 		this.in_buf = in_buf;
 		}
 
-	uint readi ()
+	private uint readi ()
 		{ // read an int
 		uint i;
 		if (in_buf.length < uint.sizeof)
@@ -104,7 +104,7 @@ class Message
 		return i;
 		}
 
-	uint readsi ()
+	private uint readsi ()
 		{ // read a signed int
 		int i;
 		if (in_buf.length < int.sizeof)
@@ -120,7 +120,7 @@ class Message
 		return i;
 		}
 	
-	bool readb ()
+	private bool readb ()
 		{ // read a bool
 		bool i;
 		if (in_buf.length < bool.sizeof)
@@ -136,7 +136,7 @@ class Message
 		return i;
 		}
 	
-	string reads ()
+	private string reads ()
 		{ // read a string
 		auto slen = readi ();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;

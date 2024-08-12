@@ -48,7 +48,7 @@ private import std.process : thisProcessID;
 private import core.sys.posix.unistd : fork;
 
 
-void help (string[] args)
+private void help (string[] args)
 	{
 	writeln ("Usage: ", args[0], " [database_file] [-d|--daemon]");
 	writeln (
@@ -58,7 +58,7 @@ void help (string[] args)
 	writeln ("\t-d, --daemon : fork in the background");
 	}
 
-int main (string[] args)
+private int main (string[] args)
 	{
 	bool daemon;
 	string db = default_db_file;
@@ -91,21 +91,21 @@ int main (string[] args)
 
 class Server
 	{
-	ushort			port;
-	uint			max_users;
-	string			motd;
+	Sdb						db; 						// users database
 
-	ulong			started_at;					// for server uptime
+	private ushort			port;
+	private uint			max_users;
+	private string			motd;
 
-	Sdb				db; 						// users database
+	private ulong			started_at;					// for server uptime
 
-	Socket			sock;
-	User[Socket]	user_socks;
-	auto			keepalive_time = 60;
-	auto			keepalive_interval = 5;
-	Duration		select_timeout = dur!"minutes"(2);
+	private Socket			sock;
+	private User[Socket]	user_socks;
+	private auto			keepalive_time = 60;
+	private auto			keepalive_interval = 5;
+	private Duration		select_timeout = dur!"minutes"(2);
 
-	this (string db_file)
+	private this (string db_file)
 		{
 		started_at = time(null);
 		db = new Sdb (db_file);
@@ -113,7 +113,7 @@ class Server
 		config ();
 		}
 
-	int listen ()
+	private int listen ()
 		{
 		sock = new TcpSocket ();
 		sock.blocking = false;
@@ -151,10 +151,12 @@ class Server
 			foreach (user_sock, user ; user_socks)
 				{
 				read_socks.add (user_sock);
-				if (user.out_buf.length > 0) write_socks.add (user_sock);
+				if (user.is_sending) write_socks.add (user_sock);
 				}
 
-			auto nb = Socket.select (read_socks, write_socks, null, select_timeout);
+			auto nb = Socket.select (
+				read_socks, write_socks, null, select_timeout
+			);
 
 			if (read_socks.isSet (sock))
 				{
@@ -164,27 +166,21 @@ class Server
 					try {new_sock = sock.accept ();}
 					catch (SocketAcceptException) {break;}
 					new_sock.setKeepAlive (keepalive_time, keepalive_interval);
-					new_sock.setOption (SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1);
+					new_sock.setOption (
+						SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
+					);
 					new_sock.blocking = false;
 
 					debug (user)
 						{
-						try
-							{
-							writeln (
-								"Connection accepted from ",
-								new_sock.remoteAddress().toString()
-							);
-							}
-						catch (Exception e)
-							{
-							writeln ("?");
-							}
+						writeln (
+							"Connection accepted from ", new_sock.remoteAddress
+						);
 						}
 
 					auto user = new User (
 						this, new_sock,
-						(cast (InternetAddress) new_sock.remoteAddress()).addr()
+						(cast (InternetAddress) new_sock.remoteAddress).addr
 					);
 					user_socks[new_sock] = user;
 					}
@@ -256,29 +252,14 @@ class Server
 	// Users
 	private User[string] user_list;
 
-	ulong nb_users ()
+	void add_user (User user)
 		{
-		return user_list.length;
-		}
-
-	string[] user_names ()
-		{
-		return user_list.keys;
-		}
-
-	User[] users ()
-		{
-		return user_list.values;
+		user_list[user.username] = user;
 		}
 
 	bool find_user (User user)
 		{
-		return find_user (user.username);
-		}
-
-	bool find_user (string username)
-		{
-		return (username in user_list) ? true : false;
+		return (user.username in user_list) ? true : false;
 		}
 
 	User get_user (string username)
@@ -287,24 +268,29 @@ class Server
 		return null;
 		}
 
-	void add_user (User user)
+	User[] users ()
 		{
-		user_list[user.username] = user;
+		return user_list.values;
 		}
 
-	void del_user (User user)
+	private void del_user (User user)
 		{
 		if (user.sock in user_socks) user_socks.remove (user.sock);
 		if (user.username in user_list) user_list.remove (user.username);
 		}
 
-	void send_to_all (Message msg)
+	private ulong nb_users ()
+		{
+		return user_list.length;
+		}
+
+	private void send_to_all (Message msg)
 		{
 		debug (msg) write(
 			"Sending message (", blue,  message_name[msg.code], black,
 			" - code ", blue, msg.code, black, ") to all users"
 		);
-		foreach (user ; users ())
+		foreach (user ; users)
 			{
 			debug (msg) write (".");
 			user.send_message (msg);
@@ -312,34 +298,8 @@ class Server
 		debug (msg) writeln ();
 		}
 
-	// recommendations
-	uint[string] global_recommendations ()
-		{
-		uint[string] list;
-
-		foreach (User user ; users ())
-			foreach (string thing ; user.liked_things) list[thing]++;
-
-		return list;
-		}
-
 	// admin
-	string[string]	admins;
-
-	void del_admin (string name)
-		{
-		if (name in admins) admins.remove (name);
-		db.del_admin (name);
-		}
-
-	void add_admin (string name)
-		{
-		auto user = get_user (name);
-		admins[name] = name;
-		db.add_admin (name);
-
-		if (user) user.admin = true;
-		}
+	private string[string]	admins;
 
 	void admin_message (User admin, string message)
 		{
@@ -403,7 +363,7 @@ class Server
 				break;
 
 			case "nbusers":
-				auto num_users = nb_users ();
+				auto num_users = nb_users;
 				admin_pm (admin, format ("%d connected users.", num_users));
 				break;
 
@@ -492,12 +452,14 @@ class Server
 				foreach (admin_name ; admins) list ~= admin_name ~ " ";
 				admin_pm (admin, list);
 				break;
+
 			case "rooms":
 				string list;
-				foreach (room ; Room.rooms ())
-					list ~= format ("%s:%d ", room.name, room.nb_users ());
+				foreach (room ; Room.rooms)
+					list ~= format ("%s:%d ", room.name, room.nb_users);
 				admin_pm (admin, list);
 				break;
+
 			case "message":
 				if (command.length < 2)
 					{
@@ -507,13 +469,16 @@ class Server
 				auto msg = join (command[1 .. $], " ");
 				global_message (msg);
 				break;
+
 			case "uptime":
-				admin_pm (admin, print_length (uptime ()));
+				admin_pm (admin, print_length (uptime));
 				break;
+
 			case "reload":
 				config (true);
 				admin_pm (admin, "Configuration and admins list reloaded");
 				break;
+
 			default:
 				admin_pm (
 					admin,
@@ -524,14 +489,31 @@ class Server
 			}
 		}
 
-	void admin_pm (User admin, string message)
+	bool is_admin (string name)
+		{
+			return name in admins ? true : false;
+		}
+
+	private void add_admin (string name)
+		{
+		admins[name] = name;
+		db.add_admin (name);
+		}
+
+	private void del_admin (string name)
+		{
+		if (name in admins) admins.remove (name);
+		db.del_admin (name);
+		}
+
+	private void admin_pm (User admin, string message)
 		{
 		PM pm = new PM (message, server_user, admin.username);
 		bool new_message = true;
 		admin.send_pm (pm, new_message);
 		}
 
-	void global_message (string message)
+	private void global_message (string message)
 		{
 		foreach (User user ; user_list)
 			{
@@ -539,14 +521,14 @@ class Server
 			}
 		}
 
-	string show_users ()
+	private string show_users ()
 		{
 		string s;
-		foreach (username ; user_names ()) s ~= show_user (username) ~ "\n";
+		foreach (username ; user_list.keys) s ~= show_user (username) ~ "\n";
 		return s;
 		}
 
-	string show_user (string username)
+	private string show_user (string username)
 		{
 		auto user = get_user (username);
 		if (!user) return "";
@@ -559,30 +541,30 @@ class Server
 					~ "\n\tstatus: %s"
 					~ "\n\tprivileges: %s"
 					~ "\n\tjoined rooms: %s",
-						user.username,
+						username,
 						user.connected_at,
 						user.cversion,
-						user.sock.remoteAddress().toString(),
-						user.admin,
+						user.sock.remoteAddress,
+						is_admin (username),
 						user.shared_files,
 						user.shared_folders,
 						user.status,
-						user.print_privileges (),
-						user.list_joined_rooms ());
+						user.print_privileges,
+						user.list_joined_rooms);
 		}
 
-	void kill_all_users ()
+	private void kill_all_users ()
 		{
 		foreach (user ; user_list) user.exit ();
 		}
 
-	void kill_user (string username)
+	private void kill_user (string username)
 		{
 		auto user = get_user (username);
 		if (user) user.exit ();
 		}
 
-	void ban_user (string username)
+	private void ban_user (string username)
 		{
 		if (!db.user_exists (username)) return;
 
@@ -590,7 +572,7 @@ class Server
 		get_user (username).exit ();
 		}
 
-	void unban_user (string username)
+	private void unban_user (string username)
 		{
 		if (!db.user_exists (username)) return;
 		db.user_update_field (username, "banned", 0);
@@ -606,7 +588,7 @@ class Server
 		return ret;
 		}
 
-	void config (bool reload = false)
+	private void config (bool reload = false)
 		{
 		motd = db.conf_get_str ("motd");
 		if (!reload)
@@ -621,18 +603,17 @@ class Server
 			}
 		}
 
-	ulong uptime ()
+	private ulong uptime ()
 		{
 		return time(null) - started_at;
 		}
 
-	string print_uptime ()
+	private string print_uptime ()
 		{
 		return print_length (uptime);
 		}
 
-
-	string encode_password (string pass)
+	private string encode_password (string pass)
 		{
 		ubyte[16] digest = md5Of(pass);
 		string s;
