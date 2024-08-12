@@ -3,12 +3,12 @@ module db;
 
 import defines;
 
-private import std.string : format, join, split, replace, toStringz;
-private import std.stdio : writeln, write;
-private import std.file : exists, isFile, getAttributes;
-private import std.conv : to, octal, ConvException;
+import std.string : format, join, split, replace, toStringz;
+import std.stdio : writeln, write;
+import std.file : exists, isFile, getAttributes;
+import std.conv : to, octal, ConvException;
 
-private import etc.c.sqlite3;
+import etc.c.sqlite3;
 
 class Sdb
 {

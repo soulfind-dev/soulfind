@@ -24,13 +24,13 @@ module setup;
 
 import defines;
 
-private import db;
+import db;
 
-private import std.algorithm : sort;
-private import std.conv : to;
-private import std.format : format;
-private import std.stdio : readf, readln, write, writeln;
-private import std.string : chomp, strip;
+import std.algorithm : sort;
+import std.conv : to;
+import std.format : format;
+import std.stdio : readf, readln, write, writeln;
+import std.string : chomp, strip;
 
 Sdb sdb;
 

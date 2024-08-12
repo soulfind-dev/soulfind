@@ -24,28 +24,28 @@ module server;
 
 import defines;
 
-private import client;
-private import messages, message_codes;
-private import db;
-private import room;
-private import pm;
+import client;
+import messages, message_codes;
+import db;
+import room;
+import pm;
 
-private import std.stdio : write, writeln;
-private import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel,
+import std.stdio : write, writeln;
+import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel,
 							SocketSet, InternetAddress, SocketAcceptException,
 							SocketShutdown;
-private import std.conv : to;
-private import std.array : split, join, replace;
-private import core.stdc.time : time;
-private import std.utf : validate, UTFException;
-private import std.format : format;
-private import std.algorithm : canFind;
-private import std.datetime : Duration, dur;
-private import std.digest.md : md5Of;
-private import std.string : strip;
-private import std.process : thisProcessID;
+import std.conv : to;
+import std.array : split, join, replace;
+import core.stdc.time : time;
+import std.utf : validate, UTFException;
+import std.format : format;
+import std.algorithm : canFind;
+import std.datetime : Duration, dur;
+import std.digest.md : md5Of;
+import std.string : strip;
+import std.process : thisProcessID;
 
-private import core.sys.posix.unistd : fork;
+import core.sys.posix.unistd : fork;
 
 
 private void help(string[] args)

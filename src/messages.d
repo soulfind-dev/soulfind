@@ -24,15 +24,15 @@ module messages;
 
 import defines;
 
-private import std.bitmanip;
-private import std.conv : to;
-private import std.digest : digest, LetterCase, toHexString;
-private import std.digest.md : MD5;
-private import std.format : format;
-private import std.outbuffer : OutBuffer;
-private import std.stdio : writeln;
+import std.bitmanip;
+import std.conv : to;
+import std.digest : digest, LetterCase, toHexString;
+import std.digest.md : MD5;
+import std.format : format;
+import std.outbuffer : OutBuffer;
+import std.stdio : writeln;
 
-private import message_codes;
+import message_codes;
 
 class Message
 {	// Server message
