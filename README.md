@@ -1,8 +1,9 @@
 # Soulfind
 
-Soulseek server software written in D
+Soulseek server implementation in D
 
-Note that Soulfind exists for testing, and should not be used in production.
+Note that Soulfind exists for local testing, and should not be used in
+production.
 
 
 ## Building
