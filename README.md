@@ -52,7 +52,7 @@ have to be an admin already to add an admin when connected to the server
 (though Soulfind runs fine without any admin).
 
 
-## Missing Featurs
+## Missing Features
 
  - Private rooms
  - Distributed search network
