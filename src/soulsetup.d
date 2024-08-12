@@ -36,28 +36,23 @@ Sdb sdb;
 
 void main (string[] args)
 	{
-	string db_file;
+	string db_file = default_db_file;
 	
 	if (args.length > 1)
 		{
 		if (args[1] == "--help" || args[1] == "-h")
 			{
 			writeln ("Usage: ", args[0], " [database_file]");
-			writeln ("\tdatabase_file: path to Soulfind's database (default: ", default_db_file, ")");
+			writeln (
+				"\tdatabase_file: path to Soulfind's database "
+				~ "(default: ", default_db_file, ")"
+			);
 			return;
 			}
-		else
-			{
-			db_file = args[1];
-			}
-		}
-	else
-		{
-		db_file = default_db_file;
+		db_file = args[1];
 		}
 
 	sdb = new Sdb (db_file);
-
 	main_menu ();
 	return;
 	}
@@ -70,17 +65,17 @@ string input ()
 
 void main_menu ()
 	{
-	auto m = new Menu ("Soulfind " ~ VERSION ~ " configuration");
+	auto menu = new Menu ("Soulfind " ~ VERSION ~ " configuration");
 	
-	m.add ("0", "Admins",            &admins);
-	m.add ("1", "Listen port",       &listen_port);
-	m.add ("2", "Max users allowed", &max_users);
-	m.add ("3", "MOTD",              &motd);
-	m.add ("4", "Banned users",      &banned_users);
-	m.add ("i", "Server info.",      &info);
-	m.add ("q", "Exit",              &exit);
+	menu.add ("0", "Admins",            &admins);
+	menu.add ("1", "Listen port",       &listen_port);
+	menu.add ("2", "Max users allowed", &max_users);
+	menu.add ("3", "MOTD",              &motd);
+	menu.add ("4", "Banned users",      &banned_users);
+	menu.add ("i", "Server info.",      &info);
+	menu.add ("q", "Exit",              &exit);
 	
-	m.show ();
+	menu.show ();
 	}
 
 void exit ()
@@ -90,29 +85,27 @@ void exit ()
 
 void admins ()
 	{
-	auto m = new Menu ("Admins");
+	auto menu = new Menu ("Admins");
 	
-	m.add ("1", "Add an admin",    &add_admin);
-	m.add ("2", "Remove an admin", &del_admin);
-	m.add ("3", "List admins",     &list_admins);
-	m.add ("q", "Return",          &main_menu);
+	menu.add ("1", "Add an admin",    &add_admin);
+	menu.add ("2", "Remove an admin", &del_admin);
+	menu.add ("3", "List admins",     &list_admins);
+	menu.add ("q", "Return",          &main_menu);
 
-	m.show ();
+	menu.show ();
 	}
 
 void add_admin ()
 	{
 	write ("Admin to add : ");
-	auto admin = input.strip;
-	sdb.add_admin (admin);
+	sdb.add_admin (input.strip);
 	admins ();
 	}
 
 void del_admin ()
 	{
 	write ("Admin to remove : ");
-	auto admin = input.strip;
-	sdb.del_admin (admin);
+	sdb.del_admin (input.strip);
 	admins ();
 	}
 
@@ -123,99 +116,84 @@ void list_admins ()
 	if (names.length == 0)
 		{
 		writeln ("No admin on this server.");
+		admins ();
+		return;
 		}
-	else
-		{
-		writeln ("\nAdmins :");
-		foreach (admin ; names)
-			{
-			writeln (format ("- %s", admin));
-			}
-		}
-	
+
+	writeln ("\nAdmins :");
+	foreach (admin ; names) writeln (format ("- %s", admin));
+
 	admins ();
 	}
 	
 
 void listen_port ()
 	{
-	auto m = new Menu (format ("Listen port : %d", sdb.conf_get_int ("port")));
+	auto menu = new Menu (
+		format ("Listen port : %d", sdb.conf_get_int ("port"))
+	);
+	menu.add ("1", "Change listen port", &set_listen_port);
+	menu.add ("q", "Return",             &main_menu);
 
-	m.add ("1", "Change listen port", &set_listen_port);
-	m.add ("q", "Return",             &main_menu);
-
-	m.show ();
+	menu.show ();
 	}
 
 void set_listen_port ()
 	{
 	write ("New listen port : ");
-	auto port = input.strip;
-	sdb.conf_set_field ("port", port);
+	sdb.conf_set_field ("port", input.strip);
 	listen_port ();
 	}
 
 void max_users ()
 	{
-	auto m = new Menu (format ("Max users allowed : %d", sdb.conf_get_int ("max_users")));
+	auto menu = new Menu (
+		format ("Max users allowed : %d",
+			sdb.conf_get_int ("max_users"))
+	);
+	menu.add ("1", "Change max users", &set_max_users);
+	menu.add ("q", "Return",           &main_menu);
 
-	m.add ("1", "Change max users", &set_max_users);
-	m.add ("q", "Return",           &main_menu);
-
-	m.show ();
+	menu.show ();
 	}
 
 void set_max_users ()
 	{
 	write ("Max users : ");
-	auto max_num_users = input.strip;
-	sdb.conf_set_field ("max_users", max_num_users);
+	sdb.conf_set_field ("max_users", input.strip);
 	max_users ();
 	}
 
 void motd ()
 	{
-	auto m = new Menu (format ("Current message of the day :\n--\n%s\n--\n", sdb.conf_get_str ("motd")));
+	auto menu = new Menu (
+		format ("Current message of the day :\n--\n%s\n--\n",
+			sdb.conf_get_str ("motd"))
+	);
+	menu.add ("1", "Change MOTD", &set_motd);
+	menu.add ("q", "Return",      &main_menu);
 
-	m.add ("1", "Change MOTD", &set_motd);
-	m.add ("q", "Return",      &main_menu);
-
-	m.show ();
+	menu.show ();
 	}
 
 void set_motd ()
 	{
-	writeln ("You can use the following variables :\n"
-	        ~ "%version%     : server version (", VERSION, ")\n"
-	        ~ "%nbusers%     : number of users already connected\n"
-	        ~ "%username%    : name of the connecting user\n"
-	        ~ "%userversion% : version of the user's client software\n"
-	        ~ "New MOTD (end with a dot on a single line) :");
+	writeln (
+		"You can use the following variables :\n"
+		~ "%version%     : server version (", VERSION, ")\n"
+		~ "%nbusers%     : number of users already connected\n"
+		~ "%username%    : name of the connecting user\n"
+		~ "%userversion% : version of the user's client software\n"
+		~ "New MOTD (end with a dot on a single line) :"
+	);
 
 	string MOTD;
 
 	do
 		{
-		string line;
-		try
-			{
-			line = input.chomp;
-			}
-		catch (Exception e)
-			{ // hopefully an EOF
-			break;
-			}
-
-		if (strip (line) == ".")
-			{
-			break;
-			}
-
-		if (MOTD.length > 0)
-			{
-			MOTD ~= "\n";
-			}
-
+		auto line = input.chomp;
+		if (strip (line) == ".") break;
+		if (MOTD.length > 0) MOTD ~= "\n";
 		MOTD ~= line;
 		}
 	while (true);
@@ -226,41 +204,41 @@ void set_motd ()
 
 void info ()
 	{
-	auto m = new Menu ("Misc. information :");
+	auto menu = new Menu ("Misc. information :");
 
-	m.info  = format ("Soulsetup for Soulfind %s, compiled on %s\n", VERSION, __DATE__);
-	m.info ~= format ("%d registered users", sdb.nb_users ());
+	menu.info  = format (
+		"Soulsetup for Soulfind %s, compiled on %s\n",
+		VERSION, __DATE__
+	);
+	menu.info ~= format ("%d registered users", sdb.nb_users ());
+	menu.add ("q", "Return", &main_menu);
 
-	m.add ("q", "Return", &main_menu);
-
-	m.show ();
+	menu.show ();
 	}
 
 void banned_users ()
 	{
-	auto m = new Menu ("Banned users");
+	auto menu = new Menu ("Banned users");
 	
-	m.add ("1", "Ban an user",       &ban_user);
-	m.add ("2", "Unban an user",     &unban_user);
-	m.add ("3", "List banned users", &list_banned);
-	m.add ("q", "Return",            &main_menu);
+	menu.add ("1", "Ban an user",       &ban_user);
+	menu.add ("2", "Unban an user",     &unban_user);
+	menu.add ("3", "List banned users", &list_banned);
+	menu.add ("q", "Return",            &main_menu);
 
-	m.show ();
+	menu.show ();
 	}
 
 void ban_user ()
 	{
 	write ("User to ban : ");
-	auto user = input.strip;
-	sdb.user_update_field (user, "banned", 1);
+	sdb.user_update_field (input.strip, "banned", 1);
 	banned_users ();
 	}
 
 void unban_user ()
 	{
 	write ("User to unban : ");
-	auto user = input.strip;
-	sdb.user_update_field (user, "banned", 0);
+	sdb.user_update_field (input.strip, "banned", 0);
 	banned_users ();
 	}
 
@@ -271,16 +249,13 @@ void list_banned ()
 	if (users.length == 0)
 		{
 		writeln ("No user is banned.");
+		banned_users ();
+		return;
 		}
-	else
-		{
-		writeln ("\nBanned users :");
-		foreach (user ; users)
-			{
-			writeln (format ("- %s", user));
-			}
-		}
-	
+
+	writeln ("\nBanned users :");
+	foreach (user ; users) writeln (format ("- %s", user));
+
 	banned_users ();
 	}
 
@@ -305,26 +280,24 @@ class Menu
 	void show ()
 		{
 		writeln (format( "\n%s\n", title));
-
 		if (info.length > 0) writeln (format ("%s\n", info));
 		
 		foreach (index ; sort(entries.keys))
-			{
 			writeln (format ("%s. %s", index, entries[index]));
-			}
 
 		write ("\nYour choice : ");
+		auto choice = input.strip;
 
-		auto answer = input.strip;
-
-		if (answer in actions)
+		if (choice !in actions)
 			{
-			actions[answer] ();
-			}
-		else
-			{
-			writeln ("Next time, try a number which has an action assigned to it...");
+			writeln (
+				"Next time, try a number which has an action "
+				~ "assigned to it..."
+			);
 			show ();
+			return;
 			}
+
+		actions[choice] ();
 		}
 	}
