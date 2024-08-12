@@ -24,11 +24,11 @@ module message_codes;
 
 // Constants
 const enum Status
-	{
+{
 	offline = 0,
 	away    = 1,
 	online  = 2
-	}
+}
 
 // Server Messages
 const uint Login			= 1;

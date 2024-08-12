@@ -24,48 +24,50 @@ module pm;
 
 import defines;
 
-private import core.stdc.time : time;
+import core.stdc.time : time;
 
 class PM
-	{
+{
 	// static
 	private static PM[uint] pm_list;
 
-	static void add_pm (PM pm)
-		{
+	static void add_pm(PM pm)
+	{
 		pm_list[pm.id] = pm;
-		}
+	}
 
-	static void del_pm (uint id)
-		{
-		if (!find_pm (id)) return;
-		pm_list.remove (id);
-		}
+	static void del_pm(uint id)
+	{
+		if (find_pm(id))
+			pm_list.remove(id);
+	}
 
-	static PM[] get_pms_for (string user)
-		{
+	static PM[] get_pms_for(string user)
+	{
 		PM[] pms;
 		foreach (PM pm ; pm_list) if (pm.to == user) pms ~= pm;
 		return pms;
-		}
+	}
 
-	private static bool find_pm (uint id)
-		{
-		return (id in pm_list) ? true : false;
-		}
+	private static bool find_pm(uint id)
+	{
+		return(id in pm_list) ? true : false;
+	}
 
-	private static PM get_pm (uint id)
-		{
-		if (!find_pm (id)) return null;
+	private static PM get_pm(uint id)
+	{
+		if (!find_pm(id))
+			return null;
+
 		return pm_list[id];
-		}
+	}
 
-	private static uint new_id ()
-		{
-		auto id = cast(uint)pm_list.length;
-		while (find_pm (id)) id++;
+	private static uint new_id()
+	{
+		auto id = cast(uint) pm_list.length;
+		while (find_pm(id)) id++;
 		return id;
-		}
+	}
 	
 	// attributes
 	uint	id;
@@ -77,14 +79,14 @@ class PM
 	string	content;
 	
 	// constructor
-	this (string content, string from, string to)
-		{
-		this.id		= PM.new_id ();
-		this.from	= from;
-		this.to		= to;
+	this(string content, string from, string to)
+	{
+		this.id			= PM.new_id();
+		this.from		= from;
+		this.to			= to;
 		this.content	= content;
 
 		this.timestamp  = time(null);
 			// timestamp is in seconds since 01/01/1970
-		}
 	}
+}
