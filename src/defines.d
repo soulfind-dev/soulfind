@@ -22,7 +22,7 @@
 module defines;
 @safe:
 
-const string VERSION		= "0.4.8";
+const string VERSION		= "1.0.0-dev";
 const string default_db_file	= "soulfind.db";
 const uint port			= 2242;
 const uint max_users		= 65535;
