@@ -48,6 +48,7 @@ class Room
 		return room_list[roomname];
 	}
 
+	@trusted  // .values doesn't work with @safe in old D versions
 	static Room[] rooms()
 	{
 		return room_list.values;
@@ -72,6 +73,7 @@ class Room
 			global_room_user_list.remove(username);
 	}
 
+	@trusted  // .keys doesn't work with @safe in old D versions
 	static string[] global_room_users()
 	{
 		return global_room_user_list.keys;
@@ -144,11 +146,13 @@ class Room
 		return user_list.length;
 	}
 
+	@trusted  // .values doesn't work with @safe in old D versions
 	User[] users()
 	{
 		return user_list.values;
 	}
 
+	@trusted  // .keys doesn't work with @safe in old D versions
 	private string[] user_names()
 	{
 		return user_list.keys;

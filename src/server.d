@@ -264,6 +264,7 @@ class Server
 		return null;
 	}
 
+	@trusted  // .keys doesn't work with @safe in old D versions
 	User[] users()
 	{
 		return user_list.values;
@@ -508,7 +509,7 @@ class Server
 	private string show_users()
 	{
 		string s;
-		foreach (username ; user_list.keys) s ~= show_user(username) ~ "\n";
+		foreach (username, user ; user_list) s ~= show_user(username) ~ "\n";
 		return s;
 	}
 

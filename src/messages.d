@@ -680,10 +680,10 @@ class SRoomList : Message
 		super(RoomList);
 		
 		writei(rooms.length);	// number of room names we will send
-		foreach (room ; rooms.keys) writes(room);
+		foreach (room, users ; rooms) writes(room);
 		
 		writei(rooms.length);	// number of user counts
-		foreach (users ; rooms.values) writei(users);
+		foreach (room, users ; rooms) writei(users);
 
 		writei(0);	// number of owned private rooms(unimplemented)
 		writei(0);	// number of owned private rooms(unimplemented)

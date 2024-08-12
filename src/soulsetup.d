@@ -272,13 +272,21 @@ class Menu
 		entries[index] = entry;
 		actions[index] = action;
 	}
-	
+
+	@trusted  // .keys doesn't work with @safe in old D versions
+	string[] sorted_entry_indexes()
+	{
+		auto indexes = entries.keys;
+		sort(indexes);
+		return indexes;
+	}
+
 	void show()
 	{
 		writeln(format( "\n%s\n", title));
 		if (info.length > 0) writeln(format("%s\n", info));
 		
-		foreach (index ; sort(entries.keys))
+		foreach (index ; sorted_entry_indexes)
 			writeln(format("%s. %s", index, entries[index]));
 
 		write("\nYour choice : ");
