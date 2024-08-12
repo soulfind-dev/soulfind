@@ -24,7 +24,7 @@ module pm;
 
 import defines;
 
-import core.stdc.time : time;
+import std.datetime : Clock;
 
 class PM
 {
@@ -86,7 +86,7 @@ class PM
 		this.to			= to;
 		this.content	= content;
 
-		this.timestamp  = time(null);
+		this.timestamp  = Clock.currTime.toUnixTime;
 			// timestamp is in seconds since 01/01/1970
 	}
 }

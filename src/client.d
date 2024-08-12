@@ -32,12 +32,13 @@ import message_codes;
 
 import std.bitmanip : read;
 import std.conv : to;
+import std.datetime : Clock, SysTime;
 import std.outbuffer : OutBuffer;
 import std.socket : Socket, InternetAddress;
 import std.stdio : write, writeln;
 import std.system : Endian;
 
-import core.stdc.time : time;
+import core.time : dur, MonoTime;
 
 class User
 {
@@ -54,7 +55,7 @@ class User
 	string		country_code;
 
 	uint		status;				// 0, 1, 2
-	ulong		connected_at;		// in seconds
+	SysTime		connected_at;
 
 	Socket		sock;
 	Server		server;
@@ -69,22 +70,11 @@ class User
 		this.server			= serv;
 		this.sock			= sock;
 		this.address		= address;
-		this.connected_at	= time(null);
+		this.connected_at	= Clock.currTime;
+		this.last_priv_check	= MonoTime.currTime;
 	}
 
 	// misc
-	string list_joined_rooms()
-	{
-		string rooms;
-		foreach (room_name, room ; joined_rooms) rooms ~= room_name ~ " ";
-		return rooms;
-	}
-
-	string print_privileges()
-	{
-		return privileges > 0 ? print_length(privileges) : "None";
-	}
-
 	void send_pm(PM pm, bool new_message)
 	{
 		send_message(
@@ -134,8 +124,8 @@ class User
 	}
 
 	// privileges
-	private uint	privileges;			// in seconds
-	private ulong	last_priv_check;	// privileges length counted from this date
+	private uint		privileges;			// in seconds
+	private MonoTime	last_priv_check;
 
 	void add_privileges(uint new_privileges)
 	{
@@ -149,7 +139,7 @@ class User
 		send_message(new SCheckPrivileges(privileges));
 	}
 
-	private void remove_privileges(uint new_privileges)
+	void remove_privileges(uint new_privileges)
 	{
 		debug (user) writeln(
 			"Removing ", new_privileges, " seconds of privileges to user ",
@@ -164,17 +154,22 @@ class User
 		send_message(new SCheckPrivileges(privileges));
 	}
 
-	private void update_privileges()
+	void update_privileges()
 	{
-		ulong now = time(null);
-		ulong difference = now - last_priv_check;
+		MonoTime now = MonoTime.currTime;
+		ulong difference = (now - last_priv_check).total!"seconds";
 		if (last_priv_check > now) difference = 0;
 		if (privileges < difference)
 			privileges = 0;
 		else
-			privileges -= now - last_priv_check;
+			privileges -= difference;
 		last_priv_check = now;
 		server.db.user_update_field(username, "privileges", privileges);
+	}
+
+	string h_privileges()
+	{
+		return privileges > 0 ? dur!"seconds"(privileges).toString : "None";
 	}
 
 	// things I like
@@ -361,6 +356,13 @@ class User
 	{
 		if (room.name in joined_rooms)
 			joined_rooms.remove(room.name);
+	}
+
+	string list_joined_rooms()
+	{
+		string rooms;
+		foreach (room_name, room ; joined_rooms) rooms ~= room_name ~ " ";
+		return rooms;
 	}
 
 	// messages

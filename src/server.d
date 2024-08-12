@@ -31,21 +31,18 @@ import room;
 import pm;
 
 import std.stdio : write, writeln;
-import std.socket : Socket, TcpSocket, SocketOption, SocketOptionLevel,
-							SocketSet, InternetAddress, SocketAcceptException,
-							SocketShutdown;
+import std.socket;
 import std.conv : to;
 import std.array : split, join, replace;
-import core.stdc.time : time;
 import std.utf : validate, UTFException;
 import std.format : format;
 import std.algorithm : canFind;
-import std.datetime : Duration, dur;
 import std.digest.md : md5Of;
 import std.string : strip;
 import std.process : thisProcessID;
 
 import core.sys.posix.unistd : fork;
+import core.time : Duration, dur, MonoTime;
 
 
 private void help(string[] args)
@@ -96,7 +93,7 @@ class Server
 	private uint			max_users;
 	private string			motd;
 
-	private ulong			started_at;					// for server uptime
+	private MonoTime		started_at;					// for server uptime
 
 	private Socket			sock;
 	private User[Socket]	user_socks;
@@ -106,7 +103,7 @@ class Server
 
 	private this(string db_file)
 	{
-		started_at = time(null);
+		started_at = MonoTime.currTime;
 		db = new Sdb(db_file);
 
 		config();
@@ -459,7 +456,7 @@ class Server
 				break;
 
 			case "uptime":
-				admin_pm(admin, print_length(uptime));
+				admin_pm(admin, h_uptime);
 				break;
 
 			case "reload":
@@ -521,6 +518,7 @@ class Server
 		if (!user)
 			return "";
 
+		user.update_privileges();
 		return format("%s: connected at %s"
 					~ "\n\tclient version: %s"
 					~ "\n\taddress: %s"
@@ -538,7 +536,7 @@ class Server
 						user.shared_files,
 						user.shared_folders,
 						user.status,
-						user.print_privileges,
+						user.h_privileges,
 						user.list_joined_rooms);
 	}
 
@@ -591,14 +589,14 @@ class Server
 		}
 	}
 
-	private ulong uptime()
+	private Duration uptime()
 	{
-		return time(null) - started_at;
+		return MonoTime.currTime - started_at;
 	}
 
-	private string print_uptime()
+	private string h_uptime()
 	{
-		return print_length(uptime);
+		return dur!"seconds"(uptime.total!"seconds").toString;
 	}
 
 	private string encode_password(string pass)
@@ -680,20 +678,4 @@ class Server
 			}
 		}
 	}
-}
-
-
-string print_length(ulong length)
-{
-	auto d = length /(60 * 60 * 24);
-	auto h = length /(60 * 60) - d * 24;
-	auto m = length /(60) - d * 60 * 24 - h * 60;
-	auto s = length - d * 60 * 60 * 24 - h * 60 * 60 - m * 60;
-
-	string l;
-	if (d > 0) l ~= format("%d %s, ", d, d > 1 ? "days" : "day");
-	if (d > 0 || h > 0) l ~= format("%d %s, ", h, h > 1 ? "hours" : "hour");
-	if (d > 0 || h > 0 || m > 0) l ~= format("%d %s, ", m, m > 1 ? "minutes" : "minute");
-	if (d > 0 || h > 0 || m > 0 || s > 0) l ~= format("%d %s", s, s > 1 ? "seconds" : "second");
-	return l;
 }
