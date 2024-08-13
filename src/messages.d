@@ -701,7 +701,7 @@ class SJoinRoom : Message
 		{
 			writei(speeds          [username]);	// speed of each user
 			writei(upload_numbers	[username]);	// number of files uploaded ever
-			writei(somethings      [username]);	// something ? 1789 is a good number
+			writei(somethings      [username]);	// something ?
 			writei(shared_files    [username]);	// nb of shared files
 			writei(shared_folders  [username]);	// nb of shared folders
 		}

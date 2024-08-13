@@ -220,7 +220,7 @@ class Sdb
 			upload_number   = atoi(u[1]);
 			shared_files    = atoi(u[2]);
 			shared_folders  = atoi(u[3]);
-			something       = 1789;
+			something       = 0;
 			return true;
 		}
 		return false;
