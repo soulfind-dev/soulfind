@@ -1,3 +1,9 @@
+<!--
+  SPDX-FileCopyrightText: 2005 SeeSchloss <seeschloss@seeschloss.org>
+  SPDX-FileCopyrightText: 2024 Mat (mathiascode)
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Soulfind
 
 Soulseek server implementation in D

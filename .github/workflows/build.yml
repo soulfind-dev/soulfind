@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 Mat (mathiascode)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 name: CI
 
 on: [push, pull_request]
