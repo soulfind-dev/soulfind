@@ -1053,24 +1053,3 @@ class SCantConnectToPeer : Message
 		writei(token);	// token of the message
 	}
 }
-
-class SServerInfo : Message
-{	// Specific to Soulfind, info about the server
-		// uint   : number of fields
-		// string : field name
-		// string : field value
-		// string : field name
-		// ...
-	this(string[string] info)
-	{
-		super(ServerInfo);
-		
-		writei(info.length);	// number of fields being sent
-
-		foreach (field, value ; info)
-		{
-			writes(field);
-			writes(value);
-		}
-	}
-}

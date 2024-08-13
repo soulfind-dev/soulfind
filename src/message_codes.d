@@ -66,8 +66,6 @@ const uint LeaveGlobalRoom		= 151;
 const uint GlobalRoomMessage		= 152;
 const uint CantConnectToPeer		= 1001;
 
-const uint ServerInfo			= 1789; // specific to Soulfind
-
 // Useful for debugging
 string[] message_name = [
 		  1 : "Login"
@@ -118,6 +116,5 @@ string[] message_name = [
 		, 150 : "JoinGlobalRoom"
 		, 151 : "LeaveGlobalRoom"
 		, 152 : "GlobalRoomMessage"
-		, 1001 : "CantConnectToPeer"
-		, 1789 : "ServerInfo"];
+		, 1001 : "CantConnectToPeer"];
 
