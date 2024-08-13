@@ -67,5 +67,12 @@ have to be an admin already to add an admin when connected to the server
 
 ## Authors
 
+Soulfind is free and open source software, released under the terms of the
+[GNU General Public License v3.0 or later](https://www.gnu.org/licenses/gpl-3.0-standalone.html).
+
+People who have contributed to Soulfind:
+
  - seeschloss (creator)
  - mathiascode
+
+© 2005–2024 Soulfind Contributors
