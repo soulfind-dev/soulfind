@@ -11,7 +11,7 @@ import defines;
 import db;
 
 import std.algorithm : sort;
-import std.conv : to;
+import std.conv : ConvException, to;
 import std.format : format;
 import std.stdio : readf, readln, write, writeln;
 import std.string : chomp, strip;
@@ -54,7 +54,7 @@ void main_menu()
 	menu.add("2", "Max users allowed", &max_users);
 	menu.add("3", "MOTD",              &motd);
 	menu.add("4", "Banned users",      &banned_users);
-	menu.add("i", "Server info.",      &info);
+	menu.add("i", "Server info",       &info);
 	menu.add("q", "Exit",              &exit);
 	
 	menu.show();
@@ -96,7 +96,7 @@ void list_admins()
 	auto names = sdb.get_admins();
 
 	if (!names) {
-		writeln("No admin on this server.");
+		writeln("No admin on this server");
 		admins();
 		return;
 	}
@@ -110,9 +110,10 @@ void list_admins()
 
 void listen_port()
 {
-	auto menu = new Menu(
-		format("Listen port : %d", sdb.conf_get_int("port"))
-	);
+	uint port;
+	try {port = sdb.conf_get_int("port");} catch (ConvException) {}
+
+	auto menu = new Menu(format("Listen port : %d", port));
 	menu.add("1", "Change listen port", &set_listen_port);
 	menu.add("q", "Return",             &main_menu);
 
@@ -122,16 +123,26 @@ void listen_port()
 void set_listen_port()
 {
 	write("New listen port : ");
-	sdb.conf_set_field("port", input.strip);
+
+	auto value = input.strip;
+	uint port;
+	try {port = value.to!uint;} catch (ConvException) {}
+	if (port <= 0 || port > ushort.max) {
+		writeln("Please enter a port in the range 1-65535");
+		set_listen_port();
+		return;
+	}
+
+	sdb.conf_set_field("port", port);
 	listen_port();
 }
 
 void max_users()
 {
-	auto menu = new Menu(
-		format("Max users allowed : %d",
-			sdb.conf_get_int("max_users"))
-	);
+	uint max_users;
+	try {max_users = sdb.conf_get_int("max_users");} catch (ConvException) {}
+
+	auto menu = new Menu(format("Max users allowed : %d", max_users));
 	menu.add("1", "Change max users", &set_max_users);
 	menu.add("q", "Return",           &main_menu);
 
@@ -141,7 +152,19 @@ void max_users()
 void set_max_users()
 {
 	write("Max users : ");
-	sdb.conf_set_field("max_users", input.strip);
+
+	auto value = input.strip;
+	uint num_users;
+	try {
+		num_users = value.to!uint;
+	}
+	catch (ConvException) {
+		writeln("Please enter a valid number");
+		set_max_users();
+		return;
+	}
+
+	sdb.conf_set_field("max_users", num_users);
 	max_users();
 }
 
