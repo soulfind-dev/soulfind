@@ -1,6 +1,6 @@
 <!--
+  SPDX-FileCopyrightText: 2024 Soulfind Contributors
   SPDX-FileCopyrightText: 2005-2006 SeeSchloss <seeschloss@seeschloss.org>
-  SPDX-FileCopyrightText: 2024 Mat (mathiascode)
   SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
