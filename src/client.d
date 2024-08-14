@@ -28,7 +28,8 @@ class User
 {
 	// some attributes...
 	string		username;
-	uint		cversion;
+	uint		major_version;
+	uint		minor_version;
 
 	uint		speed;				// in B/s
 	uint		upload_number;
@@ -441,21 +442,25 @@ class User
 				auto msg = new ULogin(msg_buf);
 				string error;
 
-				if (!server.check_login(msg.name, msg.pass, msg.vers, error)) {
-					writeln(msg.name, ": Impossible to login(", error, ")");
+				if (!server.check_login(msg.username, msg.password, msg.major_version,
+						msg.hash, msg.minor_version, error)) {
+					writeln(msg.username, ": Impossible to login(", error, ")");
 					send_message(new SLogin(false, error));
 					return false;
 				}
 
-				auto user = server.get_user(msg.name);
+				auto user = server.get_user(msg.username);
 
 				if (user && user.status != Status.offline) {
-					writeln(msg.name, ": Already logged in");
+					writeln(msg.username, ": Already logged in");
 					user.send_message(new SRelogged());
 					user.exit();
 				}
 
-				writeln(blue, msg.name, black ~ ", version ", msg.vers);
+				writeln(
+					blue, msg.username, black ~ ", version ",
+					msg.major_version, ".", msg.minor_version
+				);
 				return(login(msg));
 
 			case SetWaitPort:
@@ -859,9 +864,10 @@ class User
 
 	private bool login(ULogin msg)
 	{
-		username = msg.name;
-		password = msg.pass;
-		cversion = msg.vers;
+		username = msg.username;
+		password = msg.password;
+		major_version = msg.major_version;
+		minor_version = msg.minor_version;
 
 		if (!server.db.get_user(
 			username, password, speed, upload_number,
@@ -869,16 +875,13 @@ class User
 		)
 			throw new Exception("User " ~ username ~ " does not exist.");
 
-		auto motd = server.get_motd(username, cversion);
-		auto supporter = privileges > 0;
-
-		send_message(
-			new SLogin(true, motd, address, password, supporter)
-		);
-
 		if (server.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
 
+		auto motd = server.get_motd(username);
+		auto supporter = privileges > 0;
+
+		send_message(new SLogin(true, motd, address, password, supporter));
 		send_message(new SRoomList(Room.room_stats));
 		send_message(
 			new SWishlistInterval(supporter ? 120 : 720)  // in seconds

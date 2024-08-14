@@ -515,7 +515,7 @@ class Server
 					~ "\n\tjoined rooms: %s",
 						username,
 						user.connected_at,
-						user.cversion,
+						user.major_version.to!string ~ "." ~ user.minor_version.to!string,
 						user.sock.remoteAddress,
 						is_admin(username),
 						user.shared_files,
@@ -551,13 +551,15 @@ class Server
 			db.user_update_field(username, "banned", 0);
 	}
 
-	string get_motd(string name, uint vers)
+	string get_motd(string username)
 	{
+		auto user = get_user(username);
+
 		string ret;
 		ret = replace(motd, "%version%", VERSION);
 		ret = replace(ret, "%nbusers%", nb_users.to!string);
-		ret = replace(ret, "%username%", name);
-		ret = replace(ret, "%userversion%", vers.to!string);
+		ret = replace(ret, "%username%", username);
+		ret = replace(ret, "%userversion%", user.major_version.to!string ~ "." ~ user.minor_version.to!string);
 		return ret;
 	}
 
@@ -629,7 +631,8 @@ class Server
 		return true;
 	}
 
-	bool check_login(string username, string pass, uint vers, out string error)
+	bool check_login(string username, string password, uint major_version,
+					 string hash, uint minor_version, out string error)
 	{
 		if (!db.user_exists(username)) {
 			if (!check_string(username) || username == server_user) {
@@ -638,7 +641,7 @@ class Server
 			}
 
 			debug (user) writeln("Adding user ", username, "...");
-			db.add_user(username, encode_password(pass));
+			db.add_user(username, encode_password(password));
 			return true;
 		}
 		else {
@@ -653,7 +656,7 @@ class Server
 			else {
 				string real_pass = db.get_pass(username);
 
-				if (real_pass == encode_password(pass) || real_pass == pass) {
+				if (real_pass == encode_password(password) || real_pass == password) {
 					return true;
 				}
 				else {
