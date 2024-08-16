@@ -133,17 +133,25 @@ class Message
 
 class ULogin : Message
 {		// New login
-	string name;	// user name
-	string pass;	// user password
-	uint   vers;	// client version
+	string username;		// user name
+	string password;		// user password
+	uint   major_version;	// client version
+	string hash;			// MD5 hash of username + password
+	uint   minor_version;	// client minor version
 
 	this(ubyte[] in_buf)
 	{
 		super(in_buf);
 
-		name = reads();
-		pass = reads();
-		vers = readi();
+		username = reads();
+		password = reads();
+		major_version = readi();
+
+		if (major_version >= 155) {
+			// Older clients would not send these
+			hash = reads();
+			minor_version = readi();
+		}
 	}
 }
 
