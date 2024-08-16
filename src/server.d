@@ -644,26 +644,19 @@ class Server
 			db.add_user(username, encode_password(password));
 			return true;
 		}
-		else {
-			debug (user) writeln(
-				"User ", username,
-				" is registered, checking banned status and password..."
-			);
-			if (db.is_banned(username)) {
-				error = "BANNED";
-				return false;
-			}
-			else {
-				string real_pass = db.get_pass(username);
 
-				if (real_pass == encode_password(password) || real_pass == password) {
-					return true;
-				}
-				else {
-					error = "INVALIDPASS";
-					return false;
-				}
-			}
+		debug (user) writeln(
+			"User ", username,
+			" is registered, checking banned status and password..."
+		);
+		if (db.is_banned(username)) {
+			error = "BANNED";
+			return false;
 		}
+		if (db.get_pass(username) != encode_password(password)) {
+			error = "INVALIDPASS";
+			return false;
+		}
+		return true;
 	}
 }

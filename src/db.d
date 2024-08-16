@@ -183,10 +183,7 @@ class Sdb
 	string get_pass(string username)
 	{
 		string[][] res = this.query(format("SELECT password FROM %s WHERE username = '%s';", users_table, escape(username)));
-		if (res.length > 0)
-			return res[0][0];
-
-		throw new Exception("User " ~ username ~ " does not exist");
+		return res[0][0];
 	}
 	
 	void add_user(string username, string password)

@@ -444,7 +444,7 @@ class User
 
 				if (!server.check_login(msg.username, msg.password, msg.major_version,
 						msg.hash, msg.minor_version, error)) {
-					writeln(msg.username, ": Impossible to login(", error, ")");
+					writeln(msg.username, ": Impossible to login (", error, ")");
 					send_message(new SLogin(false, error));
 					return false;
 				}
@@ -461,7 +461,7 @@ class User
 					blue, msg.username, black ~ ", version ",
 					msg.major_version, ".", msg.minor_version
 				);
-				return(login(msg));
+				return login(msg);
 
 			case SetWaitPort:
 				auto msg = new USetWaitPort(msg_buf);
@@ -869,11 +869,10 @@ class User
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
-		if (!server.db.get_user(
-			username, password, speed, upload_number,
-			shared_files, shared_folders, privileges)
-		)
-			throw new Exception("User " ~ username ~ " does not exist.");
+		server.db.get_user(
+			username, password, speed, upload_number, shared_files,
+			shared_folders, privileges
+		);
 
 		if (server.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
