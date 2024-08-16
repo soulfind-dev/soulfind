@@ -41,6 +41,7 @@ class User
 
 	uint		status;				// 0, 1, 2
 	SysTime		connected_at;
+	bool		should_quit;
 
 	Socket		sock;
 	Server		server;
@@ -397,12 +398,11 @@ class User
 
 		in_buf ~= receive_buf[0 .. receive_len];
 
-		while(recv_message()) {
+		while (recv_message()) {
 			// disconnect the user if message is incorrect/bogus
 			if (in_msg_size < 0 || in_msg_size > max_msg_size)
 				return false;
-			if (!proc_message())
-				return false;
+			proc_message();
 		}
 
 		return true;
@@ -418,7 +418,7 @@ class User
 		return in_buf.length >= in_msg_size;
 	}
 
-	private bool proc_message()
+	private void proc_message()
 	{
 		auto msg_buf = in_buf[0 .. in_msg_size];
 		auto code = msg_buf.read!(uint, Endian.littleEndian);
@@ -432,11 +432,11 @@ class User
 		);
 
 		if (status == Status.offline && code != Login)
-			return false;
+			return;
 		if (status != Status.offline && code == Login)
-			return true;
+			return;
 
-		switch(code) {
+		switch (code) {
 			case Login:
 				write("User logging in : ");
 				auto msg = new ULogin(msg_buf);
@@ -444,9 +444,12 @@ class User
 
 				if (!server.check_login(msg.username, msg.password, msg.major_version,
 						msg.hash, msg.minor_version, error)) {
-					writeln(msg.username, ": Impossible to login (", error, ")");
+					username = msg.username;
+					should_quit = true;
+
+					writeln(username, ": Impossible to login (", error, ")");
 					send_message(new SLogin(false, error));
-					return false;
+					return;
 				}
 
 				auto user = server.get_user(msg.username);
@@ -461,7 +464,8 @@ class User
 					blue, msg.username, black ~ ", version ",
 					msg.major_version, ".", msg.minor_version
 				);
-				return login(msg);
+				login(msg);
+				return;
 
 			case SetWaitPort:
 				auto msg = new USetWaitPort(msg_buf);
@@ -859,10 +863,10 @@ class User
 				}
 				break;
 		}
-		return true;
+		return;
 	}
 
-	private bool login(ULogin msg)
+	private void login(ULogin msg)
 	{
 		username = msg.username;
 		password = msg.password;
@@ -894,7 +898,6 @@ class User
 			);
 			send_pm(pm, new_message);
 		}
-		return true;
 	}
 
 	void exit()

@@ -47,7 +47,7 @@ private int main(string[] args)
 	if (args.length > 3) help(args);
 
 	foreach (arg ; args[1 .. $]) {
-		switch(arg) {
+		switch (arg) {
 			case "-h":
 			case "--help":
 				help(args);
@@ -120,7 +120,7 @@ class Server
 		auto read_socks = new SocketSet(max_users + 1);
 		auto write_socks = new SocketSet(max_users + 1);
 
-		while(true) {
+		while (true) {
 			read_socks.reset();
 			write_socks.reset();
 			read_socks.add(sock);
@@ -135,7 +135,7 @@ class Server
 			);
 
 			if (read_socks.isSet(sock)) {
-				while(true) {
+				while (true) {
 					Socket new_sock;
 					try {
 						new_sock = sock.accept();
@@ -180,6 +180,10 @@ class Server
 				if (write_socks.isSet(user_sock)) {
 					send_success = user.send_buffer();
 					changed = true;
+				}
+
+				if (user.should_quit && !user.is_sending) {
+					send_success = false;
 				}
 
 				if (changed) nb--;
@@ -285,7 +289,7 @@ class Server
 	void admin_message(User admin, string message)
 	{
 		auto command = message.split(" ");
-		if (command.length > 0) switch(command[0])
+		if (command.length > 0) switch (command[0])
 		{
 			case "help":
 				admin_pm(
