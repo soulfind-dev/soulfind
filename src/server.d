@@ -16,7 +16,7 @@ import pm;
 
 import std.stdio : write, writeln;
 import std.socket;
-import std.conv : to;
+import std.conv : ConvException, to;
 import std.array : split, join, replace;
 import std.utf : validate, UTFException;
 import std.format : format;
@@ -103,7 +103,7 @@ class Server
 			sock.bind(new InternetAddress(port));
 			sock.listen(10);
 		}
-		catch (Exception e) {
+		catch (SocketOSException e) {
 			write("Unable to bind socket to port ", port);
 			if (port < 1024)
 				writeln(
@@ -322,7 +322,7 @@ class Server
 				try {
 					days = command[1].to!uint;
 				}
-				catch (Exception e) {
+				catch (ConvException e) {
 					admin_pm(admin, "Badly formatted number.");
 					break;
 				}
