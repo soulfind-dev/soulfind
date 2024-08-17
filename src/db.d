@@ -24,8 +24,8 @@ class Sdb
 	const string admins_table = "admins";
 	const string conf_table   = "conf";
 
-	const string users_table_format  = "CREATE TABLE %s(username TEXT, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER);";
-	const string admins_table_format = "CREATE TABLE %s(username TEXT, level INTEGER);";
+	const string users_table_format  = "CREATE TABLE %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
+	const string admins_table_format = "CREATE TABLE %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
 	const string conf_table_format   = "CREATE TABLE %s(port INTEGER, max_users INTEGER, motd TEXT);";
 
 	this(string file, bool update = false)
@@ -89,7 +89,7 @@ class Sdb
 	
 	void add_admin(string username, uint level = 0)
 	{
-		this.query(format("INSERT INTO %s(username, level) VALUES('%s', %d);", admins_table, escape(username), level));
+		this.query(format("REPLACE INTO %s(username, level) VALUES('%s', %d);", admins_table, escape(username), level));
 	}
 	
 	void del_admin(string username)
