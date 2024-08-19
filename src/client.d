@@ -573,7 +573,7 @@ class User
 
 			case JoinRoom:
 				auto msg = new UJoinRoom(msg_buf);
-				if (server.check_string(msg.room))
+				if (server.check_name(msg.room))
 					Room.join_room(msg.room, this);
 				break;
 
@@ -902,6 +902,10 @@ class User
 
 	void exit()
 	{
+		if (status == Status.offline) {
+			writeln("User " ~ red, username, black ~ " denied.");
+			return;
+		}
 		update_privileges();
 		foreach (room ; joined_rooms) room.leave(this);
 		Room.remove_global_room_user(username);

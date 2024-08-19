@@ -18,7 +18,7 @@ import std.stdio : write, writeln;
 import std.socket;
 import std.conv : ConvException, to;
 import std.array : split, join, replace;
-import std.utf : validate, UTFException;
+import std.ascii : isPrintable, isPunctuation;
 import std.format : format;
 import std.algorithm : canFind;
 import std.digest.md : md5Of;
@@ -598,39 +598,32 @@ class Server
 		return s;
 	}
 
-	bool check_string(string str)
+	bool check_name(string text, uint max_length = 24)
 	{
-		try {
-			validate(str);
-		}
-		catch (UTFException) {
+		if (!text || text.length > max_length) {
 			return false;
 		}
-
-		if (strip(str) != str) {
+		foreach (dchar c ; text) if (!isPrintable(c)) {
+			// non-ASCII control chars, etc 
+			return false;
+		}
+		if (text.length == 1 && isPunctuation(text.to!dchar)) {
+			// only character is a symbol
+			return false;
+		}
+		if (strip(text) != text) {
 			// leading/trailing whitespace
 			return false;
 		}
 
-		dstring forbidden = ['\u0000', '\u0001', '\u0002', '\u0003', '\u0004', '\u0005'
-			 , '\u0006', '\u0007', '\u0008', '\u0009', '\u000A', '\u000B', '\u000D', '\u000E'
-			 , '\u000F', '\u0010', '\u0011', '\u0012', '\u0013', '\u0014', '\u0015', '\u0016'
-			 , '\u0017', '\u0018', '\u0019', '\u001A', '\u001B', '\u001C', '\u001D', '\u001E'
-			 , '\u001F', '\u007F', '\u0080', '\u0081', '\u0082', '\u0083', '\u0084', '\u0085'
-			 , '\u0086', '\u0087', '\u0088', '\u0089', '\u008A', '\u008B', '\u008C', '\u008D'
-			 , '\u008E', '\u008F', '\u0090', '\u0091', '\u0092', '\u0093', '\u0094', '\u0095'
-			 , '\u0096', '\u0097', '\u0098', '\u0099', '\u009A', '\u009B', '\u009C', '\u009D'
-			 , '\u009E', '\u009F', '\u00A0', '\u00AD'
-			  // some control chars
+		const string[] forbidden_names = [server_user, ""];
+		const string[] forbidden_words = ["  ", "sqlite3_"];
 
-			 , '\u2000', '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007'
-			 , '\u2008', '\u2009', '\u200A', '\u200B', '\u200C', '\u200D', '\u200E', '\u200F'];
-			  // separators, joiners, etc
-
-		foreach (dchar c ; forbidden) {
-			if (canFind(str, c)) {
-				return false;
-			}
+		foreach (name ; forbidden_names) if (name == text) {
+			return false;
+		}
+		foreach (word ; forbidden_words) if (canFind(text, word)) {
+			return false;
 		}
 		return true;
 	}
@@ -638,21 +631,17 @@ class Server
 	bool check_login(string username, string password, uint major_version,
 					 string hash, uint minor_version, out string error)
 	{
+		if (!check_name(username, 30)) {
+			error = "INVALIDUSERNAME";
+			return false;
+		}
 		if (!db.user_exists(username)) {
-			if (!check_string(username) || username == server_user) {
-				error = "INVALIDUSERNAME";
-				return false;
-			}
-
-			debug (user) writeln("Adding user ", username, "...");
+			debug (user) writeln("New user ", username, " registering");
 			db.add_user(username, encode_password(password));
 			return true;
 		}
+		debug (user) writeln("User ", username, " is registered");
 
-		debug (user) writeln(
-			"User ", username,
-			" is registered, checking banned status and password..."
-		);
 		if (db.is_banned(username)) {
 			error = "BANNED";
 			return false;
