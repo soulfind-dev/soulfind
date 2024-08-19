@@ -26,8 +26,23 @@ import std.string : strip;
 import std.process : thisProcessID;
 
 import core.sys.posix.unistd : fork;
+import core.sys.posix.signal;
 import core.time : Duration, dur, MonoTime;
 
+extern(C) void handle_termination(int)
+{
+	writeln("Exiting.");
+}
+
+@trusted
+private void setup_signal_handler()
+{
+	sigaction_t act;
+	act.sa_handler = &handle_termination;
+
+	sigaction(SIGINT, &act, null);
+	sigaction(SIGTERM, &act, null);
+}
 
 private void help(string[] args)
 {
@@ -65,8 +80,10 @@ private int main(string[] args)
 	if (daemon && fork())
 		return 0;
 
-	Server s = new Server(db);
-	return s.listen();
+	setup_signal_handler();
+
+	auto server = new Server(db);
+	return server.listen();
 }
 
 class Server
@@ -133,6 +150,7 @@ class Server
 			auto nb = Socket.select(
 				read_socks, write_socks, null, select_timeout
 			);
+			auto terminating = (nb == -1);
 
 			if (read_socks.isSet(sock)) {
 				while (true) {
@@ -187,16 +205,19 @@ class Server
 				}
 
 				if (changed) nb--;
-				if (recv_success && send_success)
+				if (!terminating && recv_success && send_success)
 					continue;
 
 				read_socks.remove(user_sock);
 				write_socks.remove(user_sock);
 				del_user(user);
 			}
+
+			if (terminating)
+				break;
 		}
 
-		writeln("Exiting.");
+		sock.close();
 		return 0;
 	}
 
