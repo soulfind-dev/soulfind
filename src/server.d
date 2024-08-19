@@ -190,12 +190,9 @@ class Server
 				if (recv_success && send_success)
 					continue;
 
-				user.exit();
 				read_socks.remove(user_sock);
 				write_socks.remove(user_sock);
 				del_user(user);
-				user_sock.shutdown(SocketShutdown.BOTH);
-				user_sock.close();
 			}
 		}
 
@@ -241,7 +238,7 @@ class Server
 
 	bool find_user(User user)
 	{
-		return(user.username in user_list) ? true : false;
+		return (user.username in user_list) ? true : false;
 	}
 
 	User get_user(string username)
@@ -260,8 +257,15 @@ class Server
 
 	private void del_user(User user)
 	{
-		if (user.sock in user_socks) user_socks.remove(user.sock);
-		if (user.username in user_list) user_list.remove(user.username);
+		if (user.sock in user_socks) {
+			user.sock.shutdown(SocketShutdown.BOTH);
+			user.sock.close();
+			user_socks.remove(user.sock);
+		}
+		if (user.username in user_list) {
+			user.quit();
+			user_list.remove(user.username);
+		}
 	}
 
 	private ulong nb_users()
@@ -531,13 +535,13 @@ class Server
 
 	private void kill_all_users()
 	{
-		foreach (user ; user_list) user.exit();
+		foreach (user ; user_list) user.quit();
 	}
 
 	private void kill_user(string username)
 	{
 		auto user = get_user(username);
-		if (user) user.exit();
+		if (user) user.quit();
 	}
 
 	private void ban_user(string username)
@@ -546,7 +550,7 @@ class Server
 			return;
 
 		db.user_update_field(username, "banned", 1);
-		get_user(username).exit();
+		get_user(username).quit();
 	}
 
 	private void unban_user(string username)

@@ -448,6 +448,7 @@ class User
 					should_quit = true;
 
 					writeln(username, ": Impossible to login (", error, ")");
+					writeln("User " ~ red, username, black ~ " denied.");
 					send_message(new SLogin(false, error));
 					return;
 				}
@@ -457,7 +458,7 @@ class User
 				if (user && user.status != Status.offline) {
 					writeln(msg.username, ": Already logged in");
 					user.send_message(new SRelogged());
-					user.exit();
+					user.quit();
 				}
 
 				writeln(
@@ -900,12 +901,11 @@ class User
 		}
 	}
 
-	void exit()
+	void quit()
 	{
-		if (status == Status.offline) {
-			writeln("User " ~ red, username, black ~ " denied.");
+		if (status == Status.offline)
 			return;
-		}
+
 		update_privileges();
 		foreach (room ; joined_rooms) room.leave(this);
 		Room.remove_global_room_user(username);
