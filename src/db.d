@@ -245,16 +245,14 @@ class Sdb
 	@trusted
 	string[][] query(string query)
 	{
-		debug(db) writeln("DB query : \"", query, "%s\"");
 		string[][] ret;
-		
-		sqlite3_reset(stmt);
-		
 		char* tail;
-
-		sqlite3_prepare(db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
-
 		uint res;
+		uint fin;
+
+		debug(db) writeln("DB: Query [", query, "]");
+		sqlite3_prepare_v2(db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
+
 		res = sqlite3_step(stmt);
 
 		while(res == SQLITE_ROW) {
@@ -267,8 +265,13 @@ class Sdb
 			res = sqlite3_step(stmt);
 		}
 
-		if (res != SQLITE_DONE) {
-			throw new Exception(format("SQL Error nb %d, query was : \"%s\"", res, query));
+		fin = sqlite3_finalize(stmt);
+
+		if (res != SQLITE_DONE || fin != SQLITE_OK) {
+			// https://sqlite.org/rescode.html#extrc
+			debug(db) writeln(format("DB: Result Code %d (%s)", res, sqlite3_errstr(res).to!string));
+			debug(db) writeln(format("    >Final Code %d (%s)", fin, sqlite3_errstr(fin).to!string));
+			throw new Exception(sqlite3_errstr(fin).to!string);
 			return null;
 		}
 		return ret;
