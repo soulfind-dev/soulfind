@@ -12,6 +12,7 @@ import std.string : format, join, split, replace, toStringz;
 import std.stdio : writeln, write;
 import std.file : exists, isFile, getAttributes;
 import std.conv : to, octal, ConvException;
+import std.digest.md : md5Of;
 
 import etc.c.sqlite3;
 
@@ -151,18 +152,16 @@ class Sdb
 		return ret;
 	}
 
-	void user_update_field(string username, string field, string value)
-	{
-		string query = format("UPDATE %s SET %s = '%s' WHERE username = '%s';", users_table, field, escape(value), escape(username));
-
-		this.query(query);
-	}
+	//void user_update_field(string username, string field, string value)		// POSSIBLE VULNRABILITY (any 'field')
+	//{
+	//	string query = format("UPDATE %s SET %s = '%s' WHERE username = '%s';", users_table, field, escape(value), escape(username));
+	//
+	//	this.query(query);
+	//}
 
 	void user_update_field(string username, string field, uint value)
 	{
-		string query = format("UPDATE %s SET %s = %d WHERE username = '%s';", users_table, field, value, escape(username));
-
-		this.query(query);
+		this.query(format("UPDATE %s SET %s = %d WHERE username = '%s';", users_table, field, value, escape(username)));
 	}
 
 	string[] get_all_usernames()
@@ -179,19 +178,26 @@ class Sdb
 		string[][] res = this.query(format("SELECT username FROM %s WHERE username = '%s';", users_table, escape(username)));
 		return res.length > 0;
 	}
-	
-	string get_pass(string username)
+
+ 	bool check_pass(string username, string password)
+	{
+		return username && password && user_exists(username) && this.get_pass(username) == this.digest(password);
+	}
+
+	private string get_pass(string username)
 	{
 		string[][] res = this.query(format("SELECT password FROM %s WHERE username = '%s';", users_table, escape(username)));
 		return res[0][0];
 	}
-	
+
+	void set_pass(string username, string password)
+	{
+		this.query(format("UPDATE %s SET password = '%s' WHERE username = '%s';", users_table, digest(password), escape(username)));
+	}
+
 	void add_user(string username, string password)
 	{
-		string query = format("INSERT INTO %s(username, password) VALUES('%s', '%s');",
-				       users_table, escape(username), escape(password));
-		this.query(query);
-		debug(db) writeln(query);
+		this.query(format("INSERT INTO %s(username, password) VALUES('%s', '%s');", users_table, escape(username), digest(password)));
 	}
 	
 	bool is_banned(string username)
@@ -207,7 +213,7 @@ class Sdb
 
 	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
+		debug(db) writeln("DB: Requested ", username, "'s public info...");
 		string query = format("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape(username));
 		string[][] res = this.query(query);
 		if (res.length > 0) {
@@ -223,15 +229,15 @@ class Sdb
 		return false;
 	}
 	
-	bool get_user(string username, out string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
+	bool get_user(string username, string password, out string pass, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
-		string query = format("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape(username));
+		debug(db) writeln("DB: Requested ", username, "'s personal data...");
+		string query = format("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';", users_table, escape(username), digest(password));
 		string[][] res = this.query(query);
 		if (res.length > 0) {
 			string[] u      = res[0];
 
-			password        = u[0];
+			pass            = u[0];
 			speed           = atoi(u[1]);
 			upload_number   = atoi(u[2]);
 			shared_files    = atoi(u[3]);
@@ -275,6 +281,15 @@ class Sdb
 			return null;
 		}
 		return ret;
+	}
+
+	private string digest(string str)
+	{
+		//??? return digest!MD5(password).toHexString!(LetterCase.lower));
+		ubyte[16] digest = md5Of(str);
+		string s;
+		foreach (u ; digest) s ~= format("%02x", u);
+		return s;
 	}
 
 	string escape(string str)

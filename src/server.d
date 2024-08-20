@@ -21,7 +21,6 @@ import std.array : split, join, replace;
 import std.ascii : isPrintable, isPunctuation;
 import std.format : format;
 import std.algorithm : canFind;
-import std.digest.md : md5Of;
 import std.string : strip;
 import std.process : thisProcessID;
 
@@ -615,14 +614,6 @@ class Server
 		return dur!"seconds"(uptime.total!"seconds").toString;
 	}
 
-	private string encode_password(string pass)
-	{
-		ubyte[16] digest = md5Of(pass);
-		string s;
-		foreach (u ; digest) s ~= format("%02x", u);
-		return s;
-	}
-
 	bool check_name(string text, uint max_length = 24)
 	{
 		if (!text || text.length > max_length) {
@@ -660,9 +651,13 @@ class Server
 			error = "INVALIDUSERNAME";
 			return false;
 		}
+		if (!password) {
+			error = "INVALIDPASS";
+			return false;
+		}
 		if (!db.user_exists(username)) {
 			debug (user) writeln("New user ", username, " registering");
-			db.add_user(username, encode_password(password));
+			db.add_user(username, password);
 			return true;
 		}
 		debug (user) writeln("User ", username, " is registered");
@@ -671,7 +666,7 @@ class Server
 			error = "BANNED";
 			return false;
 		}
-		if (db.get_pass(username) != encode_password(password)) {
+		if (!db.check_pass(username, password)) {
 			error = "INVALIDPASS";
 			return false;
 		}

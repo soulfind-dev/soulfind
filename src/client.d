@@ -46,7 +46,6 @@ class User
 	Socket		sock;
 	Server		server;
 
-	private string		password;
 	private uint		address;
 	private ushort		port;
 
@@ -101,12 +100,6 @@ class User
 	{
 		shared_folders = new_folders;
 		server.db.user_update_field(username, "folders", shared_folders);
-	}
-
-	private void change_password(string new_password)
-	{
-		password = new_password;
-		server.db.user_update_field(username, "password", password);
 	}
 
 	// privileges
@@ -820,8 +813,8 @@ class User
 			case ChangePassword:
 				auto msg = new UChangePassword(msg_buf);
 
-				change_password(msg.password);
-				send_message(new SChangePassword(password));
+				server.db.set_pass(username, msg.password);
+				send_message(new SChangePassword(msg.password));
 				break;
 
 			case MessageUsers:
@@ -870,14 +863,17 @@ class User
 	private void login(ULogin msg)
 	{
 		username = msg.username;
-		password = msg.password;
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
+		auto pass = "";
+
 		server.db.get_user(
-			username, password, speed, upload_number, shared_files,
+			username, msg.password, pass, speed, upload_number, shared_files,
 			shared_folders, privileges
 		);
+
+		msg.password = "";
 
 		if (server.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
@@ -885,7 +881,7 @@ class User
 		auto motd = server.get_motd(username);
 		auto supporter = privileges > 0;
 
-		send_message(new SLogin(true, motd, address, password, supporter));
+		send_message(new SLogin(true, motd, address, pass, supporter));
 		send_message(new SRoomList(Room.room_stats));
 		send_message(
 			new SWishlistInterval(supporter ? 120 : 720)  // in seconds

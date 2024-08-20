@@ -10,8 +10,8 @@ import defines;
 
 import std.bitmanip;
 import std.conv : to;
-import std.digest : digest, LetterCase, toHexString;
-import std.digest.md : MD5;
+//import std.digest : digest, LetterCase, toHexString;
+//import std.digest.md : MD5;
 import std.format : format;
 import std.outbuffer : OutBuffer;
 import std.stdio : writeln;
@@ -588,7 +588,7 @@ class SLogin : Message
 {	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
 	this(bool success, string mesg, uint addr = 0,
-			string password = null, bool supporter = false)
+			string pass = null, bool supporter = false)
 	{
 		super(Login);
 		
@@ -597,7 +597,7 @@ class SLogin : Message
 		if (success)
 		{
 			writei(addr);	// external IP address of the client
-			writes(digest!MD5(password).toHexString!(LetterCase.lower));
+			writes(pass);	// digest!MD5(password).toHexString!(LetterCase.lower));
 			writeb(supporter);
 		}
 	}
