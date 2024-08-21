@@ -12,7 +12,11 @@ import std.string : format, join, split, replace, toStringz;
 import std.stdio : writeln, write;
 import std.file : exists, isFile, getAttributes;
 import std.conv : to, octal, ConvException;
+import std.digest : secureEqual;
 import std.digest.md : md5Of;
+
+//import std.digest : digest, LetterCase, secureEqual, toHexString;
+//import std.digest.md : MD5;
 
 import etc.c.sqlite3;
 
@@ -152,13 +156,6 @@ class Sdb
 		return ret;
 	}
 
-	//void user_update_field(string username, string field, string value)		// POSSIBLE VULNRABILITY (any 'field')
-	//{
-	//	string query = format("UPDATE %s SET %s = '%s' WHERE username = '%s';", users_table, field, escape(value), escape(username));
-	//
-	//	this.query(query);
-	//}
-
 	void user_update_field(string username, string field, uint value)
 	{
 		this.query(format("UPDATE %s SET %s = %d WHERE username = '%s';", users_table, field, value, escape(username)));
@@ -181,7 +178,7 @@ class Sdb
 
  	bool check_pass(string username, string password)
 	{
-		return username && password && user_exists(username) && this.get_pass(username) == this.digest(password);
+		return username && password && this.user_exists(username) && secureEqual(this.get_pass(username), this.hash(password));
 	}
 
 	private string get_pass(string username)
@@ -192,12 +189,12 @@ class Sdb
 
 	void set_pass(string username, string password)
 	{
-		this.query(format("UPDATE %s SET password = '%s' WHERE username = '%s';", users_table, digest(password), escape(username)));
+		this.query(format("UPDATE %s SET password = '%s' WHERE username = '%s';", users_table, this.hash(password), escape(username)));
 	}
 
 	void add_user(string username, string password)
 	{
-		this.query(format("INSERT INTO %s(username, password) VALUES('%s', '%s');", users_table, escape(username), digest(password)));
+		this.query(format("INSERT INTO %s(username, password) VALUES('%s', '%s');", users_table, escape(username), this.hash(password)));
 	}
 	
 	bool is_banned(string username)
@@ -213,7 +210,7 @@ class Sdb
 
 	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s public info...");
+		debug(db) writeln("DB: Requested ", username, "'s public data...");
 		string query = format("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape(username));
 		string[][] res = this.query(query);
 		if (res.length > 0) {
@@ -229,20 +226,19 @@ class Sdb
 		return false;
 	}
 	
-	bool get_user(string username, string password, out string pass, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
+	bool get_user(string username, string password_hash, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s personal data...");
-		string query = format("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';", users_table, escape(username), digest(password));
+		string query = format("SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';", users_table, escape(username), password_hash);
 		string[][] res = this.query(query);
 		if (res.length > 0) {
 			string[] u      = res[0];
 
-			pass            = u[0];
-			speed           = atoi(u[1]);
-			upload_number   = atoi(u[2]);
-			shared_files    = atoi(u[3]);
-			shared_folders  = atoi(u[4]);
-			privileges      = atoi(u[5]);
+			speed           = atoi(u[0]);
+			upload_number   = atoi(u[1]);
+			shared_files    = atoi(u[2]);
+			shared_folders  = atoi(u[3]);
+			privileges      = atoi(u[4]);
 			return true;
 		}
 		return false;
@@ -283,9 +279,22 @@ class Sdb
 		return ret;
 	}
 
-	private string digest(string str)
+ 	string get_password_hash(string username, string password, string user_hash, out bool hash_verified)
 	{
-		//??? return digest!MD5(password).toHexString!(LetterCase.lower));
+		string password_hash = this.get_pass(username);
+
+		if (password && password_hash && secureEqual(password_hash, this.hash(password))) {
+			hash_verified = user_hash && secureEqual(user_hash, this.hash(username ~ password));
+		}
+		else {
+			password_hash = "";
+		}
+
+		return password_hash;
+	}
+
+	private string hash(string str)
+	{
 		ubyte[16] digest = md5Of(str);
 		string s;
 		foreach (u ; digest) s ~= format("%02x", u);

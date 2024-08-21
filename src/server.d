@@ -312,6 +312,9 @@ class Server
 
 	void admin_message(User admin, string message)
 	{
+		if (!admin.hash_verified)
+			return;
+
 		auto command = message.split(" ");
 		if (command.length > 0) switch (command[0])
 		{
@@ -489,7 +492,7 @@ class Server
 
 	bool is_admin(string name)
 	{
-			return name in admins ? true : false;
+		return name in admins ? true : false;
 	}
 
 	private void add_admin(string name)
@@ -536,6 +539,7 @@ class Server
 					~ "\n\tclient version: %s"
 					~ "\n\taddress: %s"
 					~ "\n\tadmin: %s"
+					~ "\n\thash verified: %s"
 					~ "\n\tfiles: %s"
 					~ "\n\tdirs: %s"
 					~ "\n\tstatus: %s"
@@ -546,6 +550,7 @@ class Server
 						user.major_version.to!string ~ "." ~ user.minor_version.to!string,
 						user.sock.remoteAddress,
 						is_admin(username),
+						user.hash_verified,
 						user.shared_files,
 						user.shared_folders,
 						user.status,
@@ -645,7 +650,7 @@ class Server
 	}
 
 	bool check_login(string username, string password, uint major_version,
-					 string hash, uint minor_version, out string error)
+					 string user_hash, uint minor_version, out string error)
 	{
 		if (!check_name(username, 30)) {
 			error = "INVALIDUSERNAME";

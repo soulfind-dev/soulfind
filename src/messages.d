@@ -10,8 +10,6 @@ import defines;
 
 import std.bitmanip;
 import std.conv : to;
-//import std.digest : digest, LetterCase, toHexString;
-//import std.digest.md : MD5;
 import std.format : format;
 import std.outbuffer : OutBuffer;
 import std.stdio : writeln;
@@ -136,7 +134,7 @@ class ULogin : Message
 	string username;		// user name
 	string password;		// user password
 	uint   major_version;	// client version
-	string hash;			// MD5 hash of username + password
+	string user_hash;		// MD5 hash of username + password
 	uint   minor_version;	// client minor version
 
 	this(ubyte[] in_buf)
@@ -149,7 +147,7 @@ class ULogin : Message
 
 		if (major_version >= 155) {
 			// Older clients would not send these
-			hash = reads();
+			user_hash = reads();
 			minor_version = readi();
 		}
 	}
@@ -588,7 +586,7 @@ class SLogin : Message
 {	// If the login succeeded send the MOTD and the external IP of the client
 		// if not, send the error message
 	this(bool success, string mesg, uint addr = 0,
-			string pass = null, bool supporter = false)
+			string password_hash = null, bool supporter = false)
 	{
 		super(Login);
 		
@@ -596,8 +594,8 @@ class SLogin : Message
 		writes(mesg);		// server message
 		if (success)
 		{
-			writei(addr);	// external IP address of the client
-			writes(pass);	// digest!MD5(password).toHexString!(LetterCase.lower));
+			writei(addr);			// external IP address of the client
+			writes(password_hash);	// MD5 hash of password
 			writeb(supporter);
 		}
 	}

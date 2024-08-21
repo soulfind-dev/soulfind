@@ -28,6 +28,7 @@ class User
 {
 	// some attributes...
 	string		username;
+	bool		hash_verified;
 	uint		major_version;
 	uint		minor_version;
 
@@ -436,7 +437,7 @@ class User
 				string error;
 
 				if (!server.check_login(msg.username, msg.password, msg.major_version,
-						msg.hash, msg.minor_version, error)) {
+						msg.user_hash, msg.minor_version, error)) {
 					username = msg.username;
 					should_quit = true;
 
@@ -729,7 +730,7 @@ class User
 				break;
 
 			case AdminMessage:
-				if (!server.is_admin(username))
+				if (!server.is_admin(username) || !hash_verified)
 					break;
 
 				auto msg = new UAdminMessage(msg_buf);
@@ -866,27 +867,36 @@ class User
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
-		auto pass = "";
+		string password_hash = server.db.get_password_hash(
+			username, msg.password, msg.user_hash, hash_verified
+		);
+		msg.password = "";  // don't keep this anywhere
 
 		server.db.get_user(
-			username, msg.password, pass, speed, upload_number, shared_files,
-			shared_folders, privileges
+			username, password_hash, speed, upload_number,
+			shared_files, shared_folders, privileges
 		);
-
-		msg.password = "";
-
-		if (server.is_admin(username)) writeln(username, " is an admin.");
+		debug (user) {
+			write(username ~ " ");
+			if (!msg.user_hash) writeln("is non-hashed!");
+			if (msg.user_hash && !hash_verified) writeln("is mis-hashed!");
+			if (hash_verified) writeln("is hashed.");
+		}
+		if (server.is_admin(username)) {
+			if (!hash_verified) writeln(username, " is a corrupt admin!");
+			if (hash_verified) writeln(username, " is an admin.");
+		}
 		server.add_user(this);
 
 		auto motd = server.get_motd(username);
 		auto supporter = privileges > 0;
 
-		send_message(new SLogin(true, motd, address, pass, supporter));
+		send_message(new SLogin(true, motd, address, password_hash, supporter));
 		send_message(new SRoomList(Room.room_stats));
-		send_message(
-			new SWishlistInterval(supporter ? 120 : 720)  // in seconds
-		);
+		send_message(new SWishlistInterval(supporter ? 120 : 720));
 		set_status(Status.online);
+
+		password_hash = "";  // we don't need this here
 
 		foreach (pm ; PM.get_pms_for(username)) {
 			auto new_message = false;
