@@ -6,6 +6,14 @@
 
 # News
 
+## 0.5.0-dev (Unstable)
+
+ - Relicenced to GNU General Public License v3.0 or later
+ - Validate username and roomname strings as printable ASCII instead of UTF
+ - Substantial breaking changes, including a new database schema, may require
+   a totally fresh install from time to time. Data loss is to be expected.
+
+
 ## 0.4.8
 
  - Updated for DMD 0.155

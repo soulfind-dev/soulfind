@@ -74,5 +74,6 @@ People who have contributed to Soulfind:
 
  - seeschloss (creator)
  - mathiascode
+ - slook
 
 © 2005–2024 Soulfind Contributors
