@@ -103,12 +103,6 @@ class User
 		server.db.user_update_field(username, "folders", shared_folders);
 	}
 
-	private void change_password(string new_password)
-	{
-		password = new_password;
-		server.db.user_update_field(username, "password", password);
-	}
-
 	// privileges
 	private uint		privileges;			// in seconds
 	private MonoTime	last_priv_check;
@@ -821,8 +815,11 @@ class User
 
 			case ChangePassword:
 				auto msg = new UChangePassword(msg_buf);
+				password = msg.password;
 
-				change_password(msg.password);
+				server.db.user_update_field(
+					username, "password", server.encode_password(password)
+				);
 				send_message(new SChangePassword(password));
 				break;
 

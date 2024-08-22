@@ -615,7 +615,7 @@ class Server
 		return dur!"seconds"(uptime.total!"seconds").toString;
 	}
 
-	private string encode_password(string pass)
+	string encode_password(string pass)
 	{
 		ubyte[16] digest = md5Of(pass);
 		string s;
