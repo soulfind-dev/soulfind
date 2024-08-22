@@ -57,9 +57,6 @@ class Message
 	
 	private void writes(string s)
 	{
-		debug(msg) writeln(
-			"Sending string '", s, "', length ", s.length
-		);
 		writei(s.length);
 		out_buf.write(s);
 	}

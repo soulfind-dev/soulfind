@@ -311,9 +311,12 @@ class User
 
 	private void send_to_watching(Message msg)
 	{
+		if (!watched_by)
+			return;
+
 		debug (msg) write(
-			"Sending message code ", blue, message_name[msg.code], black,
-			"(", msg.code, ") to "
+			"Sending message ", blue, message_name[msg.code], black,
+			" (code ", msg.code, ") to "
 		);
 		foreach (user ; watched_by) {
 			debug (msg) writeln(user.username);
@@ -381,11 +384,8 @@ class User
 		msg_size_buf.clear();
 
 		debug (msg) writeln(
-			"Sent ", out_buf.length, " bytes to user " ~ blue, username, black
-		);
-		debug (msg) writeln(
-			"Sending message code ", blue, message_name[msg.code], black,
-			"(", msg.code, ") to ", username
+			"Sending message ", blue, message_name[msg.code], black,
+			" (code ", msg.code, ") (", msg_buf.length, " bytes) to ", username
 		);
 	}
 
@@ -424,12 +424,13 @@ class User
 		auto code = msg_buf.read!(uint, Endian.littleEndian);
 
 		in_buf = in_buf[in_msg_size .. $];
-		in_msg_size = -1;
 
 		debug (msg) writeln(
-			"Received message ", blue, message_name[code], black, "(code ",
-			blue, code, black ~ ")"
+			"Received message ", blue, message_name[code], black, " (code ",
+			code, black ~ ") (", in_msg_size, " bytes) from ", username
 		);
+
+		in_msg_size = -1;
 
 		if (status == Status.offline && code != Login)
 			return;
