@@ -497,9 +497,10 @@ class User
 				string country_code;
 
 				if (server.db.user_exists(msg.user)) {
+					exists = true;
 					auto user = server.get_user(msg.user);
 					if (user)
-						{
+					{
 						status = user.status;
 						country_code = user.country_code;
 					}
