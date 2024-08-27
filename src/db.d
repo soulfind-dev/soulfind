@@ -223,20 +223,19 @@ class Sdb
 		return false;
 	}
 	
-	bool get_user(string username, out string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
+	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
-		string query = format("SELECT password,speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';", users_table, escape(username));
+		string query = format("SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';", users_table, escape(username), escape(password));
 		string[][] res = this.query(query);
 		if (res.length > 0) {
 			string[] u      = res[0];
 
-			password        = u[0];
-			speed           = atoi(u[1]);
-			upload_number   = atoi(u[2]);
-			shared_files    = atoi(u[3]);
-			shared_folders  = atoi(u[4]);
-			privileges      = atoi(u[5]);
+			speed           = atoi(u[0]);
+			upload_number   = atoi(u[1]);
+			shared_files    = atoi(u[2]);
+			shared_folders  = atoi(u[3]);
+			privileges      = atoi(u[4]);
 			return true;
 		}
 		return false;

@@ -869,7 +869,7 @@ class User
 	private void login(ULogin msg)
 	{
 		username = msg.username;
-		password = msg.password;
+		password = server.encode_password(msg.password);
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
