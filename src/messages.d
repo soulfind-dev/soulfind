@@ -10,8 +10,6 @@ import defines;
 
 import std.bitmanip;
 import std.conv : to;
-import std.digest : digest, LetterCase, toHexString;
-import std.digest.md : MD5;
 import std.format : format;
 import std.outbuffer : OutBuffer;
 import std.stdio : writeln;
@@ -594,7 +592,7 @@ class SLogin : Message
 		if (success)
 		{
 			writei(addr);	// external IP address of the client
-			writes(digest!MD5(password).toHexString!(LetterCase.lower));
+			writes(password);
 			writeb(supporter);
 		}
 	}
