@@ -14,6 +14,8 @@ const uint max_msg_size		= 16384;
 const string server_user	= "server";
 
 // colours
-const char[] blue      = "\033[01;94m";
-const char[] black     = "\033[0m";
-const char[] red       = "\033[01;91m";
+const char[] norm	= "\033[0m";		// reset to normal
+const char[] bold	= "\033[1m";		// bold intensity
+const char[] bg_w	= "\033[30;107m";	// background white
+const char[] blue	= "\033[01;94m";	// foreground blue
+const char[] red	= "\033[01;91m";	// foreground red
