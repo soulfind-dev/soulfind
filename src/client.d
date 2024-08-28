@@ -46,7 +46,6 @@ class User
 	Socket		sock;
 	Server		server;
 
-	private string		password;
 	private uint		address;
 	private ushort		port;
 
@@ -815,12 +814,11 @@ class User
 
 			case ChangePassword:
 				auto msg = new UChangePassword(msg_buf);
-				password = msg.password;
 
 				server.db.user_update_field(
-					username, "password", server.encode_password(password)
+					username, "password", server.encode_password(msg.password)
 				);
-				send_message(new SChangePassword(password));
+				send_message(new SChangePassword(msg.password));
 				break;
 
 			case MessageUsers:
@@ -869,7 +867,7 @@ class User
 	private void login(ULogin msg)
 	{
 		username = msg.username;
-		password = server.encode_password(msg.password);
+		auto password = server.encode_password(msg.password);
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
