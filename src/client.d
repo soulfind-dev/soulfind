@@ -420,7 +420,7 @@ class User
 
 		debug (msg) writeln(
 			"Received message ", blue, message_name[code], black, " (code ",
-			code, black ~ ") (", in_msg_size, " bytes) from ", username
+			code, black, ") (", in_msg_size, " bytes) from ", username
 		);
 
 		in_msg_size = -1;
@@ -442,7 +442,7 @@ class User
 					should_quit = true;
 
 					writeln(username, ": Impossible to login (", error, ")");
-					writeln("User " ~ red, username, black ~ " denied.");
+					writeln("User ", red, username, black, " denied.");
 					send_message(new SLogin(false, error));
 					return;
 				}
@@ -456,7 +456,7 @@ class User
 				}
 
 				writeln(
-					blue, msg.username, black ~ ", version ",
+					blue, msg.username, black, ", version ",
 					msg.major_version, ".", msg.minor_version
 				);
 				login(msg);
@@ -908,6 +908,6 @@ class User
 		Room.remove_global_room_user(username);
 
 		set_status(Status.offline);
-		writeln("User " ~ blue, username, black ~ " has quit.");
+		writeln("User ", blue, username, black, " has quit.");
 	}
 }

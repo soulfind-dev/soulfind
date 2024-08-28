@@ -30,7 +30,7 @@ class Sdb
 
 	this(string file, bool update = false)
 	{
-		string default_conf_format = format("INSERT INTO %%s(port, max_users, motd) VALUES(%d, %d, 'Soulfind %s');", port, max_users, VERSION);
+		string default_conf_format = "INSERT INTO %%s(port, max_users, motd) VALUES(%d, %d, 'Soulfind %s');".format(port, max_users, VERSION);
 		if (!exists(file) || !isFile(file)) {
 			open_db(file);
 			if (!exists(file) || !isFile(file)) {
@@ -46,7 +46,7 @@ class Sdb
 			open_db(file);
 
 			string[][] res = query(format("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
-			if (res[0][0] != format(conf_table_format[0 .. $-1], conf_table)) {
+			if (res[0][0] != conf_table_format[0 .. $-1].format(conf_table)) {
 				write("Configuration needs to be updated... ");
 				update_conf_table(res[0][0], default_conf_format[0 .. $-1]);
 				writeln("updated.");
@@ -130,21 +130,21 @@ class Sdb
 
 	uint nb_users()
 	{
-		string query = format("SELECT COUNT(username) FROM %s;", users_table);
+		string query = "SELECT COUNT(username) FROM %s;".format(users_table);
 		string[][] res = this.query(query);
 		return atoi(res[0][0]);
 	}
 	
 	uint nb_banned_users()
 	{
-		string query = format("SELECT COUNT(username) FROM %s WHERE banned = 1;", users_table);
+		string query = "SELECT COUNT(username) FROM %s WHERE banned = 1;".format(users_table);
 		string[][] res = this.query(query);
 		return atoi(res[0][0]);
 	}
 
 	string[] get_banned_usernames()
 	{
-		string[][] res = this.query(format("SELECT username FROM %s WHERE banned = 1;", users_table));
+		string[][] res = this.query("SELECT username FROM %s WHERE banned = 1;".format(users_table));
 		string[] ret;
 
 		foreach (string[] record ; res) ret ~= record[0];
@@ -153,21 +153,21 @@ class Sdb
 
 	void user_update_field(string username, string field, string value)
 	{
-		string query = format("UPDATE %s SET %s = '%s' WHERE username = '%s';", users_table, field, escape(value), escape(username));
+		string query = "UPDATE %s SET %s = '%s' WHERE username = '%s';".format(users_table, field, escape(value), escape(username));
 
 		this.query(query);
 	}
 
 	void user_update_field(string username, string field, uint value)
 	{
-		string query = format("UPDATE %s SET %s = %d WHERE username = '%s';", users_table, field, value, escape(username));
+		string query = "UPDATE %s SET %s = %d WHERE username = '%s';".format(users_table, field, value, escape(username));
 
 		this.query(query);
 	}
 
 	string[] get_all_usernames()
 	{
-		string[][] res = this.query(format("SELECT username FROM %s;", users_table));
+		string[][] res = this.query("SELECT username FROM %s;".format(users_table));
 		string[] ret;
 
 		foreach (string[] record ; res) ret ~= record[0];
@@ -188,15 +188,18 @@ class Sdb
 	
 	void add_user(string username, string password)
 	{
-		string query = format("INSERT INTO %s(username, password) VALUES('%s', '%s');",
-				       users_table, escape(username), escape(password));
+		string query = "INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
+			users_table, escape(username), escape(password)
+		);
 		this.query(query);
 		debug(db) writeln(query);
 	}
 	
 	bool is_banned(string username)
 	{
-		string query = format("SELECT banned FROM %s WHERE username = '%s';", users_table, escape(username));
+		string query = "SELECT banned FROM %s WHERE username = '%s';".format(
+			users_table, escape(username)
+		);
 		string[][] res = this.query(query);
 
 		if (res.length == 1)
@@ -208,7 +211,9 @@ class Sdb
 	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
-		string query = format("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';", users_table, escape(username));
+		string query = "SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';".format(
+			users_table, escape(username)
+		);
 		string[][] res = this.query(query);
 		if (res.length > 0) {
 			string[] u      = res[0];
@@ -226,7 +231,9 @@ class Sdb
 	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
-		string query = format("SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';", users_table, escape(username), escape(password));
+		string query = "SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
+			users_table, escape(username), escape(password)
+		);
 		string[][] res = this.query(query);
 		if (res.length > 0) {
 			string[] u      = res[0];

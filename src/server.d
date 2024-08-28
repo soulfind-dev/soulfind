@@ -21,7 +21,8 @@ import std.array : split, join, replace;
 import std.ascii : isPrintable, isPunctuation;
 import std.format : format;
 import std.algorithm : canFind;
-import std.digest.md : md5Of;
+import std.digest : digest, LetterCase, toHexString;
+import std.digest.md : MD5;
 import std.string : strip;
 import std.process : thisProcessID;
 
@@ -360,7 +361,7 @@ class Server
 				auto user = get_user(username);
 				if (!user) {
 					admin_pm(
-						admin, format("User %s does not exist.", username)
+						admin, "User %s does not exist.".format(username)
 					);
 					break;
 				}
@@ -370,7 +371,7 @@ class Server
 
 			case "nbusers":
 				auto num_users = nb_users;
-				admin_pm(admin, format("%d connected users.", num_users));
+				admin_pm(admin, "%d connected users.".format(num_users));
 				break;
 
 			case "users":
@@ -401,7 +402,7 @@ class Server
 				auto username = join(command[1 .. $], " ");
 				kill_user(username);
 				admin_pm(
-					admin, format("User %s kicked from the server", username)
+					admin, "User %s kicked from the server".format(username)
 				);
 				break;
 
@@ -413,7 +414,7 @@ class Server
 				auto username = join(command[1 .. $], " ");
 				ban_user(username);
 				admin_pm(
-					admin, format("User %s banned from the server", username)
+					admin, "User %s banned from the server".format(username)
 				);
 				break;
 
@@ -425,7 +426,7 @@ class Server
 				auto username = join(command[1 .. $], " ");
 				unban_user(username);
 				admin_pm(
-					admin, format("User %s not banned anymore", username)
+					admin, "User %s not banned anymore".format(username)
 				);
 				break;
 
@@ -456,7 +457,7 @@ class Server
 			case "rooms":
 				string list;
 				foreach (room ; Room.rooms)
-					list ~= format("%s:%d ", room.name, room.nb_users);
+					list ~= "%s:%d ".format(room.name, room.nb_users);
 				admin_pm(admin, list);
 				break;
 
@@ -533,25 +534,27 @@ class Server
 			return "";
 
 		user.update_privileges();
-		return format("%s: connected at %s"
-					~ "\n\tclient version: %s"
-					~ "\n\taddress: %s"
-					~ "\n\tadmin: %s"
-					~ "\n\tfiles: %s"
-					~ "\n\tdirs: %s"
-					~ "\n\tstatus: %s"
-					~ "\n\tprivileges: %s"
-					~ "\n\tjoined rooms: %s",
-						username,
-						user.connected_at,
-						user.major_version.to!string ~ "." ~ user.minor_version.to!string,
-						user.sock.remoteAddress,
-						is_admin(username),
-						user.shared_files,
-						user.shared_folders,
-						user.status,
-						user.h_privileges,
-						user.list_joined_rooms);
+		return format(
+			"%s: connected at %s"
+			~ "\n\tclient version: %s"
+			~ "\n\taddress: %s"
+			~ "\n\tadmin: %s"
+			~ "\n\tfiles: %s"
+			~ "\n\tdirs: %s"
+			~ "\n\tstatus: %s"
+			~ "\n\tprivileges: %s"
+			~ "\n\tjoined rooms: %s",
+				username,
+				user.connected_at,
+				"%d.%d".format(user.major_version, user.minor_version),
+				user.sock.remoteAddress,
+				is_admin(username),
+				user.shared_files,
+				user.shared_folders,
+				user.status,
+				user.h_privileges,
+				user.list_joined_rooms
+		);
 	}
 
 	private void kill_all_users()
@@ -583,12 +586,14 @@ class Server
 	string get_motd(string username)
 	{
 		auto user = get_user(username);
+		auto client_version = "%d.%d".format(
+			user.major_version, user.minor_version);
 
 		string ret;
 		ret = replace(motd, "%version%", VERSION);
 		ret = replace(ret, "%nbusers%", nb_users.to!string);
 		ret = replace(ret, "%username%", username);
-		ret = replace(ret, "%userversion%", user.major_version.to!string ~ "." ~ user.minor_version.to!string);
+		ret = replace(ret, "%userversion%", client_version);
 		return ret;
 	}
 
@@ -617,10 +622,7 @@ class Server
 
 	string encode_password(string pass)
 	{
-		ubyte[16] digest = md5Of(pass);
-		string s;
-		foreach (u ; digest) s ~= format("%02x", u);
-		return s;
+		return digest!MD5(pass).toHexString!(LetterCase.lower).to!string;
 	}
 
 	bool check_name(string text, uint max_length = 24)

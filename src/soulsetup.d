@@ -47,7 +47,7 @@ string input()
 
 void main_menu()
 {
-	auto menu = new Menu("Soulfind " ~ VERSION ~ " configuration");
+	auto menu = new Menu("Soulfind %s configuration".format(VERSION));
 	
 	menu.add("0", "Admins",            &admins);
 	menu.add("1", "Listen port",       &listen_port);
@@ -210,11 +210,10 @@ void info()
 {
 	auto menu = new Menu("Misc. information :");
 
-	menu.info  = format(
-		"Soulsetup for Soulfind %s, compiled on %s\n",
+	menu.info = "Soulsetup for Soulfind %s, compiled on %s\n".format(
 		VERSION, __DATE__
 	);
-	menu.info ~= format("%d registered users", sdb.nb_users());
+	menu.info ~= "%d registered users".format(sdb.nb_users());
 	menu.add("q", "Return", &main_menu);
 
 	menu.show();
