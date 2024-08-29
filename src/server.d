@@ -21,7 +21,7 @@ import std.array : split, join, replace;
 import std.ascii : isPrintable, isPunctuation;
 import std.format : format;
 import std.algorithm : canFind;
-import std.digest : digest, LetterCase, toHexString;
+import std.digest : digest, LetterCase, toHexString, secureEqual;
 import std.digest.md : MD5;
 import std.string : strip;
 import std.process : thisProcessID;
@@ -673,7 +673,7 @@ class Server
 			error = "BANNED";
 			return false;
 		}
-		if (db.get_pass(username) != encode_password(password)) {
+		if (!secureEqual(db.get_pass(username), encode_password(password))) {
 			error = "INVALIDPASS";
 			return false;
 		}
