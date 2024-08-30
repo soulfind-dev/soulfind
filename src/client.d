@@ -308,7 +308,7 @@ class User
 			return;
 
 		debug (msg) write(
-			"Sending message ", blue, message_name[msg.code], black,
+			"Sending message ", blue, message_name[msg.code], norm,
 			" (code ", msg.code, ") to "
 		);
 		foreach (user ; watched_by) {
@@ -377,7 +377,7 @@ class User
 		msg_size_buf.clear();
 
 		debug (msg) writeln(
-			"Sending message ", blue, message_name[msg.code], black,
+			"Sending message ", blue, message_name[msg.code], norm,
 			" (code ", msg.code, ") (", msg_buf.length, " bytes) to ", username
 		);
 	}
@@ -419,8 +419,8 @@ class User
 		in_buf = in_buf[in_msg_size .. $];
 
 		debug (msg) writeln(
-			"Received message ", blue, message_name[code], black, " (code ",
-			code, black, ") (", in_msg_size, " bytes) from ", username
+			"Received message ", blue, message_name[code], norm, " (code ",
+			code, norm, ") (", in_msg_size, " bytes) from ", username
 		);
 
 		in_msg_size = -1;
@@ -442,7 +442,7 @@ class User
 					should_quit = true;
 
 					writeln(username, ": Impossible to login (", error, ")");
-					writeln("User ", red, username, black, " denied.");
+					writeln("User ", red, username, norm, " denied.");
 					send_message(new SLogin(false, error));
 					return;
 				}
@@ -456,7 +456,7 @@ class User
 				}
 
 				writeln(
-					blue, msg.username, black, ", version ",
+					blue, msg.username, norm, ", version ",
 					msg.major_version, ".", msg.minor_version
 				);
 				login(msg);
@@ -853,8 +853,8 @@ class User
 			default:
 				debug (msg) {
 					write(
-						red, "Unimplemented message", black, " from user ",
-						blue, username, black, ", code ", red, code, black,
+						red, "Unimplemented message", norm, " from user ",
+						blue, username, norm, ", code ", red, code, norm,
 						" and length ", msg_buf.length, "\n> "
 					);
 					writeln(msg_buf);
@@ -908,6 +908,6 @@ class User
 		Room.remove_global_room_user(username);
 
 		set_status(Status.offline);
-		writeln("User ", blue, username, black, " has quit.");
+		writeln("User ", blue, username, norm, " has quit.");
 	}
 }

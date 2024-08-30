@@ -133,7 +133,11 @@ class Server
 			return 1789;
 		}
 
-		writeln("Process ", thisProcessID, " listening on port ", port);
+		writeln(
+			bg_w, "▌", red, "♥", norm, bg_w, "▐", norm, bold,
+			"Soulfind %s process %s listening on port %s"
+			.format(VERSION ~ norm, thisProcessID, port)
+		);
 
 		auto read_socks = new SocketSet(max_users + 1);
 		auto write_socks = new SocketSet(max_users + 1);
@@ -298,8 +302,8 @@ class Server
 	private void send_to_all(Message msg)
 	{
 		debug (msg) write(
-			"Sending message(", blue,  message_name[msg.code], black,
-			" - code ", blue, msg.code, black, ") to all users"
+			"Sending message(", blue,  message_name[msg.code], norm,
+			" - code ", blue, msg.code, norm, ") to all users"
 		);
 		foreach (user ; users)
 		{
