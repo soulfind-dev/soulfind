@@ -606,7 +606,7 @@ class User
 				auto msg = new UMessageUser(msg_buf);
 				auto user = server.get_user(msg.user);
 
-				if (msg.user == server_user && server.is_admin(username)) {
+				if (msg.user == server_user) {
 					server.admin_message(this, msg.message);
 				}
 				else if (user) { // user is connected
@@ -731,7 +731,7 @@ class User
 				break;
 
 			case AdminMessage:
-				if (!server.is_admin(username))
+				if (!server.db.is_admin(username))
 					break;
 
 				auto msg = new UAdminMessage(msg_buf);
@@ -802,7 +802,7 @@ class User
 			case GivePrivileges:
 				auto msg = new UGivePrivileges(msg_buf);
 				auto user = server.get_user(msg.user);
-				auto admin = server.is_admin(msg.user);
+				auto admin = server.db.is_admin(msg.user);
 				if (!user)
 					break;
 				if (msg.time > privileges && !admin)
@@ -876,7 +876,7 @@ class User
 			shared_folders, privileges
 		);
 
-		if (server.is_admin(username)) writeln(username, " is an admin.");
+		if (server.db.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
 
 		auto motd = server.get_motd(username);

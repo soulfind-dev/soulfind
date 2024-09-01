@@ -95,14 +95,8 @@ void list_admins()
 {
 	auto names = sdb.get_admins();
 
-	if (!names) {
-		writeln("No admin on this server");
-		admins();
-		return;
-	}
-
-	writeln("\nAdmins :");
-	foreach (admin ; names) writeln(format("- %s", admin));
+	writeln(format("\nAdmins (%d)...", names.length));
+	foreach (name ; names) writeln(format("\t%s", name));
 
 	admins();
 }

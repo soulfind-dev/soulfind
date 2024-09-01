@@ -105,7 +105,15 @@ class Sdb
 		foreach (string[] record ; res) ret ~= record[0];
 		return ret;
 	}
-	
+
+	bool is_admin(string username)
+	{
+		string[][] res = this.query(
+			"SELECT username FROM %s WHERE username = '%s';".format(admins_table, escape(username))
+		);
+		return to!bool(res.length);
+	}
+
 	void conf_set_field(string field, uint value)
 	{
 		this.query(format("UPDATE %s SET '%s' = %d;", conf_table, field, value));
