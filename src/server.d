@@ -578,7 +578,7 @@ class Server
 			return;
 
 		db.user_update_field(username, "banned", 1);
-		get_user(username).quit();
+		kill_user(username);
 	}
 
 	private void unban_user(string username)
