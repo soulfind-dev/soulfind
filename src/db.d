@@ -128,25 +128,29 @@ class Sdb
 		return res[0][0];
 	}
 
-	uint nb_users()
+	uint count_users(string filter_field = null, uint min = 1, uint max = -1)
 	{
-		string query = "SELECT COUNT(username) FROM %s;".format(users_table);
-		string[][] res = this.query(query);
-		return atoi(res[0][0]);
-	}
-	
-	uint nb_banned_users()
-	{
-		string query = "SELECT COUNT(username) FROM %s WHERE banned = 1;".format(users_table);
-		string[][] res = this.query(query);
-		return atoi(res[0][0]);
+		if (!filter_field) {
+			return atoi(this.query("SELECT COUNT(1) FROM %s;".format(users_table))[0][0]);
+		}
+		return atoi(this.query("SELECT COUNT(1) FROM %s WHERE %s BETWEEN %d AND %d;".format(
+			users_table, escape(filter_field), min, max))[0][0]
+		);
 	}
 
-	string[] get_banned_usernames()
+	string[] get_usernames(string filter_field = null, uint min = 1, uint max = -1)
 	{
-		string[][] res = this.query("SELECT username FROM %s WHERE banned = 1;".format(users_table));
 		string[] ret;
+		string[][] res;
 
+		if (!filter_field) {
+			res = this.query("SELECT username FROM %s;".format(users_table));  // all rows
+		}
+		else {
+			res = this.query("SELECT username FROM %s WHERE %s BETWEEN %d AND %d;".format(
+				users_table, escape(filter_field), min, max)
+			);
+		}
 		foreach (string[] record ; res) ret ~= record[0];
 		return ret;
 	}
@@ -165,15 +169,6 @@ class Sdb
 		this.query(query);
 	}
 
-	string[] get_all_usernames()
-	{
-		string[][] res = this.query("SELECT username FROM %s;".format(users_table));
-		string[] ret;
-
-		foreach (string[] record ; res) ret ~= record[0];
-		return ret;
-	}
-	
 	bool user_exists(string username)
 	{
 		string[][] res = this.query(format("SELECT username FROM %s WHERE username = '%s';", users_table, escape(username)));
