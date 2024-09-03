@@ -22,36 +22,23 @@ class Sdb
 
 	const string users_table  = "users";
 	const string admins_table = "admins";
-	const string conf_table   = "conf";
+	const string config_table   = "config";
 
-	const string users_table_format  = "CREATE TABLE %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
-	const string admins_table_format = "CREATE TABLE %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
-	const string conf_table_format   = "CREATE TABLE %s(port INTEGER, max_users INTEGER, motd TEXT);";
+	const string users_table_format  = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
+	const string admins_table_format = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
+	const string config_table_format   = "CREATE TABLE IF NOT EXISTS %s(option TEXT PRIMARY KEY, value) WITHOUT ROWID;";
 
 	this(string file, bool update = false)
 	{
-		string default_conf_format = "INSERT INTO %%s(port, max_users, motd) VALUES(%d, %d, 'Soulfind %%sversion%%');".format(port, max_users);
-		if (!exists(file) || !isFile(file)) {
-			open_db(file);
-			if (!exists(file) || !isFile(file)) {
-				throw new Exception("Cannot create database file " ~ file);
-				return;
-			}
-			query(format(users_table_format,  users_table));
-			query(format(admins_table_format, admins_table));
-			query(format(conf_table_format,   conf_table));
-			query(format(default_conf_format, conf_table));
-		}
-		else {
-			open_db(file);
+		open_db(file);
 
-			string[][] res = query(format("SELECT sql FROM sqlite_master WHERE name = '%s';", conf_table));
-			if (res[0][0] != conf_table_format[0 .. $-1].format(conf_table)) {
-				write("Configuration needs to be updated... ");
-				update_conf_table(res[0][0], default_conf_format[0 .. $-1]);
-				writeln("updated.");
-			}
+		if (!exists(file) || !isFile(file)) {
+			throw new Exception("Cannot create database file %s".format(file));
+			return;
 		}
+		query(format(users_table_format,  users_table));
+		query(format(admins_table_format, admins_table));
+		init_config();
 	}
 
 	@trusted
@@ -60,43 +47,16 @@ class Sdb
 		sqlite3_open(file.toStringz(), &db);
 	}
 
-	// argh, I never realised that ALTER TABLE was so useful
-	void update_conf_table(string creation_string, string default_conf_format)
-	{
-		string old_fields = join(parse_db_format(creation_string), ",");
-		
-		query(format(conf_table_format, "tmp_conf"));		// create a temp table
-		query(format(default_conf_format, "tmp_conf"));		// fill it with the default values
-		query(format("INSERT INTO tmp_conf(%s) SELECT %s FROM %s;", old_fields, old_fields, conf_table)); // fetch the already existing values into the temp table
-		query(format("DROP TABLE %s;", conf_table));		// delete the old configuration table
-		query(format(conf_table_format, conf_table));		// re-create it, with the new format now
-		query(format("INSERT INTO %s SELECT * FROM tmp_conf;", conf_table));	// fetch the temp table values into the new configuration table
-		query(format("DROP TABLE tmp_conf"));			// and finally drop the temp table...
-	}
-	
-	// my eyes are bleeding !
-	string[] parse_db_format(string f)
-	{ // format is like "CREATE TABLE conf(port integer, max_users integer)"
-		string[] res = split(f);
-		res = res[3 .. $];       // remove "CREATE TABLE conf"
-		res[0] = res[0][1 .. $]; // remove '('
-
-		string[] ret;
-		ret.length = res.length/2;
-		for(uint i = 0 ; i < ret.length ; i++) ret[i] = res[i*2];
-		return ret;
-	}
-	
 	void add_admin(string username, uint level = 0)
 	{
 		this.query(format("REPLACE INTO %s(username, level) VALUES('%s', %d);", admins_table, escape(username), level));
 	}
-	
+
 	void del_admin(string username)
 	{
 		this.query(format("DELETE FROM %s WHERE username = '%s';", admins_table, escape(username)));
 	}
-	
+
 	string[] get_admins()
 	{
 		string[][] res = this.query(format("SELECT username FROM %s;", admins_table));
@@ -105,26 +65,39 @@ class Sdb
 		foreach (string[] record ; res) ret ~= record[0];
 		return ret;
 	}
-	
-	void conf_set_field(string field, uint value)
+
+	void init_config()
 	{
-		this.query(format("UPDATE %s SET '%s' = %d;", conf_table, field, value));
+		query(config_table_format.format(config_table));
+
+		init_config_option("port", port);
+		init_config_option("max_users", max_users);
+		init_config_option("motd", "Soulfind %sversion%");
 	}
-	
-	void conf_set_field(string field, string value)
+
+	void init_config_option(string option, string value)
 	{
-		this.query(format("UPDATE %s SET '%s' = '%s';", conf_table, field, escape(value)));
+		query("INSERT OR IGNORE INTO %s(option, value) VALUES('%s', '%s');".format(config_table, option, escape(value)));
 	}
-	
-	uint conf_get_int(string field)
+
+	void init_config_option(string option, uint value)
 	{
-		string[][] res = this.query(format("SELECT %s FROM %s;", field, conf_table));
-		return to!uint(res[0][0]);
+		query("INSERT OR IGNORE INTO %s(option, value) VALUES('%s', %d);".format(config_table, option, value));
 	}
-	
-	string conf_get_str(string field)
+
+	void set_config_value(string option, string value)
 	{
-		string[][] res = this.query(format("SELECT %s FROM %s;", field, conf_table));
+		query("REPLACE INTO %s(option, value) VALUES('%s', '%s');".format(config_table, option, escape(value)));
+	}
+
+	void set_config_value(string option, uint value)
+	{
+		query("REPLACE INTO %s(option, value) VALUES('%s', %d);".format(config_table, option, value));
+	}
+
+	string get_config_value(string option)
+	{
+		string[][] res = query("SELECT value FROM %s WHERE option = '%s';".format(config_table, option));
 		return res[0][0];
 	}
 
@@ -134,7 +107,7 @@ class Sdb
 		string[][] res = this.query(query);
 		return atoi(res[0][0]);
 	}
-	
+
 	uint nb_banned_users()
 	{
 		string query = "SELECT COUNT(username) FROM %s WHERE banned = 1;".format(users_table);
@@ -173,19 +146,19 @@ class Sdb
 		foreach (string[] record ; res) ret ~= record[0];
 		return ret;
 	}
-	
+
 	bool user_exists(string username)
 	{
 		string[][] res = this.query(format("SELECT username FROM %s WHERE username = '%s';", users_table, escape(username)));
 		return res.length > 0;
 	}
-	
+
 	string get_pass(string username)
 	{
 		string[][] res = this.query(format("SELECT password FROM %s WHERE username = '%s';", users_table, escape(username)));
 		return res[0][0];
 	}
-	
+
 	void add_user(string username, string password)
 	{
 		string query = "INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
@@ -194,7 +167,7 @@ class Sdb
 		this.query(query);
 		debug(db) writeln(query);
 	}
-	
+
 	bool is_banned(string username)
 	{
 		string query = "SELECT banned FROM %s WHERE username = '%s';".format(
@@ -227,7 +200,7 @@ class Sdb
 		}
 		return false;
 	}
-	
+
 	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
@@ -292,7 +265,7 @@ class Sdb
 	{
 		if (str == "")
 			return 0;
-		
+
 		try {
 			uint i = to!uint(str);
 			return i;
