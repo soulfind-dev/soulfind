@@ -30,7 +30,7 @@ class Sdb
 
 	this(string file, bool update = false)
 	{
-		string default_conf_format = "INSERT INTO %%s(port, max_users, motd) VALUES(%d, %d, 'Soulfind %s');".format(port, max_users, VERSION);
+		string default_conf_format = "INSERT INTO %%s(port, max_users, motd) VALUES(%d, %d, 'Soulfind %%sversion%%');".format(port, max_users);
 		if (!exists(file) || !isFile(file)) {
 			open_db(file);
 			if (!exists(file) || !isFile(file)) {

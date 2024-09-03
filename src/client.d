@@ -879,7 +879,7 @@ class User
 		if (server.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
 
-		auto motd = server.get_motd(username);
+		auto motd = server.get_motd(this);
 		auto supporter = privileges > 0;
 
 		send_message(new SLogin(true, motd, address, password, supporter));

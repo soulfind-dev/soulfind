@@ -93,7 +93,6 @@ class Server
 
 	private ushort			port;
 	private uint			max_users;
-	private string			motd;
 
 	private MonoTime		started_at;					// for server uptime
 
@@ -342,7 +341,7 @@ class Server
 				  ~ "message <message>\n\tSend global message"
 				  ~ " <message>\n\n"
 				  ~ "uptime\n\tShow server uptime\n\n"
-				  ~ "reload\n\tReload settings(Admins, MOTD, etc)"
+				  ~ "reload\n\tReload settings(Admins, etc)"
 				);
 				break;
 
@@ -587,23 +586,22 @@ class Server
 			db.user_update_field(username, "banned", 0);
 	}
 
-	string get_motd(string username)
+	string get_motd(User user)
 	{
-		auto user = get_user(username);
+		string motd;
+		auto motd_template = db.conf_get_str("motd");
 		auto client_version = "%d.%d".format(
 			user.major_version, user.minor_version);
 
-		string ret;
-		ret = replace(motd, "%version%", VERSION);
-		ret = replace(ret, "%nbusers%", nb_users.to!string);
-		ret = replace(ret, "%username%", username);
-		ret = replace(ret, "%userversion%", client_version);
-		return ret;
+		motd = replace(motd_template, "%sversion%", VERSION);
+		motd = replace(motd, "%users%", user_list.length.to!string);
+		motd = replace(motd, "%username%", user.username);
+		motd = replace(motd, "%version%", client_version);
+		return motd;
 	}
 
 	private void config(bool reload = false)
 	{
-		motd = db.conf_get_str("motd");
 		if (!reload) {
 			port = cast(ushort)db.conf_get_int("port");
 			max_users = db.conf_get_int("max_users");
