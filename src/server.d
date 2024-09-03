@@ -293,11 +293,6 @@ class Server
 		}
 	}
 
-	private ulong nb_users()
-	{
-		return user_list.length;
-	}
-
 	private void send_to_all(Message msg)
 	{
 		debug (msg) write(
@@ -324,8 +319,7 @@ class Server
 				admin_pm(
 					admin,
 					"Available commands :\n\n"
-				  ~ "nbusers\n\tNumber of users connected\n\n"
-				  ~ "users\n\tInfo about each connected user\n\n"
+				  ~ "users\n\tList connected users\n\n"
 				  ~ "info <user>\n\tInfo about user <user>\n\n"
 				  ~ "killall\n\tDisconnect all users\n\n"
 				  ~ "kill <user>\n\tDisconnect <user>\n\n"
@@ -372,14 +366,10 @@ class Server
 				user.add_privileges(days * 3600 * 24);
 				break;
 
-			case "nbusers":
-				auto num_users = nb_users;
-				admin_pm(admin, "%d connected users.".format(num_users));
-				break;
-
 			case "users":
-				auto users = show_users();
-				admin_pm(admin, users);
+				string list = "%d connected users.".format(user_list.length);
+				foreach (username, user ; user_list) list ~= "\n\t" ~ username;
+				admin_pm(admin, list);
 				break;
 
 			case "info":
@@ -523,13 +513,6 @@ class Server
 		}
 	}
 
-	private string show_users()
-	{
-		string s;
-		foreach (username, user ; user_list) s ~= show_user(username) ~ "\n";
-		return s;
-	}
-
 	private string show_user(string username)
 	{
 		auto user = get_user(username);
@@ -577,7 +560,7 @@ class Server
 			return;
 
 		db.user_update_field(username, "banned", 1);
-		get_user(username).quit();
+		kill_user(username);
 	}
 
 	private void unban_user(string username)
