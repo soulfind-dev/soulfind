@@ -72,7 +72,7 @@ class Sdb
 
 		init_config_option("port", port);
 		init_config_option("max_users", max_users);
-		init_config_option("motd", "Soulfind %version%");
+		init_config_option("motd", "Soulfind %sversion%");
 	}
 
 	void init_config_option(string option, string value)

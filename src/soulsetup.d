@@ -171,7 +171,7 @@ void set_max_users()
 void motd()
 {
 	auto menu = new Menu(
-		format("Current message of the day :\n--\n%s\n--\n",
+		format("Current message of the day :\n--\n%s\n--",
 			sdb.get_config_value("motd"))
 	);
 	menu.add("1", "Change MOTD", &set_motd);
@@ -183,26 +183,26 @@ void motd()
 void set_motd()
 {
 	writeln(
-		"You can use the following variables :\n"
-		~ "%version%     : server version(", VERSION, ")\n"
-		~ "%nbusers%     : number of users already connected\n"
-		~ "%username%    : name of the connecting user\n"
-		~ "%userversion% : version of the user's client software\n"
-		~ "New MOTD(end with a dot on a single line) :"
+		"\nYou can use the following variables :"
+		~ "\n\t%sversion%    : server version (", VERSION, ")"
+		~ "\n\t%users%       : number of connected users"
+		~ "\n\t%username%    : name of the connecting user"
+		~ "\n\t%version%     : version of the user's client software"
+		~ "\n\nNew MOTD (end with a dot on a single line) :\n--"
 	);
 
-	string MOTD;
+	string motd_template;
 
 	do {
 		auto line = input.chomp;
 		if (line.strip == ".")
 			break;
-		if (MOTD.length > 0) MOTD ~= "\n";
-		MOTD ~= line;
+		if (motd_template.length > 0) motd_template ~= "\n";
+		motd_template ~= line;
 	}
 	while(true);
 
-	sdb.set_config_value("motd", MOTD);
+	sdb.set_config_value("motd", motd_template);
 	motd();
 }
 
