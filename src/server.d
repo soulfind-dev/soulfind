@@ -93,7 +93,6 @@ class Server
 
 	private ushort			port;
 	private uint			max_users;
-	private string			motd;
 
 	private MonoTime		started_at;					// for server uptime
 
@@ -108,7 +107,8 @@ class Server
 		started_at = MonoTime.currTime;
 		db = new Sdb(db_file);
 
-		config();
+		port = db.get_config_value("port").to!ushort;
+		max_users = db.get_config_value("max_users").to!uint;
 	}
 
 	private int listen()
@@ -334,7 +334,6 @@ class Server
 				  ~ "message <message>\n\tSend global message"
 				  ~ " <message>\n\n"
 				  ~ "uptime\n\tShow server uptime\n\n"
-				  ~ "reload\n\tReload settings (MOTD, etc)"
 				);
 				break;
 
@@ -449,11 +448,6 @@ class Server
 				admin_pm(admin, h_uptime);
 				break;
 
-			case "reload":
-				config(true);
-				admin_pm(admin, "Configuration reloaded");
-				break;
-
 			default:
 				admin_pm(
 					admin,
@@ -534,27 +528,18 @@ class Server
 			db.user_update_field(username, "banned", 0);
 	}
 
-	string get_motd(string username)
+	string get_motd(User user)
 	{
-		auto user = get_user(username);
+		string motd;
+		auto motd_template = db.get_config_value("motd");
 		auto client_version = "%d.%d".format(
 			user.major_version, user.minor_version);
 
-		string ret;
-		ret = replace(motd, "%version%", VERSION);
-		ret = replace(ret, "%nbusers%", user_list.length.to!string);
-		ret = replace(ret, "%username%", username);
-		ret = replace(ret, "%userversion%", client_version);
-		return ret;
-	}
-
-	private void config(bool reload = false)
-	{
-		motd = db.get_config_value("motd");
-		if (!reload) {
-			port = db.get_config_value("port").to!ushort;
-			max_users = db.get_config_value("max_users").to!uint;
-		}
+		motd = replace(motd_template, "%sversion%", VERSION);
+		motd = replace(motd, "%users%", user_list.length.to!string);
+		motd = replace(motd, "%username%", user.username);
+		motd = replace(motd, "%version%", client_version);
+		return motd;
 	}
 
 	private Duration uptime()
