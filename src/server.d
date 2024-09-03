@@ -586,10 +586,10 @@ class Server
 
 	private void config(bool reload = false)
 	{
-		motd = db.conf_get_str("motd");
+		motd = db.get_config_value("motd");
 		if (!reload) {
-			port = cast(ushort)db.conf_get_int("port");
-			max_users = db.conf_get_int("max_users");
+			port = db.get_config_value("port").to!ushort;
+			max_users = db.get_config_value("max_users").to!uint;
 		}
 
 		foreach (admin ; db.get_admins()) {
@@ -618,7 +618,7 @@ class Server
 			return false;
 		}
 		foreach (dchar c ; text) if (!isPrintable(c)) {
-			// non-ASCII control chars, etc 
+			// non-ASCII control chars, etc
 			return false;
 		}
 		if (text.length == 1 && isPunctuation(text.to!dchar)) {
