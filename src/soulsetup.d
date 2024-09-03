@@ -21,7 +21,7 @@ Sdb sdb;
 void main(string[] args)
 {
 	string db_file = default_db_file;
-	
+
 	if (args.length > 1) {
 		if (args[1] == "--help" || args[1] == "-h") {
 			writeln("Usage: ", args[0], " [database_file]");
@@ -48,7 +48,7 @@ string input()
 void main_menu()
 {
 	auto menu = new Menu("Soulfind %s configuration".format(VERSION));
-	
+
 	menu.add("0", "Admins",            &admins);
 	menu.add("1", "Listen port",       &listen_port);
 	menu.add("2", "Max users allowed", &max_users);
@@ -56,7 +56,7 @@ void main_menu()
 	menu.add("4", "Banned users",      &banned_users);
 	menu.add("i", "Server info",       &info);
 	menu.add("q", "Exit",              &exit);
-	
+
 	menu.show();
 }
 
@@ -68,7 +68,7 @@ void exit()
 void admins()
 {
 	auto menu = new Menu("Admins");
-	
+
 	menu.add("1", "Add an admin",    &add_admin);
 	menu.add("2", "Remove an admin", &del_admin);
 	menu.add("3", "List admins",     &list_admins);
@@ -106,12 +106,12 @@ void list_admins()
 
 	admins();
 }
-	
+
 
 void listen_port()
 {
 	uint port;
-	try {port = sdb.conf_get_int("port");} catch (ConvException) {}
+	try {port = sdb.get_config_value("port").to!ushort;} catch (ConvException) {}
 
 	auto menu = new Menu(format("Listen port : %d", port));
 	menu.add("1", "Change listen port", &set_listen_port);
@@ -133,14 +133,14 @@ void set_listen_port()
 		return;
 	}
 
-	sdb.conf_set_field("port", port);
+	sdb.set_config_value("port", port);
 	listen_port();
 }
 
 void max_users()
 {
 	uint max_users;
-	try {max_users = sdb.conf_get_int("max_users");} catch (ConvException) {}
+	try {max_users = sdb.get_config_value("max_users").to!uint;} catch (ConvException) {}
 
 	auto menu = new Menu(format("Max users allowed : %d", max_users));
 	menu.add("1", "Change max users", &set_max_users);
@@ -164,7 +164,7 @@ void set_max_users()
 		return;
 	}
 
-	sdb.conf_set_field("max_users", num_users);
+	sdb.set_config_value("max_users", num_users);
 	max_users();
 }
 
@@ -172,7 +172,7 @@ void motd()
 {
 	auto menu = new Menu(
 		format("Current message of the day :\n--\n%s\n--\n",
-			sdb.conf_get_str("motd"))
+			sdb.get_config_value("motd"))
 	);
 	menu.add("1", "Change MOTD", &set_motd);
 	menu.add("q", "Return",      &main_menu);
@@ -202,7 +202,7 @@ void set_motd()
 	}
 	while(true);
 
-	sdb.conf_set_field("motd", MOTD);
+	sdb.set_config_value("motd", MOTD);
 	motd();
 }
 
@@ -224,7 +224,7 @@ void info()
 void banned_users()
 {
 	auto menu = new Menu("Banned users (%d)".format(sdb.count_users("banned")));
-	
+
 	menu.add("1", "Ban user",          &ban_user);
 	menu.add("2", "Unban user",        &unban_user);
 	menu.add("3", "List banned users", &list_banned);
@@ -263,12 +263,12 @@ class Menu
 	string info;
 	string[string]           entries;
 	void function()[string] actions;
-	
+
 	this(string title)
 	{
 		this.title = title;
 	}
-	
+
 	void add(string index, string entry, void function() @safe action)
 	{
 		entries[index] = entry;
@@ -287,7 +287,7 @@ class Menu
 	{
 		writeln(format( "\n%s\n", title));
 		if (info.length > 0) writeln(format("%s\n", info));
-		
+
 		foreach (index ; sorted_entry_indexes)
 			writeln(format("%s. %s", index, entries[index]));
 
