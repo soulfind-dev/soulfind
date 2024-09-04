@@ -67,7 +67,7 @@ const GlobalRoomMessage		= 152;
 const CantConnectToPeer		= 1001;
 
 // Useful for debugging
-const message_name = [
+const string[] message_name = [
 		  1 : "Login"
 		, 2 : "SetWaitPort"
 		, 3 : "GetPeerAddress"
