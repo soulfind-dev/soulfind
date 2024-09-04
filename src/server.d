@@ -587,28 +587,24 @@ class Server
 		return true;
 	}
 
-	bool check_login(string username, string password, uint major_version,
-					 string hash, uint minor_version, out string error)
+	string check_login(string username, string password)
 	{
-		if (!check_name(username, 30)) {
-			error = "INVALIDUSERNAME";
-			return false;
-		}
+		if (!check_name(username, 30))
+			return "INVALIDUSERNAME";
+
 		if (!db.user_exists(username)) {
 			debug (user) writeln("New user ", username, " registering");
 			db.add_user(username, encode_password(password));
-			return true;
+			return null;
 		}
 		debug (user) writeln("User ", username, " is registered");
 
-		if (db.is_banned(username)) {
-			error = "BANNED";
-			return false;
-		}
-		if (!secureEqual(db.get_pass(username), encode_password(password))) {
-			error = "INVALIDPASS";
-			return false;
-		}
-		return true;
+		if (db.is_banned(username))
+			return "BANNED";
+
+		if (!secureEqual(db.get_pass(username), encode_password(password)))
+			return "INVALIDPASS";
+
+		return null;
 	}
 }

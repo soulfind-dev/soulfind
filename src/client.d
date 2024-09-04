@@ -434,10 +434,9 @@ class User
 			case Login:
 				write("User logging in : ");
 				const msg = new ULogin(msg_buf);
-				string error;
+				const error = server.check_login(msg.username, msg.password);
 
-				if (!server.check_login(msg.username, msg.password, msg.major_version,
-						msg.hash, msg.minor_version, error)) {
+				if (error) {
 					username = msg.username;
 					should_quit = true;
 
