@@ -322,8 +322,8 @@ class Server
 					"Available commands :\n\n"
 				  ~ "users\n\tList connected users\n\n"
 				  ~ "info <user>\n\tInfo about user <user>\n\n"
-				  ~ "killall\n\tDisconnect all users\n\n"
-				  ~ "kill <user>\n\tDisconnect <user>\n\n"
+				  ~ "kickall\n\tDisconnect all users\n\n"
+				  ~ "kick <user>\n\tDisconnect <user>\n\n"
 				  ~ "[un]ban <user>\n\tUnban or ban and disconnect"
 				  ~ " user <user>\n\n"
 				  ~ "admins\n\tList admins\n\n"
@@ -380,18 +380,18 @@ class Server
 				admin_pm(admin, user_info);
 				break;
 
-			case "killall":
-				debug (user) writeln("Admin request to kill ALL users...");
-				kill_all_users();
+			case "kickall":
+				debug (user) writeln("Admin request to kick ALL users...");
+				kick_all_users();
 				break;
 
-			case "kill":
+			case "kick":
 				if (command.length < 2) {
-					admin_pm(admin, "Syntax is : kill <user>");
+					admin_pm(admin, "Syntax is : kick <user>");
 					break;
 				}
 				auto username = join(command[1 .. $], " ");
-				kill_user(username);
+				kick_user(username);
 				admin_pm(
 					admin, "User %s kicked from the server".format(username)
 				);
@@ -502,12 +502,12 @@ class Server
 		);
 	}
 
-	private void kill_all_users()
+	private void kick_all_users()
 	{
 		foreach (user ; user_list) user.quit();
 	}
 
-	private void kill_user(string username)
+	private void kick_user(string username)
 	{
 		auto user = get_user(username);
 		if (user) user.quit();
@@ -519,7 +519,7 @@ class Server
 			return;
 
 		db.user_update_field(username, "banned", 1);
-		kill_user(username);
+		kick_user(username);
 	}
 
 	private void unban_user(string username)
