@@ -422,7 +422,7 @@ class Server
 				break;
 
 			case "admins":
-				auto names = db.get_admins();
+				auto names = db.admins;
 				string list = "%d registered admins.".format(names.length);
 				foreach (name ; names) list ~= "\n\t%s".format(name);
 				admin_pm(admin, list);

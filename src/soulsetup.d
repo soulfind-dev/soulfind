@@ -67,7 +67,7 @@ void exit()
 
 void admins()
 {
-	auto menu = new Menu("Admins");
+	auto menu = new Menu("Admins (%d)".format(sdb.admins.length));
 
 	menu.add("1", "Add an admin",    &add_admin);
 	menu.add("2", "Remove an admin", &del_admin);
@@ -93,7 +93,7 @@ void del_admin()
 
 void list_admins()
 {
-	auto names = sdb.get_admins();
+	auto names = sdb.admins;
 
 	writeln(format("\nAdmins (%d)...", names.length));
 	foreach (name ; names) writeln(format("\t%s", name));
@@ -205,9 +205,9 @@ void info()
 	auto menu = new Menu(
 		"Soulsetup for Soulfind %s (compiled on %s)".format(VERSION, __DATE__)
 	);
-	menu.info = "\t%d registered users".format(sdb.count_users());
-	menu.info ~= "\n\t%d privileged users".format(sdb.count_users("privileges"));
-	menu.info ~= "\n\t%d banned users".format(sdb.count_users("banned"));
+	menu.info = "\t%d registered users".format(sdb.usernames.length);
+	menu.info ~= "\n\t%d privileged users".format(sdb.usernames("privileges").length);
+	menu.info ~= "\n\t%d banned users".format(sdb.usernames("banned").length);
 
 	menu.add("1", "Recount", &info);
 	menu.add("q", "Return", &main_menu);
@@ -217,7 +217,7 @@ void info()
 
 void banned_users()
 {
-	auto menu = new Menu("Banned users (%d)".format(sdb.count_users("banned")));
+	auto menu = new Menu("Banned users (%d)".format(sdb.usernames("banned").length));
 
 	menu.add("1", "Ban user",          &ban_user);
 	menu.add("2", "Unban user",        &unban_user);
@@ -243,7 +243,7 @@ void unban_user()
 
 void list_banned()
 {
-	auto users = sdb.get_usernames("banned");
+	auto users = sdb.usernames("banned");
 
 	writeln("\nBanned users (%d)...".format(users.length));
 	foreach (user ; users) writeln(format("\t%s", user));
