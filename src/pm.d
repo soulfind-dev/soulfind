@@ -29,7 +29,7 @@ class PM
 	static PM[] get_pms_for(string user)
 	{
 		PM[] pms;
-		foreach (PM pm ; pm_list) if (pm.to == user) pms ~= pm;
+		foreach (pm ; pm_list) if (pm.to == user) pms ~= pm;
 		return pms;
 	}
 

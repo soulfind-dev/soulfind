@@ -93,7 +93,7 @@ void del_admin()
 
 void list_admins()
 {
-	auto names = sdb.admins;
+	const names = sdb.admins;
 
 	writeln(format("\nAdmins (%d)...", names.length));
 	foreach (name ; names) writeln(format("\t%s", name));
@@ -118,7 +118,7 @@ void set_listen_port()
 {
 	write("New listen port : ");
 
-	auto value = input.strip;
+	const value = input.strip;
 	uint port;
 	try {port = value.to!uint;} catch (ConvException) {}
 	if (port <= 0 || port > ushort.max) {
@@ -147,7 +147,7 @@ void set_max_users()
 {
 	write("Max users : ");
 
-	auto value = input.strip;
+	const value = input.strip;
 	uint num_users;
 	try {
 		num_users = value.to!uint;
@@ -188,7 +188,7 @@ void set_motd()
 	string motd_template;
 
 	do {
-		auto line = input.chomp;
+		const line = input.chomp;
 		if (line.strip == ".")
 			break;
 		if (motd_template.length > 0) motd_template ~= "\n";
@@ -243,7 +243,7 @@ void unban_user()
 
 void list_banned()
 {
-	auto users = sdb.usernames("banned");
+	const users = sdb.usernames("banned");
 
 	writeln("\nBanned users (%d)...".format(users.length));
 	foreach (user ; users) writeln(format("\t%s", user));
@@ -286,7 +286,7 @@ class Menu
 			writeln(format("%s. %s", index, entries[index]));
 
 		write("\nYour choice : ");
-		auto choice = input.strip;
+		const choice = input.strip;
 
 		if (choice !in actions)
 		{

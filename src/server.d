@@ -155,7 +155,7 @@ class Server
 			auto nb = Socket.select(
 				read_socks, write_socks, null, select_timeout
 			);
-			auto terminating = (nb == -1);
+			const terminating = (nb == -1);
 
 			if (read_socks.isSet(sock)) {
 				while (true) {
@@ -313,7 +313,7 @@ class Server
 		if (!db.is_admin(admin.username))
 			return;
 
-		auto command = message.split(" ");
+		const command = message.split(" ");
 		if (command.length > 0) switch (command[0])
 		{
 			case "help":
@@ -352,7 +352,7 @@ class Server
 					break;
 				}
 
-				auto username = join(command[2 .. $], " ");
+				const username = join(command[2 .. $], " ");
 				auto user = get_user(username);
 				if (!user) {
 					admin_pm(
@@ -375,8 +375,8 @@ class Server
 					admin_pm(admin, "Syntax is : info <user>");
 					break;
 				}
-				auto username = join(command[1 .. $], " ");
-				auto user_info = show_user(username);
+				const username = join(command[1 .. $], " ");
+				const user_info = show_user(username);
 				admin_pm(admin, user_info);
 				break;
 
@@ -390,7 +390,7 @@ class Server
 					admin_pm(admin, "Syntax is : kick <user>");
 					break;
 				}
-				auto username = join(command[1 .. $], " ");
+				const username = join(command[1 .. $], " ");
 				kick_user(username);
 				admin_pm(
 					admin, "User %s kicked from the server".format(username)
@@ -402,7 +402,7 @@ class Server
 					admin_pm(admin, "Syntax is : ban <user>");
 					break;
 				}
-				auto username = join(command[1 .. $], " ");
+				const username = join(command[1 .. $], " ");
 				ban_user(username);
 				admin_pm(
 					admin, "User %s banned from the server".format(username)
@@ -414,7 +414,7 @@ class Server
 					admin_pm(admin, "Syntax is : unban <user>");
 					break;
 				}
-				auto username = join(command[1 .. $], " ");
+				const username = join(command[1 .. $], " ");
 				unban_user(username);
 				admin_pm(
 					admin, "User %s not banned anymore".format(username)
@@ -422,7 +422,7 @@ class Server
 				break;
 
 			case "admins":
-				auto names = db.admins;
+				const names = db.admins;
 				string list = "%d registered admins.".format(names.length);
 				foreach (name ; names) list ~= "\n\t%s".format(name);
 				admin_pm(admin, list);
@@ -440,7 +440,7 @@ class Server
 					admin_pm(admin, "Syntax is : message <message>");
 					break;
 				}
-				auto msg = join(command[1 .. $], " ");
+				const msg = join(command[1 .. $], " ");
 				global_message(msg);
 				break;
 
@@ -531,8 +531,8 @@ class Server
 	string get_motd(User user)
 	{
 		string motd;
-		auto motd_template = db.get_config_value("motd");
-		auto client_version = "%d.%d".format(
+		const motd_template = db.get_config_value("motd");
+		const client_version = "%d.%d".format(
 			user.major_version, user.minor_version);
 
 		motd = replace(motd_template, "%sversion%", VERSION);

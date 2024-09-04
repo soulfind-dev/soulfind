@@ -119,7 +119,7 @@ class Message
 	{ // read a string
 		auto slen = readi();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
-		auto str = cast(string) in_buf[0 .. slen].idup;
+		const str = cast(string) in_buf[0 .. slen].idup;
 
 		in_buf = in_buf[slen .. $];
 		return str;
@@ -691,7 +691,7 @@ class SJoinRoom : Message
 		super(JoinRoom);
 
 		writes(room);	// the room the user just joined
-		auto n = usernames.length;
+		const n = usernames.length;
 
 		writei(n);	// number of user names we will send
 		foreach (username ; usernames) writes(username);
@@ -732,7 +732,7 @@ class SUserJoinedRoom : Message
 	this(string room, string username, uint status,
 			uint speed, uint upload_number, uint something,
 			uint shared_files, uint shared_folders,
-			uint slots_full,string country_code)
+			uint slots_full, string country_code)
 	{
 		super(UserJoinedRoom);
 

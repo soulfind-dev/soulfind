@@ -20,13 +20,13 @@ class Sdb
 	sqlite3* db;
 	sqlite3_stmt* stmt;
 
-	const string users_table  = "users";
-	const string admins_table = "admins";
-	const string config_table   = "config";
+	const users_table  = "users";
+	const admins_table = "admins";
+	const config_table   = "config";
 
-	const string users_table_format  = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
-	const string admins_table_format = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
-	const string config_table_format   = "CREATE TABLE IF NOT EXISTS %s(option TEXT PRIMARY KEY, value) WITHOUT ROWID;";
+	const users_table_format  = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
+	const admins_table_format = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
+	const config_table_format   = "CREATE TABLE IF NOT EXISTS %s(option TEXT PRIMARY KEY, value) WITHOUT ROWID;";
 
 	this(string file, bool update = false)
 	{
@@ -82,7 +82,7 @@ class Sdb
 
 	string get_config_value(string option)
 	{
-		auto res = query("SELECT value FROM %s WHERE option = '%s';".format(
+		const res = query("SELECT value FROM %s WHERE option = '%s';".format(
 			config_table, option));
 		return res[0][0];
 	}
@@ -101,7 +101,7 @@ class Sdb
 
 	string[] admins()
 	{
-		auto res = query("SELECT username FROM %s;".format(admins_table));
+		const res = query("SELECT username FROM %s;".format(admins_table));
 		string[] ret;
 
 		foreach (record ; res) ret ~= record[0];
@@ -110,7 +110,7 @@ class Sdb
 
 	bool is_admin(string username)
 	{
-		auto res = query("SELECT username FROM %s WHERE username = '%s';".format(
+		const res = query("SELECT username FROM %s WHERE username = '%s';".format(
 			admins_table, escape(username)));
 		return res.length > 0;
 	}
@@ -129,14 +129,14 @@ class Sdb
 
 	bool user_exists(string username)
 	{
-		auto res = query("SELECT username FROM %s WHERE username = '%s';".format(
+		const res = query("SELECT username FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)));
 		return res.length > 0;
 	}
 
 	string get_pass(string username)
 	{
-		auto res = query("SELECT password FROM %s WHERE username = '%s';".format(
+		const res = query("SELECT password FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)));
 		return res[0][0];
 	}
@@ -149,7 +149,7 @@ class Sdb
 
 	bool is_banned(string username)
 	{
-		auto res = query("SELECT banned FROM %s WHERE username = '%s';".format(
+		const res = query("SELECT banned FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)));
 
 		if (res.length == 1)
@@ -161,10 +161,10 @@ class Sdb
 	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
-		auto res = query("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';".format(
+		const res = query("SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)));
 		if (res.length > 0) {
-			auto u          = res[0];
+			const u         = res[0];
 
 			speed           = atoi(u[0]);
 			upload_number   = atoi(u[1]);
@@ -179,10 +179,10 @@ class Sdb
 	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
-		auto res = query("SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
+		const res = query("SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
 			users_table, escape(username), escape(password)));
 		if (res.length > 0) {
-			auto u          = res[0];
+			const u         = res[0];
 
 			speed           = atoi(u[0]);
 			upload_number   = atoi(u[1]);
@@ -225,7 +225,7 @@ class Sdb
 
 		while (res == SQLITE_ROW) {
 			string[] record;
-			auto n = sqlite3_column_count(stmt);
+			const n = sqlite3_column_count(stmt);
 
 			for (uint i ; i < n ; i++) record ~= sqlite3_column_text(stmt, i).to!string;
 
@@ -253,7 +253,7 @@ class Sdb
 	uint atoi(string str)
 	{
 		try {
-			auto i = to!uint(str);
+			const i = to!uint(str);
 			return i;
 		}
 		catch (ConvException e) {
