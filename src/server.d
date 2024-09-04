@@ -107,7 +107,8 @@ class Server
 		started_at = MonoTime.currTime;
 		db = new Sdb(db_file);
 
-		config();
+		port = db.get_config_value("port").to!ushort;
+		max_users = db.get_config_value("max_users").to!uint;
 	}
 
 	private int listen()
@@ -307,11 +308,11 @@ class Server
 		debug (msg) writeln();
 	}
 
-	// admin
-	private string[string]	admins;
-
 	void admin_message(User admin, string message)
 	{
+		if (!db.is_admin(admin.username))
+			return;
+
 		auto command = message.split(" ");
 		if (command.length > 0) switch (command[0])
 		{
@@ -325,8 +326,6 @@ class Server
 				  ~ "kill <user>\n\tDisconnect <user>\n\n"
 				  ~ "[un]ban <user>\n\tUnban or ban and disconnect"
 				  ~ " user <user>\n\n"
-				  ~ "(add|del)admin <user>\n\tMake <user> an"
-				  ~ " admin\n\n"
 				  ~ "admins\n\tList admins\n\n"
 				  ~ "rooms\n\tList rooms and number of"
 				  ~ " occupiants\n\n"
@@ -335,7 +334,6 @@ class Server
 				  ~ "message <message>\n\tSend global message"
 				  ~ " <message>\n\n"
 				  ~ "uptime\n\tShow server uptime\n\n"
-				  ~ "reload\n\tReload settings(Admins, etc)"
 				);
 				break;
 
@@ -423,27 +421,10 @@ class Server
 				);
 				break;
 
-			case "addadmin":
-				if (command.length < 2) {
-					admin_pm(admin, "Syntax is : addadmin <user>");
-					break;
-				}
-				auto admin_name = join(command[1 .. $], " ");
-				add_admin(admin_name);
-				break;
-
-			case "deladmin":
-				if (command.length < 2) {
-					admin_pm(admin, "Syntax is : deladmin <user>");
-					break;
-				}
-				auto admin_name = join(command[1 .. $], " ");
-				del_admin(admin_name);
-				break;
-
 			case "admins":
-				string list;
-				foreach (admin_name ; admins) list ~= admin_name ~ " ";
+				auto names = db.get_admins();
+				string list = "%d registered admins.".format(names.length);
+				foreach (name ; names) list ~= "\n\t%s".format(name);
 				admin_pm(admin, list);
 				break;
 
@@ -467,11 +448,6 @@ class Server
 				admin_pm(admin, h_uptime);
 				break;
 
-			case "reload":
-				config(true);
-				admin_pm(admin, "Configuration and admins list reloaded");
-				break;
-
 			default:
 				admin_pm(
 					admin,
@@ -480,23 +456,6 @@ class Server
 				);
 				break;
 		}
-	}
-
-	bool is_admin(string name)
-	{
-			return name in admins ? true : false;
-	}
-
-	private void add_admin(string name)
-	{
-		admins[name] = name;
-		db.add_admin(name);
-	}
-
-	private void del_admin(string name)
-	{
-		if (name in admins) admins.remove(name);
-		db.del_admin(name);
 	}
 
 	private void admin_pm(User admin, string message)
@@ -534,7 +493,7 @@ class Server
 				user.connected_at,
 				"%d.%d".format(user.major_version, user.minor_version),
 				user.sock.remoteAddress,
-				is_admin(username),
+				db.is_admin(username),
 				user.shared_files,
 				user.shared_folders,
 				user.status,
@@ -581,18 +540,6 @@ class Server
 		motd = replace(motd, "%username%", user.username);
 		motd = replace(motd, "%version%", client_version);
 		return motd;
-	}
-
-	private void config(bool reload = false)
-	{
-		if (!reload) {
-			port = db.get_config_value("port").to!ushort;
-			max_users = db.get_config_value("max_users").to!uint;
-		}
-
-		foreach (admin ; db.get_admins()) {
-			admins[admin] = admin;
-		}
 	}
 
 	private Duration uptime()

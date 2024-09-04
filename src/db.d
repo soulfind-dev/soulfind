@@ -66,6 +66,12 @@ class Sdb
 		return ret;
 	}
 
+	bool is_admin(string username)
+	{
+		string[][] res = this.query("SELECT username FROM %s WHERE username = '%s';".format(admins_table, escape(username)));
+		return to!bool(res.length);
+	}
+
 	void init_config()
 	{
 		query(config_table_format.format(config_table));
