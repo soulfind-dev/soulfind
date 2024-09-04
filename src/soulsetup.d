@@ -202,12 +202,14 @@ void set_motd()
 
 void info()
 {
-	auto menu = new Menu("Misc. information :");
-
-	menu.info = "Soulsetup for Soulfind %s, compiled on %s\n".format(
-		VERSION, __DATE__
+	auto menu = new Menu(
+		"Soulsetup for Soulfind %s (compiled on %s)".format(VERSION, __DATE__)
 	);
-	menu.info ~= "%d registered users".format(sdb.nb_users());
+	menu.info = "\t%d registered users".format(sdb.count_users());
+	menu.info ~= "\n\t%d privileged users".format(sdb.count_users("privileges"));
+	menu.info ~= "\n\t%d banned users".format(sdb.count_users("banned"));
+
+	menu.add("1", "Recount", &info);
 	menu.add("q", "Return", &main_menu);
 
 	menu.show();
@@ -215,10 +217,10 @@ void info()
 
 void banned_users()
 {
-	auto menu = new Menu("Banned users");
+	auto menu = new Menu("Banned users (%d)".format(sdb.count_users("banned")));
 
-	menu.add("1", "Ban an user",       &ban_user);
-	menu.add("2", "Unban an user",     &unban_user);
+	menu.add("1", "Ban user",          &ban_user);
+	menu.add("2", "Unban user",        &unban_user);
 	menu.add("3", "List banned users", &list_banned);
 	menu.add("q", "Return",            &main_menu);
 
@@ -241,16 +243,10 @@ void unban_user()
 
 void list_banned()
 {
-	auto users = sdb.get_banned_usernames();
+	auto users = sdb.get_usernames("banned");
 
-	if (!users) {
-		writeln("No user is banned.");
-		banned_users();
-		return;
-	}
-
-	writeln("\nBanned users :");
-	foreach (user ; users) writeln(format("- %s", user));
+	writeln("\nBanned users (%d)...".format(users.length));
+	foreach (user ; users) writeln(format("\t%s", user));
 
 	banned_users();
 }
