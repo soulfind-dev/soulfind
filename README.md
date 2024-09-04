@@ -33,30 +33,30 @@ Valid targets are:
  - `soulfind`
  - `soulsetup`
 
-You'll also need to have the sqlite3 library installed, since it's the database
-Soulfind uses to store its configuration and user info.
+You'll also need to have the sqlite3 library installed.
 
 
 ## Configuration
 
-Soulfind doesn't use a configuration file anymore. Instead, it stores all its
-configuration in the sqlite database. When starting, it will look for the file
-`soulfind.db`, and create it with the following tables if it doesn't exist:
+Soulfind stores all its configuration in a SQLite database. When starting, it
+will look for the file `soulfind.db`, and create it with the following tables
+if it doesn't exist:
 
  - users
  - admins
- - conf
+ - config
 
-Only the `conf` table is filled with some default values:
+Only the `config` table is filled with some default values:
 
  - port: `2242`
  - max_users: `65535`
  - motd: `Soulfind <version>`
 
-You can edit the database yourself with the sqlite3 utility, but the easiest is
-to use `soulsetup` instead. You need to add the first admin yourself, since you
-have to be an admin already to add an admin when connected to the server
-(though Soulfind runs fine without any admin).
+Server owners can configure the server and add admins with the `soulsetup`
+utility.
+
+Admins can interact with the server by sending commands in a private
+chat with the server user (`help` to see all commands).
 
 
 ## Missing Features
