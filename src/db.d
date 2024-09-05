@@ -8,11 +8,20 @@ module db;
 
 import defines;
 
-import std.string : format, replace, toStringz;
-import std.stdio : writeln, write;
-import std.file : exists, isFile;
+import std.algorithm : map;
+import std.array : array;
+import std.ascii : letters;
+import std.bitmanip : nativeToBigEndian;
 import std.conv : to;
+import std.digest : LetterCase, secureEqual, toHexString;
+import std.digest.hmac : HMAC;
+import std.digest.sha : SHA512;
 import std.exception : ifThrown;
+import std.file : exists, isFile;
+import std.random : uniform;
+import std.range : iota;
+import std.string : format, replace, representation, toStringz;
+import std.stdio : writeln, write;
 
 import etc.c.sqlite3;
 
@@ -25,7 +34,7 @@ class Sdb
 	const admins_table = "admins";
 	const config_table   = "config";
 
-	const users_table_format  = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, password TEXT, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
+	const users_table_format  = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, password TEXT, salt TEXT, iterations INTEGER, speed INTEGER, ulnum INTEGER, files INTEGER, folders INTEGER, banned INTEGER, privileges INTEGER) WITHOUT ROWID;";
 	const admins_table_format = "CREATE TABLE IF NOT EXISTS %s(username TEXT PRIMARY KEY, level INTEGER) WITHOUT ROWID;";
 	const config_table_format   = "CREATE TABLE IF NOT EXISTS %s(option TEXT PRIMARY KEY, value) WITHOUT ROWID;";
 
@@ -153,20 +162,61 @@ class Sdb
 		)).length > 0;
 	}
 
-	string get_pass(string username)
+	string pbkdf2_hex(string password, string salt, uint iterations)
 	{
-		return query(
-			"SELECT password FROM %s WHERE username = '%s';".format(
-			users_table, escape(username)
-		))[0][0];
+		auto hmac = HMAC!SHA512(password.representation);
+		auto digest = hmac
+			.put(salt.representation)
+			.put(nativeToBigEndian(1))
+			.finish();
+		auto iter_digest = digest;
+		foreach (i; 1 .. iterations)
+		{
+			iter_digest = hmac.put(iter_digest).finish();
+			foreach (n, ref c; digest) c ^= iter_digest[n];
+		}
+		return digest.toHexString!(LetterCase.lower).to!string;
+	}
+
+	string random_salt()
+	{
+		return iota(16).map!(_ => letters[uniform(0, $)]).array;
 	}
 
 	void add_user(string username, string password)
 	{
+		const salt = random_salt;
+		const digest = pbkdf2_hex(password, salt, pbkdf2_iterations);
+
 		query(
-			"INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
-			users_table, escape(username), escape(password)
+			"INSERT INTO %s(username, password, salt, iterations) VALUES('%s', '%s', '%s', %d);".format(
+			users_table, escape(username), escape(digest), escape(salt),
+			pbkdf2_iterations
 		));
+	}
+
+	bool user_password_valid(string username, string password)
+	{
+		const res = query(
+			"SELECT password,salt,iterations FROM %s WHERE username = '%s';".format(
+			users_table, escape(username)
+		));
+		const iterations = res[0][2].to!uint.ifThrown(pbkdf2_iterations);
+		const salt = res[0][1];
+		const stored_digest = res[0][0];
+		const current_digest = pbkdf2_hex(password, salt, iterations);
+
+		return secureEqual(stored_digest, current_digest);
+	}
+
+	void user_update_password(string username, string password)
+	{
+		const salt = random_salt;
+		const digest = pbkdf2_hex(password, salt, pbkdf2_iterations);
+
+		user_update_field(username, "password", digest);
+		user_update_field(username, "salt", salt);
+		user_update_field(username, "iterations", pbkdf2_iterations);
 	}
 
 	bool is_banned(string username)
@@ -207,8 +257,8 @@ class Sdb
 	{
 		debug(db) writeln("DB: Requested ", username, "'s info...");
 		const res = query(
-			"SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
-			users_table, escape(username), escape(password)
+			"SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s';".format(
+			users_table, escape(username)
 		));
 
 		if (res.length > 0) {
