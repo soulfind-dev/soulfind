@@ -814,9 +814,7 @@ class User
 			case ChangePassword:
 				const msg = new UChangePassword(msg_buf);
 
-				server.db.user_update_field(
-					username, "password", server.encode_password(msg.password)
-				);
+				server.db.user_update_password(username, msg.password);
 				send_message(new SChangePassword(msg.password));
 				break;
 
@@ -866,12 +864,11 @@ class User
 	private void login(const ULogin msg)
 	{
 		username = msg.username;
-		const password = server.encode_password(msg.password);
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
 
 		server.db.get_user(
-			username, password, speed, upload_number, shared_files,
+			username, null, speed, upload_number, shared_files,
 			shared_folders, privileges
 		);
 
@@ -881,7 +878,7 @@ class User
 		const motd = server.get_motd(this);
 		const supporter = privileges > 0;
 
-		send_message(new SLogin(true, motd, address, password, supporter));
+		send_message(new SLogin(true, motd, address, msg.password, supporter));
 		send_message(new SRoomList(Room.room_stats));
 		send_message(
 			new SWishlistInterval(supporter ? 120 : 720)  // in seconds

@@ -21,8 +21,6 @@ import std.array : split, join, replace;
 import std.ascii : isPrintable, isPunctuation;
 import std.format : format;
 import std.algorithm : canFind;
-import std.digest : digest, LetterCase, toHexString, secureEqual;
-import std.digest.md : MD5;
 import std.string : strip;
 import std.process : thisProcessID;
 import std.exception : ifThrown;
@@ -557,11 +555,6 @@ class Server
 		return dur!"seconds"(uptime.total!"seconds").toString;
 	}
 
-	string encode_password(string pass)
-	{
-		return digest!MD5(pass).toHexString!(LetterCase.lower).to!string;
-	}
-
 	bool check_name(string text, uint max_length = 24)
 	{
 		if (!text || text.length > max_length) {
@@ -599,7 +592,7 @@ class Server
 
 		if (!db.user_exists(username)) {
 			debug (user) writeln("New user ", username, " registering");
-			db.add_user(username, encode_password(password));
+			db.add_user(username, password);
 			return null;
 		}
 		debug (user) writeln("User ", username, " is registered");
@@ -607,7 +600,7 @@ class Server
 		if (db.is_banned(username))
 			return "BANNED";
 
-		if (!secureEqual(db.get_pass(username), encode_password(password)))
+		if (!db.user_password_valid(username, password))
 			return "INVALIDPASS";
 
 		return null;
