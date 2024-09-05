@@ -59,6 +59,19 @@ class User
 		this.last_priv_check	= MonoTime.currTime;
 	}
 
+	void quit()
+	{
+		if (status == Status.offline)
+			return;
+
+		update_privileges();
+		foreach (room ; joined_rooms) room.leave(this);
+		Room.remove_global_room_user(username);
+
+		set_status(Status.offline);
+		writeln("User ", blue, username, norm, " has quit.");
+	}
+
 	// misc
 	void send_pm(PM pm, bool new_message)
 	{
@@ -348,10 +361,11 @@ class User
 	}
 
 	// messages
-	private ubyte[]		in_buf;
-	private auto		in_msg_size = -1;
-	private ubyte[]		out_buf;
-	private auto		msg_size_buf = new OutBuffer();
+	private void delegate(ubyte[])[uint]	msg_callbacks;
+	private ubyte[]							in_buf;
+	private auto							in_msg_size = -1;
+	private ubyte[]							out_buf;
+	private auto							msg_size_buf = new OutBuffer();
 
 	bool is_sending()
 	{
@@ -395,9 +409,8 @@ class User
 			// disconnect the user if message is incorrect/bogus
 			if (in_msg_size < 0 || in_msg_size > max_msg_size)
 				return false;
-			proc_message();
+			process_message();
 		}
-
 		return true;
 	}
 
@@ -411,8 +424,54 @@ class User
 		return in_buf.length >= in_msg_size;
 	}
 
-	private void proc_message()
+	private void process_message()
 	{
+		if (!msg_callbacks)
+			msg_callbacks = [
+				Login:					&on_login,
+				SetWaitPort:			&on_set_wait_port,
+				GetPeerAddress:			&on_get_peer_address,
+				WatchUser:				&on_watch_user,
+				UnwatchUser:			&on_unwatch_user,
+				GetUserStatus:			&on_get_user_status,
+				SayChatroom:			&on_say_chatroom,
+				JoinRoom:				&on_join_room,
+				LeaveRoom:				&on_leave_room,
+				ConnectToPeer:			&on_connect_to_peer,
+				MessageUser:			&on_message_user,
+				MessageAcked:			&on_message_acked,
+				FileSearch:				&on_file_search,
+				SetStatus:				&on_set_status,
+				ServerPing:				&on_server_ping,
+				SharedFoldersFiles:		&on_shared_folders_files,
+				GetUserStats:			&on_get_user_stats,
+				UserSearch:				&on_user_search,
+				AddThingILike:			&on_add_thing_i_like,
+				RemoveThingILike:		&on_remove_thing_i_like,
+				GetRecommendations:		&on_get_recommendations,
+				GlobalRecommendations:	&on_global_recommendations,
+				UserInterests:			&on_user_interests,
+				RoomList:				&on_room_list,
+				AdminMessage:			&on_admin_message,
+				CheckPrivileges:		&on_check_privileges,
+				WishlistSearch:			&on_wishlist_search,
+				SimilarUsers:			&on_similar_users,
+				ItemRecommendations:	&on_item_recommendations,
+				ItemSimilarUsers:		&on_item_similar_users,
+				SetRoomTicker:			&on_set_room_ticker,
+				AddThingIHate:			&on_add_thing_i_hate,
+				RemoveThingIHate:		&on_remove_thing_i_hate,
+				RoomSearch:				&on_room_search,
+				SendUploadSpeed:		&on_send_upload_speed,
+				UserPrivileged:			&on_user_privileged,
+				GivePrivileges:			&on_give_privileges,
+				ChangePassword:			&on_change_password,
+				MessageUsers:			&on_message_users,
+				JoinGlobalRoom:			&on_join_global_room,
+				LeaveGlobalRoom:		&on_leave_global_room,
+				CantConnectToPeer:		&on_cant_connect_to_peer,
+			];
+
 		auto msg_buf = in_buf[0 .. in_msg_size];
 		const code = msg_buf.read!(uint, Endian.littleEndian);
 
@@ -430,441 +489,49 @@ class User
 		if (status != Status.offline && code == Login)
 			return;
 
-		switch (code) {
-			case Login:
-				write("User logging in : ");
-				const msg = new ULogin(msg_buf);
-				const error = server.check_login(msg.username, msg.password);
-
-				if (error) {
-					username = msg.username;
-					should_quit = true;
-
-					writeln(username, ": Impossible to login (", error, ")");
-					writeln("User ", red, username, norm, " denied.");
-					send_message(new SLogin(false, error));
-					return;
-				}
-
-				auto user = server.get_user(msg.username);
-
-				if (user && user.status != Status.offline) {
-					writeln(msg.username, ": Already logged in");
-					user.send_message(new SRelogged());
-					user.quit();
-				}
-
-				writeln(
-					blue, msg.username, norm, ", version ",
-					msg.major_version, ".", msg.minor_version
+		if (code !in msg_callbacks) {
+			debug (msg) {
+				write(
+					red, "Unimplemented message", norm, " from user ",
+					blue, username, norm, ", code ", red, code, norm,
+					" and length ", msg_buf.length, "\n> "
 				);
-				login(msg);
-				return;
-
-			case SetWaitPort:
-				const msg = new USetWaitPort(msg_buf);
-				port = cast(ushort) msg.port;
-				break;
-
-			case GetPeerAddress:
-				const msg = new UGetPeerAddress(msg_buf);
-				auto user = server.get_user(msg.user);
-				uint address;
-				uint port;
-
-				if (user) {
-					address = user.address;
-					port = user.port;
-				}
-
-				send_message(new SGetPeerAddress(msg.user, address, port));
-				break;
-
-			case WatchUser:
-				const msg = new UWatchUser(msg_buf);
-				bool exists;
-				uint status = Status.offline;
-				uint speed, upload_number, something;
-				uint shared_files, shared_folders;
-				string country_code;
-
-				if (server.db.user_exists(msg.user)) {
-					exists = true;
-					auto user = server.get_user(msg.user);
-					if (user)
-					{
-						status = user.status;
-						country_code = user.country_code;
-					}
-
-					server.db.get_user(
-						msg.user, speed, upload_number, something, shared_files,
-						shared_folders
-					);
-					watch(msg.user);
-				}
-				else if (msg.user == server_user) {
-					exists = true;
-					status = Status.online;
-				}
-
-				send_message(
-					new SWatchUser(
-						msg.user, exists, status, speed, upload_number,
-						something, shared_files, shared_folders, country_code
-						)
-					);
-				break;
-
-			case UnwatchUser:
-				const msg = new UUnwatchUser(msg_buf);
-				unwatch(msg.user);
-				break;
-
-			case GetUserStatus:
-				const msg = new UGetUserStatus(msg_buf);
-				auto user = server.get_user(msg.user);
-				uint status = Status.offline;
-				bool privileged;
-
-				debug (user) write("Sending ", msg.user, "'s status... ");
-				if (user) {	// user is online
-					debug (user) writeln("online.");
-					status = user.status;
-					privileged = user.privileges > 0;
-				}
-				else if (server.db.user_exists(msg.user)) {	// user is offline but exists
-					debug (user) writeln("offline.");
-				}
-				else if (msg.user == server_user) {	// user is the server administration interface
-					debug (user) writeln("server(online)");
-					status = Status.online;
-				}
-				else {	// user doesn't exist
-					debug (user) writeln("doesn't exist.");
-				}
-
-				send_message(
-					new SGetUserStatus(msg.user, status, privileged)
-				);
-				break;
-
-			case SayChatroom:
-				const msg = new USayChatroom(msg_buf);
-				auto room = Room.get_room(msg.room);
-				if (!room)
-					break;
-
-				room.say(username, msg.message);
-				foreach (global_username ; Room.global_room_users) {
-					auto user = server.get_user(global_username);
-					user.send_message(
-						new SGlobalRoomMessage(
-							msg.room, username, msg.message
-						)
-					);
-				}
-				break;
-
-			case JoinRoom:
-				const msg = new UJoinRoom(msg_buf);
-				if (server.check_name(msg.room))
-					Room.join_room(msg.room, this);
-				break;
-
-			case LeaveRoom:
-				const msg = new ULeaveRoom(msg_buf);
-				auto room = Room.get_room(msg.room);
-				if (!room)
-					break;
-
-				room.leave(this);
-				send_message(new SLeaveRoom(msg.room));
-				break;
-
-			case ConnectToPeer:
-				const msg = new UConnectToPeer(msg_buf);
-				auto user = server.get_user(msg.user);
-				if (!user)
-					break;
-
-				const ia = new InternetAddress(user.address, user.port);
-				debug (user) writeln(
-					username, " cannot connect to ", msg.user, "/",
-					ia, ", asking us to tell the other..."
-				);
-				user.send_message(
-					new SConnectToPeer(
-						user.username, msg.type, user.address, user.port,
-						msg.token, user.privileges > 0
-					)
-				);
-				break;
-
-			case MessageUser:
-				const msg = new UMessageUser(msg_buf);
-				auto user = server.get_user(msg.user);
-
-				if (msg.user == server_user) {
-					server.admin_message(this, msg.message);
-				}
-				else if (user) { // user is connected
-					auto pm = new PM(msg.message, username, msg.user);
-					const new_message = true;
-
-					PM.add_pm(pm);
-					user.send_pm(pm, new_message);
-				}
-				else if (server.db.user_exists(msg.user)) { // user is not connected but exists
-					auto pm = new PM(msg.message, username, msg.user);
-					PM.add_pm(pm);
-				}
-				break;
-
-			case MessageAcked:
-				const msg = new UMessageAcked(msg_buf);
-				PM.del_pm(msg.id);
-				break;
-
-			case FileSearch:
-				const msg = new UFileSearch(msg_buf);
-				server.do_FileSearch(msg.token, msg.strng, username);
-				break;
-
-			case SetStatus:
-				const msg = new USetStatus(msg_buf);
-				set_status(msg.status);
-				break;
-
-			case ServerPing:
-				break;
-
-			case SharedFoldersFiles:
-				const msg = new USharedFoldersFiles(msg_buf);
-				debug (user) writeln(
-					username, " is sharing ", msg.nb_files, " files and ",
-					msg.nb_folders, " folders"
-				);
-				set_shared_folders(msg.nb_folders);
-				set_shared_files(msg.nb_files);
-
-				send_to_watching(
-					new SGetUserStats(
-						username, speed, upload_number, something,
-						shared_files, shared_folders
-					)
-				);
-				break;
-
-			case GetUserStats:
-				const msg = new UGetUserStats(msg_buf);
-				uint speed, upload_number, something;
-				uint shared_files, shared_folders;
-
-				server.db.get_user(
-					msg.user, speed, upload_number, something, shared_files,
-					shared_folders
-				);
-				send_message(
-					new SGetUserStats(
-						msg.user, speed, upload_number, something,
-						shared_files, shared_folders
-					)
-				);
-				break;
-
-			case UserSearch:
-				const msg = new UUserSearch(msg_buf);
-				server.do_UserSearch(msg.token, msg.query, username, msg.user);
-				break;
-
-			case AddThingILike:
-				const msg = new UAddThingILike(msg_buf);
-				add_thing_he_likes(msg.thing);
-				break;
-
-			case RemoveThingILike:
-				const msg = new URemoveThingILike(msg_buf);
-				del_thing_he_likes(msg.thing);
-				break;
-
-			case AddThingIHate:
-				const msg = new UAddThingIHate(msg_buf);
-				add_thing_he_hates(msg.thing);
-				break;
-
-			case RemoveThingIHate:
-				const msg = new URemoveThingIHate(msg_buf);
-				del_thing_he_hates(msg.thing);
-				break;
-
-			case GetRecommendations:
-				send_message(new SGetRecommendations(recommendations));
-				break;
-
-			case GlobalRecommendations:
-				send_message(
-					new SGetGlobalRecommendations(global_recommendations)
-				);
-				break;
-
-			case SimilarUsers:
-				send_message(new SSimilarUsers(similar_users));
-				break;
-
-			case UserInterests:
-				const msg = new UUserInterests(msg_buf);
-				auto user = server.get_user(msg.user);
-				if (!user)
-					break;
-
-				send_message(
-					new SUserInterests(
-						user.username, user.liked_things, user.hated_things
-					)
-				);
-				break;
-
-			case RoomList:
-				send_message(new SRoomList(Room.room_stats));
-				break;
-
-			case AdminMessage:
-				if (!server.db.is_admin(username))
-					break;
-
-				const msg = new UAdminMessage(msg_buf);
-
-				foreach (User user ; server.users)
-					user.send_message(new SAdminMessage(msg.mesg));
-				break;
-
-			case CheckPrivileges:
-				update_privileges();
-				send_message(new SCheckPrivileges(privileges));
-				break;
-
-			case WishlistSearch:
-				const msg = new UWishlistSearch(msg_buf);
-				server.do_FileSearch(msg.token, msg.strng, username);
-				break;
-
-			case ItemRecommendations:
-				const msg = new UGetItemRecommendations(msg_buf);
-				auto recommendations = get_item_recommendations(msg.item);
-				send_message(
-					new SGetItemRecommendations(msg.item, recommendations)
-				);
-				break;
-
-			case ItemSimilarUsers:
-				const msg = new UItemSimilarUsers(msg_buf);
-				auto similar_users = get_item_similar_users(msg.item);
-				send_message(new SItemSimilarUsers(msg.item, similar_users));
-				break;
-
-			case SetRoomTicker:
-				const msg = new USetRoomTicker(msg_buf);
-				auto room = Room.get_room(msg.room);
-				if (room) room.add_ticker(username, msg.tick);
-				break;
-
-			case RoomSearch:
-				const msg = new URoomSearch(msg_buf);
-				server.do_RoomSearch(msg.token, msg.query, username, msg.room);
-				break;
-
-			case SendUploadSpeed:
-				const msg = new USendUploadSpeed(msg_buf);
-				auto user = server.get_user(username);
-				if (!user)
-					break;
-
-				user.calc_speed(msg.speed);
-				debug (user) writeln(
-					"User ", username, " reports a speed of ", msg.speed,
-					" B/s(their speed is now ", user.speed, " B/s)"
-				);
-				break;
-
-			case UserPrivileged:
-				const msg = new UUserPrivileged(msg_buf);
-				auto user = server.get_user(msg.user);
-				if (!user)
-					break;
-
-				send_message(
-					new SUserPrivileged(user.username, user.privileges > 0)
-				);
-				break;
-
-			case GivePrivileges:
-				const msg = new UGivePrivileges(msg_buf);
-				auto user = server.get_user(msg.user);
-				const admin = server.db.is_admin(msg.user);
-				if (!user)
-					break;
-				if (msg.time > privileges && !admin)
-					break;
-
-				user.add_privileges(msg.time * 3600 * 24);
-				if (!admin) remove_privileges(msg.time * 3600 * 24);
-				break;
-
-			case ChangePassword:
-				const msg = new UChangePassword(msg_buf);
-
-				server.db.user_update_field(
-					username, "password", server.encode_password(msg.password)
-				);
-				send_message(new SChangePassword(msg.password));
-				break;
-
-			case MessageUsers:
-				const msg = new UMessageUsers(msg_buf);
-				bool new_message = true;
-
-				foreach (target_username ; msg.users) {
-					auto user = server.get_user(target_username);
-					if (!user)
-						continue;
-
-					PM pm = new PM(msg.message, username, target_username);
-					user.send_pm(pm, new_message);
-				}
-				break;
-
-			case JoinGlobalRoom:
-				Room.add_global_room_user(username);
-				break;
-
-			case LeaveGlobalRoom:
-				Room.remove_global_room_user(username);
-				break;
-
-			case CantConnectToPeer:
-				const msg = new UCantConnectToPeer(msg_buf);
-				auto user = server.get_user(msg.user);
-				if (user)
-					user.send_message(new SCantConnectToPeer(msg.token));
-				break;
-
-			default:
-				debug (msg) {
-					write(
-						red, "Unimplemented message", norm, " from user ",
-						blue, username, norm, ", code ", red, code, norm,
-						" and length ", msg_buf.length, "\n> "
-					);
-					writeln(msg_buf);
-				}
-				break;
+				writeln(msg_buf);
+			}
+			return;
 		}
-		return;
+		msg_callbacks[code](msg_buf);
 	}
 
-	private void login(const ULogin msg)
+	private void on_login(ubyte[] msg_buf)
 	{
+		write("User logging in : ");
+		const msg = new ULogin(msg_buf);
+		const error = server.check_login(msg.username, msg.password);
+
+		if (error) {
+			username = msg.username;
+			should_quit = true;
+
+			writeln(username, ": Impossible to login (", error, ")");
+			writeln("User ", red, username, norm, " denied.");
+			send_message(new SLogin(false, error));
+			return;
+		}
+
+		auto user = server.get_user(msg.username);
+
+		if (user && user.status != Status.offline) {
+			writeln(msg.username, ": Already logged in");
+			user.send_message(new SRelogged());
+			user.quit();
+		}
+
+		writeln(
+			blue, msg.username, norm, ", version ",
+			msg.major_version, ".", msg.minor_version
+		);
+
 		username = msg.username;
 		const password = server.encode_password(msg.password);
 		major_version = msg.major_version;
@@ -883,9 +550,7 @@ class User
 
 		send_message(new SLogin(true, motd, address, password, supporter));
 		send_message(new SRoomList(Room.room_stats));
-		send_message(
-			new SWishlistInterval(supporter ? 120 : 720)  // in seconds
-		);
+		send_message(new SWishlistInterval(supporter ? 120 : 720));  // seconds
 		set_status(Status.online);
 
 		foreach (pm ; PM.get_pms_for(username)) {
@@ -897,16 +562,419 @@ class User
 		}
 	}
 
-	void quit()
+	private void on_set_wait_port(ubyte[] msg_buf)
 	{
-		if (status == Status.offline)
+		const msg = new USetWaitPort(msg_buf);
+		port = cast(ushort) msg.port;
+	}
+
+	private void on_get_peer_address(ubyte[] msg_buf)
+	{
+		const msg = new UGetPeerAddress(msg_buf);
+		auto user = server.get_user(msg.user);
+		uint address;
+		uint port;
+
+		if (user) {
+			address = user.address;
+			port = user.port;
+		}
+
+		send_message(new SGetPeerAddress(msg.user, address, port));
+	}
+
+	private void on_watch_user(ubyte[] msg_buf)
+	{
+		const msg = new UWatchUser(msg_buf);
+		bool exists;
+		uint status = Status.offline;
+		uint speed, upload_number, something;
+		uint shared_files, shared_folders;
+		string country_code;
+
+		if (server.db.user_exists(msg.user)) {
+			exists = true;
+			auto user = server.get_user(msg.user);
+			if (user)
+			{
+				status = user.status;
+				country_code = user.country_code;
+			}
+
+			server.db.get_user(
+				msg.user, speed, upload_number, something, shared_files,
+				shared_folders
+			);
+			watch(msg.user);
+		}
+		else if (msg.user == server_user) {
+			exists = true;
+			status = Status.online;
+		}
+
+		send_message(
+			new SWatchUser(
+				msg.user, exists, status, speed, upload_number, something,
+				shared_files, shared_folders, country_code
+			)
+		);
+	}
+
+	private void on_unwatch_user(ubyte[] msg_buf)
+	{
+		const msg = new UUnwatchUser(msg_buf);
+		unwatch(msg.user);
+	}
+
+	private void on_get_user_status(ubyte[] msg_buf)
+	{
+		const msg = new UGetUserStatus(msg_buf);
+		auto user = server.get_user(msg.user);
+		uint status = Status.offline;
+		bool privileged;
+
+		debug (user) write("Sending ", msg.user, "'s status... ");
+		if (user) {	// user is online
+			debug (user) writeln("online.");
+			status = user.status;
+			privileged = user.privileges > 0;
+		}
+		else if (server.db.user_exists(msg.user)) {	// user is offline but exists
+			debug (user) writeln("offline.");
+		}
+		else if (msg.user == server_user) {	// user is the server administration interface
+			debug (user) writeln("server(online)");
+			status = Status.online;
+		}
+		else {	// user doesn't exist
+			debug (user) writeln("doesn't exist.");
+		}
+
+		send_message(new SGetUserStatus(msg.user, status, privileged));
+	}
+
+	private void on_say_chatroom(ubyte[] msg_buf)
+	{
+		const msg = new USayChatroom(msg_buf);
+		auto room = Room.get_room(msg.room);
+		if (!room)
 			return;
 
-		update_privileges();
-		foreach (room ; joined_rooms) room.leave(this);
-		Room.remove_global_room_user(username);
+		room.say(username, msg.message);
+		foreach (global_username ; Room.global_room_users) {
+			auto user = server.get_user(global_username);
+			user.send_message(
+				new SGlobalRoomMessage(msg.room, username, msg.message)
+			);
+		}
+	}
 
-		set_status(Status.offline);
-		writeln("User ", blue, username, norm, " has quit.");
+	private void on_join_room(ubyte[] msg_buf)
+	{
+		const msg = new UJoinRoom(msg_buf);
+		if (server.check_name(msg.room))
+			Room.join_room(msg.room, this);
+	}
+
+	private void on_leave_room(ubyte[] msg_buf)
+	{
+		const msg = new ULeaveRoom(msg_buf);
+		auto room = Room.get_room(msg.room);
+		if (!room)
+			return;
+
+		room.leave(this);
+		send_message(new SLeaveRoom(msg.room));
+	}
+
+	private void on_connect_to_peer(ubyte[] msg_buf)
+	{
+		const msg = new UConnectToPeer(msg_buf);
+		auto user = server.get_user(msg.user);
+		if (!user)
+			return;
+
+		const ia = new InternetAddress(user.address, user.port);
+		debug (user) writeln(
+			username, " cannot connect to ", msg.user, "/",
+			ia, ", asking us to tell the other..."
+		);
+		user.send_message(
+			new SConnectToPeer(
+				user.username, msg.type, user.address, user.port,
+				msg.token, user.privileges > 0
+			)
+		);
+	}
+
+	private void on_message_user(ubyte[] msg_buf)
+	{
+		const msg = new UMessageUser(msg_buf);
+		auto user = server.get_user(msg.user);
+
+		if (msg.user == server_user) {
+			server.admin_message(this, msg.message);
+		}
+		else if (user) { // user is connected
+			auto pm = new PM(msg.message, username, msg.user);
+			const new_message = true;
+
+			PM.add_pm(pm);
+			user.send_pm(pm, new_message);
+		}
+		else if (server.db.user_exists(msg.user)) { // user is not connected but exists
+			auto pm = new PM(msg.message, username, msg.user);
+			PM.add_pm(pm);
+		}
+	}
+
+	private void on_message_acked(ubyte[] msg_buf)
+	{
+		const msg = new UMessageAcked(msg_buf);
+		PM.del_pm(msg.id);
+	}
+
+	private void on_file_search(ubyte[] msg_buf)
+	{
+		const msg = new UFileSearch(msg_buf);
+		server.do_FileSearch(msg.token, msg.strng, username);
+	}
+
+	private void on_set_status(ubyte[] msg_buf)
+	{
+		const msg = new USetStatus(msg_buf);
+		set_status(msg.status);
+	}
+
+	private void on_server_ping(ubyte[] msg_buf) {}
+
+	private void on_shared_folders_files(ubyte[] msg_buf)
+	{
+		const msg = new USharedFoldersFiles(msg_buf);
+		debug (user) writeln(
+			username, " is sharing ", msg.nb_files, " files and ",
+			msg.nb_folders, " folders"
+		);
+		set_shared_folders(msg.nb_folders);
+		set_shared_files(msg.nb_files);
+
+		send_to_watching(
+			new SGetUserStats(
+				username, speed, upload_number, something,
+				shared_files, shared_folders
+			)
+		);
+	}
+
+	private void on_get_user_stats(ubyte[] msg_buf)
+	{
+		const msg = new UGetUserStats(msg_buf);
+		uint speed, upload_number, something;
+		uint shared_files, shared_folders;
+
+		server.db.get_user(
+			msg.user, speed, upload_number, something, shared_files,
+			shared_folders
+		);
+		send_message(
+			new SGetUserStats(
+				msg.user, speed, upload_number, something,
+				shared_files, shared_folders
+			)
+		);
+	}
+
+	private void on_user_search(ubyte[] msg_buf)
+	{
+		const msg = new UUserSearch(msg_buf);
+		server.do_UserSearch(msg.token, msg.query, username, msg.user);
+	}
+
+	private void on_add_thing_i_like(ubyte[] msg_buf)
+	{
+		const msg = new UAddThingILike(msg_buf);
+		add_thing_he_likes(msg.thing);
+	}
+
+	private void on_remove_thing_i_like(ubyte[] msg_buf)
+	{
+		const msg = new URemoveThingILike(msg_buf);
+		del_thing_he_likes(msg.thing);
+	}
+
+	private void on_add_thing_i_hate(ubyte[] msg_buf)
+	{
+		const msg = new UAddThingIHate(msg_buf);
+		add_thing_he_hates(msg.thing);
+	}
+
+	private void on_remove_thing_i_hate(ubyte[] msg_buf)
+	{
+		const msg = new URemoveThingIHate(msg_buf);
+		del_thing_he_hates(msg.thing);
+	}
+
+	private void on_get_recommendations(ubyte[] msg_buf)
+	{
+		send_message(new SGetRecommendations(recommendations));
+	}
+
+	private void on_global_recommendations(ubyte[] msg_buf)
+	{
+		send_message(new SGetGlobalRecommendations(global_recommendations));
+	}
+
+	private void on_similar_users(ubyte[] msg_buf)
+	{
+		send_message(new SSimilarUsers(similar_users));
+	}
+
+	private void on_user_interests(ubyte[] msg_buf)
+	{
+		const msg = new UUserInterests(msg_buf);
+		auto user = server.get_user(msg.user);
+		if (!user)
+			return;
+
+		send_message(
+			new SUserInterests(
+				user.username, user.liked_things, user.hated_things
+			)
+		);
+	}
+
+	private void on_room_list(ubyte[] msg_buf)
+	{
+		send_message(new SRoomList(Room.room_stats));
+	}
+
+	private void on_admin_message(ubyte[] msg_buf)
+	{
+		if (!server.db.is_admin(username))
+			return;
+
+		const msg = new UAdminMessage(msg_buf);
+
+		foreach (User user ; server.users)
+			user.send_message(new SAdminMessage(msg.mesg));
+	}
+
+	private void on_check_privileges(ubyte[] msg_buf)
+	{
+		update_privileges();
+		send_message(new SCheckPrivileges(privileges));
+	}
+
+	private void on_wishlist_search(ubyte[] msg_buf)
+	{
+		const msg = new UWishlistSearch(msg_buf);
+		server.do_FileSearch(msg.token, msg.strng, username);
+	}
+
+	private void on_item_recommendations(ubyte[] msg_buf)
+	{
+		const msg = new UGetItemRecommendations(msg_buf);
+		auto recommendations = get_item_recommendations(msg.item);
+		send_message(new SGetItemRecommendations(msg.item, recommendations));
+	}
+
+	private void on_item_similar_users(ubyte[] msg_buf)
+	{
+		const msg = new UItemSimilarUsers(msg_buf);
+		auto similar_users = get_item_similar_users(msg.item);
+		send_message(new SItemSimilarUsers(msg.item, similar_users));
+	}
+
+	private void on_set_room_ticker(ubyte[] msg_buf)
+	{
+		const msg = new USetRoomTicker(msg_buf);
+		auto room = Room.get_room(msg.room);
+		if (room) room.add_ticker(username, msg.tick);
+	}
+
+	private void on_room_search(ubyte[] msg_buf)
+	{
+		const msg = new URoomSearch(msg_buf);
+		server.do_RoomSearch(msg.token, msg.query, username, msg.room);
+	}
+
+	private void on_send_upload_speed(ubyte[] msg_buf)
+	{
+		const msg = new USendUploadSpeed(msg_buf);
+		auto user = server.get_user(username);
+		if (!user)
+			return;
+
+		user.calc_speed(msg.speed);
+		debug (user) writeln(
+			"User ", username, " reports a speed of ", msg.speed,
+			" B/s(their speed is now ", user.speed, " B/s)"
+		);
+	}
+
+	private void on_user_privileged(ubyte[] msg_buf)
+	{
+		const msg = new UUserPrivileged(msg_buf);
+		auto user = server.get_user(msg.user);
+		if (!user)
+			return;
+
+		send_message(new SUserPrivileged(user.username, user.privileges > 0));
+	}
+
+	private void on_give_privileges(ubyte[] msg_buf)
+	{
+		const msg = new UGivePrivileges(msg_buf);
+		auto user = server.get_user(msg.user);
+		const admin = server.db.is_admin(msg.user);
+		if (!user)
+			return;
+		if (msg.time > privileges && !admin)
+			return;
+
+		user.add_privileges(msg.time * 3600 * 24);
+		if (!admin) remove_privileges(msg.time * 3600 * 24);
+	}
+
+	private void on_change_password(ubyte[] msg_buf)
+	{
+		const msg = new UChangePassword(msg_buf);
+
+		server.db.user_update_field(
+			username, "password", server.encode_password(msg.password)
+		);
+		send_message(new SChangePassword(msg.password));
+	}
+
+	private void on_message_users(ubyte[] msg_buf)
+	{
+		const msg = new UMessageUsers(msg_buf);
+		const new_message = true;
+
+		foreach (target_username ; msg.users) {
+			auto user = server.get_user(target_username);
+			if (!user)
+				continue;
+
+			PM pm = new PM(msg.message, username, target_username);
+			user.send_pm(pm, new_message);
+		}
+	}
+
+	private void on_join_global_room(ubyte[] msg_buf)
+	{
+		Room.add_global_room_user(username);
+	}
+
+	private void on_leave_global_room(ubyte[] msg_buf)
+	{
+		Room.remove_global_room_user(username);
+	}
+
+	private void on_cant_connect_to_peer(ubyte[] msg_buf)
+	{
+		const msg = new UCantConnectToPeer(msg_buf);
+		auto user = server.get_user(msg.user);
+		if (user) user.send_message(new SCantConnectToPeer(msg.token));
 	}
 }
