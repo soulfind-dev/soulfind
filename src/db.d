@@ -230,6 +230,7 @@ class Sdb
 		if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
 			escape(filter_field), min, max
 		);
+		query_str ~= ";";
 		foreach (record ; query(query_str)) ret ~= record[0];
 		return ret;
 	}
@@ -240,6 +241,7 @@ class Sdb
 		if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
 			escape(filter_field), min, max
 		);
+		query_str ~= ";";
 		return atoi(query(query_str)[0][0]);
 	}
 
