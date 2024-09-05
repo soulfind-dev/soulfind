@@ -8,10 +8,11 @@ module db;
 
 import defines;
 
-import std.string : format, join, split, replace, toStringz;
+import std.string : format, replace, toStringz;
 import std.stdio : writeln, write;
-import std.file : exists, isFile, getAttributes;
-import std.conv : to, octal, ConvException;
+import std.file : exists, isFile;
+import std.conv : to;
+import std.exception : ifThrown;
 
 import etc.c.sqlite3;
 
@@ -51,8 +52,8 @@ class Sdb
 	{
 		query(config_table_format.format(config_table));
 
-		init_config_option("port", port);
-		init_config_option("max_users", max_users);
+		init_config_option("port", default_port);
+		init_config_option("max_users", default_max_users);
 		init_config_option("motd", "Soulfind %sversion%");
 	}
 
@@ -176,7 +177,7 @@ class Sdb
 		));
 
 		if (res.length > 0)
-			return atoi(res[0][0]) > 0;
+			return res[0][0].to!uint.ifThrown(0) > 0;
 
 		return false;
 	}
@@ -192,10 +193,10 @@ class Sdb
 		if (res.length > 0) {
 			const user      = res[0];
 
-			speed           = atoi(user[0]);
-			upload_number   = atoi(user[1]);
-			shared_files    = atoi(user[2]);
-			shared_folders  = atoi(user[3]);
+			speed           = user[0].to!uint.ifThrown(0);
+			upload_number   = user[1].to!uint.ifThrown(0);
+			shared_files    = user[2].to!uint.ifThrown(0);
+			shared_folders  = user[3].to!uint.ifThrown(0);
 			something       = 0;
 			return true;
 		}
@@ -213,11 +214,11 @@ class Sdb
 		if (res.length > 0) {
 			const user      = res[0];
 
-			speed           = atoi(user[0]);
-			upload_number   = atoi(user[1]);
-			shared_files    = atoi(user[2]);
-			shared_folders  = atoi(user[3]);
-			privileges      = atoi(user[4]);
+			speed           = user[0].to!uint.ifThrown(0);
+			upload_number   = user[1].to!uint.ifThrown(0);
+			shared_files    = user[2].to!uint.ifThrown(0);
+			shared_folders  = user[3].to!uint.ifThrown(0);
+			privileges      = user[4].to!uint.ifThrown(0);
 			return true;
 		}
 		return false;
@@ -242,7 +243,7 @@ class Sdb
 			escape(filter_field), min, max
 		);
 		query_str ~= ";";
-		return atoi(query(query_str)[0][0]);
+		return query(query_str)[0][0].to!uint.ifThrown(0);
 	}
 
 	@trusted
@@ -283,11 +284,5 @@ class Sdb
 	string escape(string str)
 	{
 		return replace(str, "'", "''");
-	}
-
-	uint atoi(string str)
-	{
-		try {return to!uint(str);}
-		catch (ConvException e) {return 0;}
 	}
 }

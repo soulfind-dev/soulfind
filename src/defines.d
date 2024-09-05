@@ -8,8 +8,8 @@ module defines;
 
 const VERSION			= "0.5.0-dev";
 const default_db_file	= "soulfind.db";
-const port				= 2242;
-const max_users			= 65535;
+const default_port		= 2242;
+const default_max_users	= 65535;
 const max_msg_size		= 16384;
 const server_user		= "server";
 

@@ -25,6 +25,7 @@ import std.digest : digest, LetterCase, toHexString, secureEqual;
 import std.digest.md : MD5;
 import std.string : strip;
 import std.process : thisProcessID;
+import std.exception : ifThrown;
 
 import core.sys.posix.unistd : fork;
 import core.sys.posix.signal;
@@ -107,8 +108,12 @@ class Server
 		started_at = MonoTime.currTime;
 		db = new Sdb(db_file);
 
-		port = db.get_config_value("port").to!ushort;
-		max_users = db.get_config_value("max_users").to!uint;
+		port = db.get_config_value("port").to!ushort.ifThrown(
+			cast(ushort) default_port
+		);
+		max_users = db.get_config_value("max_users").to!uint.ifThrown(
+			default_max_users
+		);
 	}
 
 	private int listen()

@@ -15,6 +15,7 @@ import std.conv : ConvException, to;
 import std.format : format;
 import std.stdio : readf, readln, write, writeln;
 import std.string : chomp, strip;
+import std.exception : ifThrown;
 
 Sdb sdb;
 
@@ -104,9 +105,9 @@ void list_admins()
 
 void listen_port()
 {
-	uint port;
-	try {port = sdb.get_config_value("port").to!ushort;} catch (ConvException) {}
-
+	const port = sdb.get_config_value("port").to!ushort.ifThrown(
+		default_port
+	);
 	auto menu = new Menu(format("Listen port : %d", port));
 	menu.add("1", "Change listen port", &set_listen_port);
 	menu.add("q", "Return",             &main_menu);
@@ -119,8 +120,7 @@ void set_listen_port()
 	write("New listen port : ");
 
 	const value = input.strip;
-	uint port;
-	try {port = value.to!uint;} catch (ConvException) {}
+	const port = value.to!uint.ifThrown(0);
 	if (port <= 0 || port > ushort.max) {
 		writeln("Please enter a port in the range 1-65535");
 		set_listen_port();
@@ -133,9 +133,9 @@ void set_listen_port()
 
 void max_users()
 {
-	uint max_users;
-	try {max_users = sdb.get_config_value("max_users").to!uint;} catch (ConvException) {}
-
+	const max_users = sdb.get_config_value("max_users").to!uint.ifThrown(
+		default_max_users
+	);
 	auto menu = new Menu(format("Max users allowed : %d", max_users));
 	menu.add("1", "Change max users", &set_max_users);
 	menu.add("q", "Return",           &main_menu);
