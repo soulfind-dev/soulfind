@@ -29,7 +29,7 @@ import std.exception : ifThrown;
 
 import core.sys.posix.unistd : fork;
 import core.sys.posix.signal;
-import core.time : Duration, dur, MonoTime;
+import core.time : Duration, MonoTime, minutes, seconds;
 
 extern(C) void handle_termination(int)
 {
@@ -101,7 +101,7 @@ class Server
 	private User[Socket]	user_socks;
 	private auto			keepalive_time = 60;
 	private auto			keepalive_interval = 5;
-	private Duration		select_timeout = dur!"minutes"(2);
+	private Duration		select_timeout = 2.minutes;
 
 	private this(string db_file)
 	{
@@ -483,7 +483,6 @@ class Server
 		if (!user)
 			return "";
 
-		user.update_privileges();
 		return format(
 			"%s: connected at %s"
 			~ "\n\tclient version: %s"
@@ -554,7 +553,7 @@ class Server
 
 	private string h_uptime()
 	{
-		return dur!"seconds"(uptime.total!"seconds").toString;
+		return uptime.total!"seconds".seconds.toString;
 	}
 
 	string encode_password(string pass)

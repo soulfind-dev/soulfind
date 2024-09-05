@@ -22,7 +22,7 @@ import std.socket : Socket, InternetAddress;
 import std.stdio : write, writeln;
 import std.system : Endian;
 
-import core.time : dur, MonoTime;
+import core.time : seconds;
 
 class User
 {
@@ -56,7 +56,6 @@ class User
 		this.sock			= sock;
 		this.address		= address;
 		this.connected_at	= Clock.currTime;
-		this.last_priv_check	= MonoTime.currTime;
 	}
 
 	// misc
@@ -103,8 +102,7 @@ class User
 	}
 
 	// privileges
-	private uint		privileges;			// in seconds
-	private MonoTime	last_priv_check;
+	private long	priv_expiration;
 
 	void add_privileges(uint new_privileges)
 	{
@@ -112,9 +110,11 @@ class User
 			"Adding ", new_privileges, " seconds of privileges to user ",
 			username
 		);
-		privileges += new_privileges;
+		if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
+		priv_expiration += new_privileges;
+		server.db.user_update_field(username, "privileges", priv_expiration);
+
 		debug (user) writeln("Now ", privileges, " seconds.");
-		server.db.user_update_field(username, "privileges", privileges);
 		send_message(new SCheckPrivileges(privileges));
 	}
 
@@ -124,31 +124,34 @@ class User
 			"Removing ", new_privileges, " seconds of privileges to user ",
 			username
 		);
-		if (new_privileges > privileges)
-			privileges = 0;
-		else
-			privileges -= new_privileges;
+		priv_expiration -= new_privileges;
+		if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
+		server.db.user_update_field(username, "privileges", priv_expiration);
+
 		debug (user) writeln("Now ", privileges, " seconds.");
-		server.db.user_update_field(username, "privileges", privileges);
 		send_message(new SCheckPrivileges(privileges));
 	}
 
-	void update_privileges()
+	uint privileges()
 	{
-		MonoTime now = MonoTime.currTime;
-		ulong difference = (now - last_priv_check).total!"seconds";
-		if (last_priv_check > now) difference = 0;
-		if (privileges < difference)
-			privileges = 0;
-		else
-			privileges -= difference;
-		last_priv_check = now;
-		server.db.user_update_field(username, "privileges", privileges);
+		auto privileges = priv_expiration - Clock.currTime.toUnixTime;
+		if (privileges <= 0) privileges = 0;
+		return privileges.to!uint;
 	}
 
 	string h_privileges()
 	{
-		return privileges > 0 ? dur!"seconds"(privileges).toString : "None";
+		return privileges > 0 ? privileges.seconds.toString : "None";
+	}
+
+	bool privileged()
+	{
+		return privileges > 0;
+	}
+
+	bool supporter()
+	{	// user has had privileges at some point
+		return priv_expiration > 0;
 	}
 
 	// things I like
@@ -269,7 +272,8 @@ class User
 
 	private void watch(string username)
 	{
-		watch_list[username] = username;
+		if (username != server_user)
+			watch_list[username] = username;
 	}
 
 	private void unwatch(string username)
@@ -322,7 +326,7 @@ class User
 	{
 		status = new_status;
 		send_to_watching(
-			new SGetUserStatus(username, new_status, privileges > 0)
+			new SGetUserStatus(username, new_status, privileged)
 		);
 	}
 
@@ -482,32 +486,37 @@ class User
 
 			case WatchUser:
 				const msg = new UWatchUser(msg_buf);
+				auto user = server.get_user(msg.user);
+
 				bool exists;
 				uint status = Status.offline;
 				uint speed, upload_number, something;
 				uint shared_files, shared_folders;
 				string country_code;
 
-				if (server.db.user_exists(msg.user)) {
-					exists = true;
-					auto user = server.get_user(msg.user);
-					if (user)
-					{
-						status = user.status;
-						country_code = user.country_code;
-					}
-
-					server.db.get_user(
-						msg.user, speed, upload_number, something, shared_files,
-						shared_folders
-					);
-					watch(msg.user);
-				}
-				else if (msg.user == server_user) {
+				if (msg.user == server_user) {
 					exists = true;
 					status = Status.online;
 				}
+				else if (user)
+				{
+					exists = true;
+					status = user.status;
+					speed = user.speed;
+					upload_number = user.upload_number;
+					something = user.something;
+					shared_files = user.shared_files;
+					shared_folders = user.shared_folders;
+					country_code = user.country_code;
+				}
+				else {
+					exists = server.db.get_user(
+						msg.user, speed, upload_number, shared_files,
+						shared_folders
+					);
+				}
 
+				watch(msg.user);
 				send_message(
 					new SWatchUser(
 						msg.user, exists, status, speed, upload_number,
@@ -528,19 +537,20 @@ class User
 				bool privileged;
 
 				debug (user) write("Sending ", msg.user, "'s status... ");
-				if (user) {	// user is online
-					debug (user) writeln("online.");
-					status = user.status;
-					privileged = user.privileges > 0;
-				}
-				else if (server.db.user_exists(msg.user)) {	// user is offline but exists
-					debug (user) writeln("offline.");
-				}
-				else if (msg.user == server_user) {	// user is the server administration interface
-					debug (user) writeln("server(online)");
+				if (msg.user == server_user) {
+					debug (user) writeln("server (online)");
 					status = Status.online;
 				}
-				else {	// user doesn't exist
+				else if (user) {
+					debug (user) writeln("online.");
+					status = user.status;
+					privileged = user.privileged;
+				}
+				else if (server.db.user_exists(msg.user)) {
+					debug (user) writeln("offline.");
+					privileged = server.db.get_user_privileges(msg.user) > Clock.currTime.toUnixTime;
+				}
+				else {
 					debug (user) writeln("doesn't exist.");
 				}
 
@@ -596,7 +606,7 @@ class User
 				user.send_message(
 					new SConnectToPeer(
 						user.username, msg.type, user.address, user.port,
-						msg.token, user.privileges > 0
+						msg.token, user.privileged
 					)
 				);
 				break;
@@ -658,13 +668,25 @@ class User
 
 			case GetUserStats:
 				const msg = new UGetUserStats(msg_buf);
+				auto user = server.get_user(msg.user);
+
 				uint speed, upload_number, something;
 				uint shared_files, shared_folders;
 
-				server.db.get_user(
-					msg.user, speed, upload_number, something, shared_files,
-					shared_folders
-				);
+				if (user) {
+					speed = user.speed;
+					upload_number = user.upload_number;
+					something = user.something;
+					shared_files = user.shared_files;
+					shared_folders = user.shared_folders;
+				}
+				else {
+					server.db.get_user(
+						msg.user, speed, upload_number, shared_files,
+						shared_folders
+					);
+				}
+
 				send_message(
 					new SGetUserStats(
 						msg.user, speed, upload_number, something,
@@ -740,7 +762,6 @@ class User
 				break;
 
 			case CheckPrivileges:
-				update_privileges();
 				send_message(new SCheckPrivileges(privileges));
 				break;
 
@@ -794,7 +815,7 @@ class User
 					break;
 
 				send_message(
-					new SUserPrivileged(user.username, user.privileges > 0)
+					new SUserPrivileged(user.username, user.privileged)
 				);
 				break;
 
@@ -866,25 +887,25 @@ class User
 	private void login(const ULogin msg)
 	{
 		username = msg.username;
-		const password = server.encode_password(msg.password);
 		major_version = msg.major_version;
 		minor_version = msg.minor_version;
-
+		priv_expiration = server.db.get_user_privileges(username);
 		server.db.get_user(
-			username, password, speed, upload_number, shared_files,
-			shared_folders, privileges
+			username, speed, upload_number, shared_files, shared_folders
 		);
 
 		if (server.db.is_admin(username)) writeln(username, " is an admin.");
 		server.add_user(this);
 
-		const motd = server.get_motd(this);
-		const supporter = privileges > 0;
-
-		send_message(new SLogin(true, motd, address, password, supporter));
+		send_message(
+			new SLogin(
+				true, server.get_motd(this), address,
+				server.encode_password(msg.password), supporter
+			)
+		);
 		send_message(new SRoomList(Room.room_stats));
 		send_message(
-			new SWishlistInterval(supporter ? 120 : 720)  // in seconds
+			new SWishlistInterval(privileged ? 120 : 720)  // in seconds
 		);
 		set_status(Status.online);
 
@@ -902,7 +923,6 @@ class User
 		if (status == Status.offline)
 			return;
 
-		update_privileges();
 		foreach (room ; joined_rooms) room.leave(this);
 		Room.remove_global_room_user(username);
 
