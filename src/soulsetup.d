@@ -205,9 +205,9 @@ void info()
 	auto menu = new Menu(
 		"Soulsetup for Soulfind %s (compiled on %s)".format(VERSION, __DATE__)
 	);
-	menu.info = "\t%d registered users".format(sdb.usernames.length);
-	menu.info ~= "\n\t%d privileged users".format(sdb.usernames("privileges").length);
-	menu.info ~= "\n\t%d banned users".format(sdb.usernames("banned").length);
+	menu.info = "\t%d registered users".format(sdb.num_users);
+	menu.info ~= "\n\t%d privileged users".format(sdb.num_users("privileges"));
+	menu.info ~= "\n\t%d banned users".format(sdb.num_users("banned"));
 
 	menu.add("1", "Recount", &info);
 	menu.add("q", "Return", &main_menu);
@@ -217,7 +217,7 @@ void info()
 
 void banned_users()
 {
-	auto menu = new Menu("Banned users (%d)".format(sdb.usernames("banned").length));
+	auto menu = new Menu("Banned users (%d)".format(sdb.num_users("banned")));
 
 	menu.add("1", "Ban user",          &ban_user);
 	menu.add("2", "Unban user",        &unban_user);
