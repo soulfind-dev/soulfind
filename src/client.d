@@ -282,40 +282,30 @@ class User
 	{
 		User[] list;
 		foreach (user ; server.users)
-			if (user !is this && username in user.watching) list ~= user;
+			if (user !is this && user.is_watching(username)) list ~= user;
 
 		return list;
 	}
 
-	private User[string] watching()
+	private bool is_watching(string peer_username)
 	{
-		User[string] list;
-
-		foreach (username ; watch_list) {
-			auto user = server.get_user(username);
-			if (user) list[username] = user;
-		}
+		if (peer_username in watch_list)
+			return true;
 
 		foreach (room_name, room ; joined_rooms)
-			foreach (User user ; room.users) list[user.username] = user;
+			foreach (User user ; room.users) if (user.username == peer_username)
+				return true;
 
-		return list;
+		return false;
 	}
 
 	private void send_to_watching(Message msg)
 	{
-		if (!watched_by)
-			return;
-
-		debug (msg) write(
-			"Sending message ", blue, message_name[msg.code], norm,
-			" (code ", msg.code, ") to "
+		debug (msg) writeln(
+			"Sending message ", blue, message_name[msg.code], norm, " (code ",
+			msg.code, ") to users watching user ", blue, username, norm, "..."
 		);
-		foreach (user ; watched_by) {
-			debug (msg) writeln(user.username);
-			user.send_message(msg);
-		}
-		debug (msg) writeln();
+		foreach (user ; watched_by) user.send_message(msg);
 	}
 
 	private void set_status(uint new_status)
