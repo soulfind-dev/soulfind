@@ -278,15 +278,6 @@ class User
 			watch_list.remove(username);
 	}
 
-	private User[] watched_by()
-	{
-		User[] list;
-		foreach (user ; server.users)
-			if (user !is this && user.is_watching(username)) list ~= user;
-
-		return list;
-	}
-
 	private bool is_watching(string peer_username)
 	{
 		if (peer_username in watch_list)
@@ -305,7 +296,8 @@ class User
 			"Sending message ", blue, message_name[msg.code], norm, " (code ",
 			msg.code, ") to users watching user ", blue, username, norm, "..."
 		);
-		foreach (user ; watched_by) user.send_message(msg);
+		foreach (user ; server.users) if (user !is this)
+			if (user.is_watching(username)) user.send_message(msg);
 	}
 
 	private void set_status(uint new_status)
