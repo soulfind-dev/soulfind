@@ -125,13 +125,18 @@ class Room
 		user.join_room(this);
 	}
 
+	bool is_joined(string username)
+	{
+		return (username in user_list) ? true : false;
+	}
+
 	ulong nb_users()
 	{
 		return user_list.length;
 	}
 
 	@trusted  // .values doesn't work with @safe in old D versions
-	User[] users()
+	private User[] users()
 	{
 		return user_list.values;
 	}

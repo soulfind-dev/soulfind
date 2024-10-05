@@ -288,7 +288,7 @@ class User
 			return true;
 
 		foreach (room_name, room ; joined_rooms)
-			foreach (User user ; room.users) if (user.username == peer_username)
+			if (room.is_joined(peer_username))
 				return true;
 
 		return false;

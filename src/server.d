@@ -261,11 +261,6 @@ class Server
 		user_list[user.username] = user;
 	}
 
-	bool find_user(User user)
-	{
-		return (user.username in user_list) ? true : false;
-	}
-
 	User get_user(string username)
 	{
 		if (username in user_list)
