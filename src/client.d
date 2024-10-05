@@ -120,7 +120,7 @@ class User
 
 	void remove_privileges(uint seconds)
 	{
-		priv_expiration -= new_privileges;
+		priv_expiration -= seconds;
 		if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
 
 		server.db.user_update_field(username, "privileges", priv_expiration);
