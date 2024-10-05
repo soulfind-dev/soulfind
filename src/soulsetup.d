@@ -13,7 +13,7 @@ import db;
 import std.algorithm : sort;
 import std.conv : ConvException, to;
 import std.format : format;
-import std.stdio : readf, readln, write, writeln;
+import std.stdio : readf, readln, write, writefln;
 import std.string : chomp, strip;
 import std.exception : ifThrown;
 
@@ -25,10 +25,10 @@ void main(string[] args)
 
 	if (args.length > 1) {
 		if (args[1] == "--help" || args[1] == "-h") {
-			writeln("Usage: ", args[0], " [database_file]");
-			writeln(
-				"\tdatabase_file: path to Soulfind's database "
-				~ "(default: ", default_db_file, ")"
+			writefln("Usage: %s [database_file]", args[0]);
+			writefln(
+				"\tdatabase_file: path to Soulfind's database (default: %s)",
+				default_db_file
 			);
 			return;
 		}
@@ -63,7 +63,7 @@ void main_menu()
 
 void exit()
 {
-	writeln("\nA la prochaine...");
+	writefln("\nA la prochaine...");
 }
 
 void admins()
@@ -96,8 +96,8 @@ void list_admins()
 {
 	const names = sdb.admins;
 
-	writeln(format("\nAdmins (%d)...", names.length));
-	foreach (name ; names) writeln(format("\t%s", name));
+	writefln("\nAdmins (%d)...", names.length);
+	foreach (name ; names) writefln("\t%s", name);
 
 	admins();
 }
@@ -122,7 +122,7 @@ void set_listen_port()
 	const value = input.strip;
 	const port = value.to!uint.ifThrown(0);
 	if (port <= 0 || port > ushort.max) {
-		writeln("Please enter a port in the range 1-65535");
+		writefln("Please enter a port in the range %d-%d", 1, 65535);
 		set_listen_port();
 		return;
 	}
@@ -153,7 +153,7 @@ void set_max_users()
 		num_users = value.to!uint;
 	}
 	catch (ConvException) {
-		writeln("Please enter a valid number");
+		writefln("Please enter a valid number");
 		set_max_users();
 		return;
 	}
@@ -176,9 +176,9 @@ void motd()
 
 void set_motd()
 {
-	writeln(
+	writefln(
 		"\nYou can use the following variables :"
-		~ "\n\t%sversion%    : server version (", VERSION, ")"
+		~ "\n\t%sversion%    : server version (" ~ VERSION ~ ")"
 		~ "\n\t%users%       : number of connected users"
 		~ "\n\t%username%    : name of the connecting user"
 		~ "\n\t%version%     : version of the user's client software"
@@ -245,8 +245,8 @@ void list_banned()
 {
 	const users = sdb.usernames("banned");
 
-	writeln("\nBanned users (%d)...".format(users.length));
-	foreach (user ; users) writeln(format("\t%s", user));
+	writefln("\nBanned users (%d)...", users.length);
+	foreach (user ; users) writefln("\t%s", user);
 
 	banned_users();
 }
@@ -279,18 +279,17 @@ class Menu
 
 	void show()
 	{
-		writeln(format( "\n%s\n", title));
-		if (info.length > 0) writeln(format("%s\n", info));
+		writefln("\n%s\n", title);
+		if (info.length > 0) writefln("%s\n", info);
 
 		foreach (index ; sorted_entry_indexes)
-			writeln(format("%s. %s", index, entries[index]));
+			writefln("%s. %s", index, entries[index]);
 
 		write("\nYour choice : ");
 		const choice = input.strip;
 
-		if (choice !in actions)
-		{
-			writeln(
+		if (choice !in actions) {
+			writefln(
 				"Next time, try a number which has an action "
 				~ "assigned to it..."
 			);

@@ -9,7 +9,7 @@ module db;
 import defines;
 
 import std.string : format, replace, toStringz;
-import std.stdio : writeln, write;
+import std.stdio : writefln;
 import std.file : exists, isFile;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -129,19 +129,11 @@ class Sdb
 		)).length > 0;
 	}
 
-	void user_update_field(string username, string field, string value)
+	void add_user(string username, string password)
 	{
 		query(
-			"UPDATE %s SET %s = '%s' WHERE username = '%s';".format(
-			users_table, field, escape(value), escape(username)
-		));
-	}
-
-	void user_update_field(string username, string field, uint value)
-	{
-		query(
-			"UPDATE %s SET %s = %d WHERE username = '%s';".format(
-			users_table, field, value, escape(username)
+			"INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
+			users_table, escape(username), escape(password)
 		));
 	}
 
@@ -153,6 +145,22 @@ class Sdb
 		)).length > 0;
 	}
 
+	void user_update_field(string username, string field, string value)
+	{
+		query(
+			"UPDATE %s SET %s = '%s' WHERE username = '%s';".format(
+			users_table, field, escape(value), escape(username)
+		));
+	}
+
+	void user_update_field(string username, string field, ulong value)
+	{
+		query(
+			"UPDATE %s SET %s = %d WHERE username = '%s';".format(
+			users_table, field, value, escape(username)
+		));
+	}
+
 	string get_pass(string username)
 	{
 		return query(
@@ -161,12 +169,12 @@ class Sdb
 		))[0][0];
 	}
 
-	void add_user(string username, string password)
+	long get_user_privileges(string username)
 	{
-		query(
-			"INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
-			users_table, escape(username), escape(password)
-		));
+		return query(
+			"SELECT privileges FROM %s WHERE username = '%s';".format(
+			users_table, escape(username)
+		))[0][0].to!long.ifThrown(0);
 	}
 
 	bool is_banned(string username)
@@ -182,9 +190,10 @@ class Sdb
 		return false;
 	}
 
-	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
+	bool get_user(string username, out uint speed, out uint upload_number,
+			out uint shared_files, out uint shared_folders)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
+		debug(db) writefln("DB: Requested %s's info...", blue ~ username ~ norm);
 		const res = query(
 			"SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)
@@ -197,28 +206,6 @@ class Sdb
 			upload_number   = user[1].to!uint.ifThrown(0);
 			shared_files    = user[2].to!uint.ifThrown(0);
 			shared_folders  = user[3].to!uint.ifThrown(0);
-			something       = 0;
-			return true;
-		}
-		return false;
-	}
-
-	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
-	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
-		const res = query(
-			"SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
-			users_table, escape(username), escape(password)
-		));
-
-		if (res.length > 0) {
-			const user      = res[0];
-
-			speed           = user[0].to!uint.ifThrown(0);
-			upload_number   = user[1].to!uint.ifThrown(0);
-			shared_files    = user[2].to!uint.ifThrown(0);
-			shared_folders  = user[3].to!uint.ifThrown(0);
-			privileges      = user[4].to!uint.ifThrown(0);
 			return true;
 		}
 		return false;
@@ -254,7 +241,7 @@ class Sdb
 		uint res;
 		uint fin;
 
-		debug(db) writeln("DB: Query [", query, "]");
+		debug(db) writefln("DB: Query [%s]", query);
 		sqlite3_prepare_v2(db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
 		res = sqlite3_step(stmt);
@@ -273,8 +260,8 @@ class Sdb
 
 		if (res != SQLITE_DONE || fin != SQLITE_OK) {
 			// https://sqlite.org/rescode.html#extrc
-			debug(db) writeln("DB: Result Code %d (%s)".format(res, sqlite3_errstr(res).to!string));
-			debug(db) writeln("    >Final Code %d (%s)".format(fin, sqlite3_errstr(fin).to!string));
+			debug(db) writefln("DB: Result Code %d (%s)", res, sqlite3_errstr(res).to!string);
+			debug(db) writefln("    >Final Code %d (%s)", fin, sqlite3_errstr(fin).to!string);
 			throw new Exception(sqlite3_errstr(fin).to!string);
 			return null;
 		}

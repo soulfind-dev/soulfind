@@ -14,7 +14,7 @@ import db;
 import room;
 import pm;
 
-import std.stdio : write, writeln;
+import std.stdio : writefln;
 import std.socket;
 import std.conv : ConvException, to;
 import std.array : split, join, replace;
@@ -29,11 +29,11 @@ import std.exception : ifThrown;
 
 import core.sys.posix.unistd : fork;
 import core.sys.posix.signal;
-import core.time : Duration, dur, MonoTime;
+import core.time : Duration, MonoTime, minutes, seconds;
 
 extern(C) void handle_termination(int)
 {
-	writeln("Exiting.");
+	writefln("\nA la prochaine...");
 }
 
 @trusted
@@ -48,12 +48,12 @@ private void setup_signal_handler()
 
 private void help(string[] args)
 {
-	writeln("Usage: ", args[0], " [database_file] [-d|--daemon]");
-	writeln(
-		"\tdatabase_file: path to the sqlite3 database(default: ",
-		default_db_file, ")"
+	writefln("Usage: %s [database_file] [-d|--daemon]", args[0]);
+	writefln(
+		"\tdatabase_file: path to the sqlite3 database (default: %s)",
+		default_db_file
 	);
-	writeln("\t-d, --daemon : fork in the background");
+	writefln("\t-d, --daemon : fork in the background");
 }
 
 private int main(string[] args)
@@ -101,7 +101,7 @@ class Server
 	private User[Socket]	user_socks;
 	private auto			keepalive_time = 60;
 	private auto			keepalive_interval = 5;
-	private Duration		select_timeout = dur!"minutes"(2);
+	private Duration		select_timeout = 2.minutes;
 
 	private this(string db_file)
 	{
@@ -127,21 +127,18 @@ class Server
 			sock.listen(10);
 		}
 		catch (SocketOSException e) {
-			write("Unable to bind socket to port ", port);
-			if (port < 1024)
-				writeln(
-					", could it be that you're trying to use a port less than "
-					~ "1024 while running as a user ?"
-				);
-			else
-				writeln();
+			writefln("Unable to bind socket to port %d", port);
+			if (port < 1024) writefln(
+				"Are you trying to use a port less than "
+				~ "1024 while running as a user ?"
+			);
 			return 1789;
 		}
 
-		writeln(
-			bg_w, "▌", red, "♥", norm, bg_w, "▐", norm, bold,
-			"Soulfind %s process %s listening on port %s"
-			.format(VERSION ~ norm, thisProcessID, port)
+		writefln(
+			"%s process %s listening on port %s",
+			bg_w ~ "▌" ~ red ~ "♥" ~ norm ~ bg_w ~ "▐" ~ norm ~ bold
+			 ~ "Soulfind" ~ VERSION ~ norm, thisProcessID, port
 		);
 
 		auto read_socks = new SocketSet(max_users + 1);
@@ -177,12 +174,9 @@ class Server
 					);
 					new_sock.blocking = false;
 
-					debug (user) {
-						writeln(
-							"Connection accepted from ", new_sock.remoteAddress
-						);
-					}
-
+					debug (user) writefln(
+						"Connection accepted from %s", new_sock.remoteAddress
+					);
 					auto user = new User(
 						this, new_sock,
 						(cast(InternetAddress) new_sock.remoteAddress).addr
@@ -301,16 +295,11 @@ class Server
 
 	private void send_to_all(Message msg)
 	{
-		debug (msg) write(
-			"Sending message(", blue,  message_name[msg.code], norm,
-			" - code ", blue, msg.code, norm, ") to all users"
+		debug (msg) writefln(
+			"Transmit=> %s (code %d) to all users...",
+			blue ~ message_name[msg.code] ~ norm, msg.code
 		);
-		foreach (user ; users)
-		{
-			debug (msg) write(".");
-			user.send_message(msg);
-		}
-		debug (msg) writeln();
+		foreach (user ; users) user.send_message(msg);
 	}
 
 	void admin_message(User admin, string message)
@@ -386,7 +375,9 @@ class Server
 				break;
 
 			case "kickall":
-				debug (user) writeln("Admin request to kick ALL users...");
+				debug (user) writefln(
+					"Admin %s kicks ALL users...", blue ~ admin.username ~ norm
+				);
 				kick_all_users();
 				break;
 
@@ -483,7 +474,6 @@ class Server
 		if (!user)
 			return "";
 
-		user.update_privileges();
 		return format(
 			"%s: connected at %s"
 			~ "\n\tclient version: %s"
@@ -554,7 +544,7 @@ class Server
 
 	private string h_uptime()
 	{
-		return dur!"seconds"(uptime.total!"seconds").toString;
+		return uptime.total!"seconds".seconds.toString;
 	}
 
 	string encode_password(string pass)
@@ -598,11 +588,13 @@ class Server
 			return "INVALIDUSERNAME";
 
 		if (!db.user_exists(username)) {
-			debug (user) writeln("New user ", username, " registering");
+			debug (user) writefln(
+				"New user %s registering", blue ~ username ~ norm
+			);
 			db.add_user(username, encode_password(password));
 			return null;
 		}
-		debug (user) writeln("User ", username, " is registered");
+		debug (user) writefln("User %s is registered", blue ~ username ~ norm);
 
 		if (db.is_banned(username))
 			return "BANNED";

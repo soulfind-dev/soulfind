@@ -12,7 +12,7 @@ import std.bitmanip;
 import std.conv : to;
 import std.format : format;
 import std.outbuffer : OutBuffer;
-import std.stdio : writeln;
+import std.stdio : writefln;
 
 import message_codes;
 
@@ -70,11 +70,10 @@ class Message
 	private uint readi()
 	{ // read an int
 		uint i;
-		if (in_buf.length < uint.sizeof)
-		{
-			writeln(
-				"message code ", code, ", length ", length,
-				" not enough data trying to read an int"
+		if (in_buf.length < uint.sizeof) {
+			writefln(
+				"message code %d, length %d not enough data "
+				~ "trying to read an int", code, length
 			);
 			return i;
 		}
@@ -86,11 +85,10 @@ class Message
 	private uint readsi()
 	{ // read a signed int
 		int i;
-		if (in_buf.length < int.sizeof)
-		{
-			writeln(
-				"message code ", code, ", length ", length,
-				" not enough data trying to read a signed int"
+		if (in_buf.length < int.sizeof) {
+			writefln(
+				"message code %d, length %d not enough data "
+				~ "trying to read a signed int", code, length
 			);
 			return i;
 		}
@@ -102,11 +100,10 @@ class Message
 	private bool readb()
 	{ // read a bool
 		bool i;
-		if (in_buf.length < bool.sizeof)
-		{
-			writeln(
-				"message code ", code, ", length ", length,
-				" not enough data trying to read a bool"
+		if (in_buf.length < bool.sizeof) {
+			writefln(
+				"message code %d, length %d not enough data "
+				~ "trying to read a boolean", code, length
 			);
 			return i;
 		}
