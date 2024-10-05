@@ -9,7 +9,7 @@ module db;
 import defines;
 
 import std.string : format, replace, toStringz;
-import std.stdio : writeln, write;
+import std.stdio : writefln;
 import std.file : exists, isFile;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -184,7 +184,7 @@ class Sdb
 
 	bool get_user(string username, out uint speed, out uint upload_number, out uint something, out uint shared_files, out uint shared_folders)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
+		debug(db) writefln("DB: Requested %s's info...", blue ~ username ~ norm);
 		const res = query(
 			"SELECT speed,ulnum,files,folders FROM %s WHERE username = '%s';".format(
 			users_table, escape(username)
@@ -205,7 +205,7 @@ class Sdb
 
 	bool get_user(string username, string password, out uint speed, out uint upload_number, out uint shared_files, out uint shared_folders, out uint privileges)
 	{
-		debug(db) writeln("DB: Requested ", username, "'s info...");
+		debug(db) writefln("DB: Requested %s's data...", blue ~ username ~ norm);
 		const res = query(
 			"SELECT speed,ulnum,files,folders,privileges FROM %s WHERE username = '%s' AND password = '%s';".format(
 			users_table, escape(username), escape(password)
@@ -254,7 +254,7 @@ class Sdb
 		uint res;
 		uint fin;
 
-		debug(db) writeln("DB: Query [", query, "]");
+		debug(db) writefln("DB: Query [%s]", query);
 		sqlite3_prepare_v2(db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
 		res = sqlite3_step(stmt);
@@ -273,8 +273,8 @@ class Sdb
 
 		if (res != SQLITE_DONE || fin != SQLITE_OK) {
 			// https://sqlite.org/rescode.html#extrc
-			debug(db) writeln("DB: Result Code %d (%s)".format(res, sqlite3_errstr(res).to!string));
-			debug(db) writeln("    >Final Code %d (%s)".format(fin, sqlite3_errstr(fin).to!string));
+			debug(db) writefln("DB: Result Code %d (%s)", res, sqlite3_errstr(res).to!string);
+			debug(db) writefln("    >Final Code %d (%s)", fin, sqlite3_errstr(fin).to!string);
 			throw new Exception(sqlite3_errstr(fin).to!string);
 			return null;
 		}

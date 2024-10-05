@@ -19,7 +19,7 @@ import std.conv : to;
 import std.datetime : Clock, SysTime;
 import std.outbuffer : OutBuffer;
 import std.socket : Socket, InternetAddress;
-import std.stdio : write, writeln;
+import std.stdio : writefln;
 import std.system : Endian;
 
 import core.time : dur, MonoTime;
@@ -106,31 +106,33 @@ class User
 	private uint		privileges;			// in seconds
 	private MonoTime	last_priv_check;
 
-	void add_privileges(uint new_privileges)
+	void add_privileges(uint seconds)
 	{
-		debug (user) writeln(
-			"Adding ", new_privileges, " seconds of privileges to user ",
-			username
-		);
-		privileges += new_privileges;
-		debug (user) writeln("Now ", privileges, " seconds.");
+		privileges += seconds;
+
 		server.db.user_update_field(username, "privileges", privileges);
 		send_message(new SCheckPrivileges(privileges));
+
+		debug (user) writefln(
+			"Given %d secs of privileges to user %s who now has %d secs.",
+			seconds, blue ~ username ~ norm, privileges
+		);
 	}
 
-	void remove_privileges(uint new_privileges)
+	void remove_privileges(uint seconds)
 	{
-		debug (user) writeln(
-			"Removing ", new_privileges, " seconds of privileges to user ",
-			username
-		);
-		if (new_privileges > privileges)
+		if (seconds > privileges)
 			privileges = 0;
 		else
-			privileges -= new_privileges;
-		debug (user) writeln("Now ", privileges, " seconds.");
+			privileges -= seconds;
+
 		server.db.user_update_field(username, "privileges", privileges);
 		send_message(new SCheckPrivileges(privileges));
+
+		debug (user) writefln(
+			"Taken %d secs of privileges from user %s who now has %d secs.",
+			seconds, blue ~ username ~ norm, privileges
+		);
 	}
 
 	void update_privileges()
@@ -307,15 +309,12 @@ class User
 		if (!watched_by)
 			return;
 
-		debug (msg) write(
-			"Sending message ", blue, message_name[msg.code], norm,
-			" (code ", msg.code, ") to "
+		debug (msg) writefln(
+			"Transmit=> %s (code %d) to users watching user %s...",
+			blue ~ message_name[msg.code] ~ norm, msg.code,
+			blue ~ username ~ norm
 		);
-		foreach (user ; watched_by) {
-			debug (msg) writeln(user.username);
-			user.send_message(msg);
-		}
-		debug (msg) writeln();
+		foreach (user ; watched_by) user.send_message(msg);
 	}
 
 	private void set_status(uint new_status)
@@ -376,9 +375,10 @@ class User
 		out_buf ~= msg_buf;
 		msg_size_buf.clear();
 
-		debug (msg) writeln(
-			"Sending message ", blue, message_name[msg.code], norm,
-			" (code ", msg.code, ") (", msg_buf.length, " bytes) to ", username
+		debug (msg) writefln(
+			"Sending -> %s (code %d) of %d bytes -> to user %s",
+			blue ~ message_name[msg.code] ~ norm, msg.code,
+			msg_buf.length, blue ~ username ~ norm
 		);
 	}
 
@@ -418,9 +418,10 @@ class User
 
 		in_buf = in_buf[in_msg_size .. $];
 
-		debug (msg) writeln(
-			"Received message ", blue, message_name[code], norm, " (code ",
-			code, norm, ") (", in_msg_size, " bytes) from ", username
+		debug (msg) writefln(
+			"Receive <- %s (code %d) of %d bytes <- from user %s",
+			blue ~ message_name[code] ~ norm, code,
+			in_msg_size, blue ~ username ~ norm
 		);
 
 		in_msg_size = -1;
@@ -432,16 +433,16 @@ class User
 
 		switch (code) {
 			case Login:
-				write("User logging in : ");
 				const msg = new ULogin(msg_buf);
 				const error = server.check_login(msg.username, msg.password);
 
 				if (error) {
 					username = msg.username;
 					should_quit = true;
-
-					writeln(username, ": Impossible to login (", error, ")");
-					writeln("User ", red, username, norm, " denied.");
+					writefln(
+						"User %s denied (%s)",
+						red ~ username ~ norm, bg_w ~ red ~ error ~ norm
+					);
 					send_message(new SLogin(false, error));
 					return;
 				}
@@ -449,14 +450,18 @@ class User
 				auto user = server.get_user(msg.username);
 
 				if (user && user.status != Status.offline) {
-					writeln(msg.username, ": Already logged in");
+					writefln(
+						"User %s already logged in with version %d.%d",
+						red ~ msg.username ~ norm,
+						user.major_version, user.minor_version
+					);
 					user.send_message(new SRelogged());
 					user.quit();
 				}
-
-				writeln(
-					blue, msg.username, norm, ", version ",
-					msg.major_version, ".", msg.minor_version
+				writefln(
+					"User %s logging in with version %d.%d",
+					blue ~ msg.username ~ norm,
+					msg.major_version, msg.minor_version
 				);
 				login(msg);
 				return;
@@ -527,26 +532,35 @@ class User
 				uint status = Status.offline;
 				bool privileged;
 
-				debug (user) write("Sending ", msg.user, "'s status... ");
 				if (user) {	// user is online
-					debug (user) writeln("online.");
+					debug (user) writefln(
+						"Telling user %s that user %s is online",
+						blue ~ username ~ norm, blue ~ msg.user ~ norm
+					);
 					status = user.status;
 					privileged = user.privileges > 0;
 				}
-				else if (server.db.user_exists(msg.user)) {	// user is offline but exists
-					debug (user) writeln("offline.");
+				else if (server.db.user_exists(msg.user)) {
+					debug (user) writefln(
+						"Telling user %s that user %s is offline",
+						blue ~ username ~ norm, red ~ msg.user ~ norm
+					);
 				}
-				else if (msg.user == server_user) {	// user is the server administration interface
-					debug (user) writeln("server(online)");
+				else if (msg.user == server_user) {
+					debug (user) writefln(
+						"Telling user %s that host %s is online",
+						blue ~ username ~ norm, blue ~ server_user ~ norm
+					);
 					status = Status.online;
 				}
-				else {	// user doesn't exist
-					debug (user) writeln("doesn't exist.");
+				else {
+					debug (user) writefln(
+						"Telling user %s that non-existant user %s is offline",
+						blue ~ username ~ norm, red ~ msg.user ~ norm
+					);
 				}
 
-				send_message(
-					new SGetUserStatus(msg.user, status, privileged)
-				);
+				send_message(new SGetUserStatus(msg.user, status, privileged));
 				break;
 
 			case SayChatroom:
@@ -589,9 +603,9 @@ class User
 					break;
 
 				const ia = new InternetAddress(user.address, user.port);
-				debug (user) writeln(
-					username, " cannot connect to ", msg.user, "/",
-					ia, ", asking us to tell the other..."
+				debug (user) writefln(
+					"User %s trying to connect indirectly to peer %s @ %s",
+					blue ~ username ~ norm, blue ~ msg.user ~ norm, ia
 				);
 				user.send_message(
 					new SConnectToPeer(
@@ -641,9 +655,9 @@ class User
 
 			case SharedFoldersFiles:
 				const msg = new USharedFoldersFiles(msg_buf);
-				debug (user) writeln(
-					username, " is sharing ", msg.nb_files, " files and ",
-					msg.nb_folders, " folders"
+				debug (user) writefln(
+					"User %s reports sharing %d files in %d folders",
+					blue ~ username ~ norm, msg.nb_files, msg.nb_folders
 				);
 				set_shared_folders(msg.nb_folders);
 				set_shared_files(msg.nb_files);
@@ -781,9 +795,9 @@ class User
 					break;
 
 				user.calc_speed(msg.speed);
-				debug (user) writeln(
-					"User ", username, " reports a speed of ", msg.speed,
-					" B/s(their speed is now ", user.speed, " B/s)"
+				debug (user) writefln(
+					"User %s reports speed of %d B/s (~ %d B/s)",
+					blue ~ username ~ norm, msg.speed, user.speed
 				);
 				break;
 
@@ -850,14 +864,11 @@ class User
 				break;
 
 			default:
-				debug (msg) {
-					write(
-						red, "Unimplemented message", norm, " from user ",
-						blue, username, norm, ", code ", red, code, norm,
-						" and length ", msg_buf.length, "\n> "
-					);
-					writeln(msg_buf);
-				}
+				debug (msg) writefln(
+					red ~ "Unimplemented message code %d" ~ norm
+					~ " from user %s with length %d\n%s",
+					code, blue ~ username ~ norm, msg_buf.length, msg_buf
+				);
 				break;
 		}
 		return;
@@ -875,7 +886,7 @@ class User
 			shared_folders, privileges
 		);
 
-		if (server.db.is_admin(username)) writeln(username, " is an admin.");
+		if (server.db.is_admin(username)) writefln("%s is an admin.", username);
 		server.add_user(this);
 
 		const motd = server.get_motd(this);
@@ -890,8 +901,9 @@ class User
 
 		foreach (pm ; PM.get_pms_for(username)) {
 			const new_message = false;
-			debug (user) writeln(
-				"Sending offline PM(id ", pm.id, ") to ", username
+			debug (user) writefln(
+				"Sending offline PM (id %d) from %s to %s",
+				pm.id, pm.from, blue ~ username ~ norm
 			);
 			send_pm(pm, new_message);
 		}
@@ -907,6 +919,6 @@ class User
 		Room.remove_global_room_user(username);
 
 		set_status(Status.offline);
-		writeln("User ", blue, username, norm, " has quit.");
+		writefln("User %s has quit.", red ~ username ~ norm);
 	}
 }

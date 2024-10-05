@@ -92,6 +92,7 @@ const string[] message_name = [
 		, 52 : "RemoveThingILike"
 		, 54 : "GetRecommendations"
 		, 56 : "GlobalRecommendations"
+		, 57 : "UserInterests"
 		, 64 : "RoomList"
 		, 66 : "AdminMessage"
 		, 69 : "PrivilegedUsers"
