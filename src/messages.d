@@ -499,16 +499,16 @@ class URoomSearch : Message
 }
 
 class UUserPrivileged : Message
-        {               // Client wants to know if someone has privileges
-        string user;    // user name
+{		// Client wants to know if someone has privileges
+	string user;	// user name
 
-        this(ubyte[] buf)
-                {
-                super(buf);
-        
-                user = reads();
-                }
-        }
+	this(ubyte[] buf)
+	{
+		super(buf);
+
+		user = reads();
+	}
+}
 
 class UAdminMessage : Message
 {		// An admin sends a message
@@ -640,8 +640,8 @@ class SGetUserStatus : Message
 		super(GetUserStatus);
 
 		writes(username);	// username
-		writei(status);	// user status(see the class User)
-		writeb(privileged);    // is user privileged
+		writei(status);		// user status (see the User class)
+		writeb(privileged);	// is user privileged
 	}
 }
 
@@ -700,7 +700,7 @@ class SJoinRoom : Message
 		foreach (username ; usernames)
 		{
 			writei(speeds          [username]);	// speed of each user
-			writei(upload_numbers	[username]);	// number of files uploaded ever
+			writei(upload_numbers  [username]);	// number of files uploaded ever
 			writei(somethings      [username]);	// something ?
 			writei(shared_files    [username]);	// nb of shared files
 			writei(shared_folders  [username]);	// nb of shared folders
@@ -770,7 +770,7 @@ class SConnectToPeer : Message
 		writei(address);	// IP address of the peer to connect to
 		writei(port);		// port to use
 		writei(token);		// message token
-		writeb(privileged);    // is user privileged
+		writeb(privileged);	// is user privileged
 		writei(unknown);
 		writei(obfuscated_port);
 	}
@@ -841,7 +841,7 @@ class SGetGlobalRecommendations : Message
 	{
 		super(GlobalRecommendations);
 
-		writei(list.length);	// if you can't guess, you should have stopped several lines ago...
+		writei(list.length);
 		foreach (artist, level ; list)
 		{
 			writes(artist);	// artist name
