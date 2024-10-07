@@ -282,41 +282,27 @@ class User
 			watch_list.remove(username);
 	}
 
-	private User[] watched_by()
+	private bool is_watching(string peer_username)
 	{
-		User[] list;
-		foreach (user ; server.users)
-			if (user !is this && username in user.watching) list ~= user;
-
-		return list;
-	}
-
-	private User[string] watching()
-	{
-		User[string] list;
-
-		foreach (username ; watch_list) {
-			auto user = server.get_user(username);
-			if (user) list[username] = user;
-		}
+		if (peer_username in watch_list)
+			return true;
 
 		foreach (room_name, room ; joined_rooms)
-			foreach (User user ; room.users) list[user.username] = user;
+			if (room.is_joined(peer_username))
+				return true;
 
-		return list;
+		return false;
 	}
 
 	private void send_to_watching(Message msg)
 	{
-		if (!watched_by)
-			return;
-
 		debug (msg) writefln(
 			"Transmit=> %s (code %d) to users watching user %s...",
 			blue ~ message_name[msg.code] ~ norm, msg.code,
 			blue ~ username ~ norm
 		);
-		foreach (user ; watched_by) user.send_message(msg);
+		foreach (user ; server.users) if (user !is this)
+			if (user.is_watching(username)) user.send_message(msg);
 	}
 
 	private void set_status(uint new_status)
