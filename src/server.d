@@ -274,7 +274,6 @@ class Server
 		return null;
 	}
 
-	@trusted  // .keys doesn't work with @safe in old D versions
 	User[] users()
 	{
 		return user_list.values;
