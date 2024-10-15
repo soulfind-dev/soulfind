@@ -525,7 +525,7 @@ class User
 				uint status = Status.offline;
 				bool privileged;
 
-        if (msg.user == server_user) {
+				if (msg.user == server_user) {
 					debug (user) writefln(
 						"Telling user %s that host %s is online",
 						blue ~ username ~ norm, blue ~ server_user ~ norm
@@ -545,7 +545,8 @@ class User
 						"Telling user %s that user %s is offline",
 						blue ~ username ~ norm, red ~ msg.user ~ norm
 					);
-          privileged = server.db.get_user_privileges(msg.user) > Clock.currTime.toUnixTime;
+					privileged = server.db.get_user_privileges(msg.user)
+						> Clock.currTime.toUnixTime;
 				}
 				else {
 					debug (user) writefln(
@@ -616,14 +617,16 @@ class User
 				if (msg.user == server_user) {
 					server.admin_message(this, msg.message);
 				}
-				else if (user) { // user is connected
+				else if (user) {
+					// user is connected
 					auto pm = new PM(msg.message, username, msg.user);
 					const new_message = true;
 
 					PM.add_pm(pm);
 					user.send_pm(pm, new_message);
 				}
-				else if (server.db.user_exists(msg.user)) { // user is not connected but exists
+				else if (server.db.user_exists(msg.user)) {
+					// user exists but not connected
 					auto pm = new PM(msg.message, username, msg.user);
 					PM.add_pm(pm);
 				}
