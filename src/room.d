@@ -123,12 +123,17 @@ class Room
 		user.join_room(this);
 	}
 
+	bool is_joined(string username)
+	{
+		return (username in user_list) ? true : false;
+	}
+
 	ulong nb_users()
 	{
 		return user_list.length;
 	}
 
-	User[] users()
+	private User[] users()
 	{
 		return user_list.values;
 	}
