@@ -6,9 +6,8 @@
 module room;
 @safe:
 
-import defines;
-
 import client;
+import defines;
 import messages;
 
 class Room
@@ -73,7 +72,7 @@ class Room
 	// misc
 	void send_to_all(Message msg)
 	{
-		foreach (User user ; users) user.send_message(msg);
+		foreach (user ; users) user.send_message(msg);
 	}
 
 	void say(string username, string message)
@@ -146,7 +145,7 @@ class Room
 	private uint[string] statuses()
 	{
 		uint[string] statuses;
-		foreach (User user ; users)
+		foreach (user ; users)
 			statuses[user.username] = user.status;
 
 		return statuses;
@@ -155,7 +154,7 @@ class Room
 	private uint[string] speeds()
 	{
 		uint[string] speeds;
-		foreach (User user ; users)
+		foreach (user ; users)
 			speeds[user.username] = user.speed;
 
 		return speeds;
@@ -164,7 +163,7 @@ class Room
 	private uint[string] upload_numbers()
 	{
 		uint[string] upload_numbers;
-		foreach (User user ; users)
+		foreach (user ; users)
 			upload_numbers[user.username] = user.upload_number;
 
 		return upload_numbers;
@@ -173,7 +172,7 @@ class Room
 	private uint[string] somethings()
 	{
 		uint[string] somethings;
-		foreach (User user ; users)
+		foreach (user ; users)
 			somethings[user.username] = user.something;
 
 		return somethings;
@@ -182,7 +181,7 @@ class Room
 	private uint[string] shared_files()
 	{
 		uint[string] shared_files;
-		foreach (User user ; users)
+		foreach (user ; users)
 			shared_files[user.username] = user.shared_files;
 
 		return shared_files;
@@ -191,7 +190,7 @@ class Room
 	private uint[string] shared_folders()
 	{
 		uint[string] shared_folders;
-		foreach (User user ; users)
+		foreach (user ; users)
 			shared_folders[user.username] = user.shared_folders;
 
 		return shared_folders;
@@ -200,7 +199,7 @@ class Room
 	private uint[string] slots_full()
 	{
 		uint[string] slots_full;
-		foreach (User user ; users)
+		foreach (user ; users)
 			slots_full[user.username] = user.slots_full;
 
 		return slots_full;
@@ -209,7 +208,7 @@ class Room
 	private string[string] country_codes()
 	{
 		string[string] country_codes;
-		foreach (User user ; users)
+		foreach (user ; users)
 			country_codes[user.username] = user.country_code;
 
 		return country_codes;

@@ -9,8 +9,8 @@ module defines;
 const VERSION			= "0.5.0-dev";
 const default_db_file	= "soulfind.db";
 const default_port		= 2242;
-const default_max_users	= 65535;
-const max_msg_size		= 16384;
+const default_max_users	= 6_5535;
+const max_msg_size		= 1_6384;
 const server_user		= "server";
 const exit_message		= "A la prochaine...";
 

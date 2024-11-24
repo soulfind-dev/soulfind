@@ -6,29 +6,29 @@
 module server;
 @safe:
 
-import defines;
-
 import client;
-import messages, message_codes;
-import db;
-import room;
-import pm;
-
-import std.stdio : writefln;
-import std.socket;
-import std.conv : ConvException, to;
-import std.array : split, join, replace;
-import std.ascii : isPrintable, isPunctuation;
-import std.format : format;
-import std.algorithm : canFind;
-import std.digest : digest, LetterCase, toHexString, secureEqual;
-import std.digest.md : MD5;
-import std.string : strip;
-import std.process : thisProcessID;
-import std.exception : ifThrown;
-
 import core.sys.posix.unistd : fork;
-import core.time : Duration, MonoTime, minutes, seconds;
+import core.time : Duration, minutes, MonoTime, seconds;
+import db;
+import defines;
+import message_codes;
+import messages;
+import pm;
+import room;
+import std.algorithm : canFind;
+import std.array : join, replace, split;
+import std.ascii : isPrintable, isPunctuation;
+import std.conv : ConvException, to;
+import std.digest : digest, LetterCase, secureEqual, toHexString;
+import std.digest.md : MD5;
+import std.exception : ifThrown;
+import std.format : format;
+import std.process : thisProcessID;
+import std.socket : InternetAddress, Socket, SocketAcceptException,
+					SocketOption, SocketOptionLevel, SocketOSException,
+					SocketSet, SocketShutdown, TcpSocket;
+import std.stdio : writefln;
+import std.string : strip;
 
 int run(string[] args)
 {
@@ -430,13 +430,13 @@ class Server
 	private void admin_pm(User admin, string message)
 	{
 		PM pm = new PM(message, server_user, admin.username);
-		bool new_message = true;
+		const new_message = true;
 		admin.send_pm(pm, new_message);
 	}
 
 	private void global_message(string message)
 	{
-		foreach (User user ; user_list) {
+		foreach (user ; user_list) {
 			user.send_message(new SAdminMessage(message));
 		}
 	}
@@ -530,7 +530,7 @@ class Server
 		if (!text || text.length > max_length) {
 			return false;
 		}
-		foreach (dchar c ; text) if (!isPrintable(c)) {
+		foreach (c ; text) if (!isPrintable(c)) {
 			// non-ASCII control chars, etc
 			return false;
 		}
