@@ -13,13 +13,13 @@ import db;
 import std.algorithm : sort;
 import std.conv : ConvException, to;
 import std.format : format;
-import std.stdio : readf, readln, write, writefln;
+import std.stdio : readf, readln, StdioException, write, writefln;
 import std.string : chomp, strip;
 import std.exception : ifThrown;
 
 Sdb sdb;
 
-void main(string[] args)
+int run(string[] args)
 {
 	string db_file = default_db_file;
 
@@ -30,14 +30,14 @@ void main(string[] args)
 				"\tdatabase_file: path to Soulfind's database (default: %s)",
 				default_db_file
 			);
-			return;
+			return 0;
 		}
 		db_file = args[1];
 	}
 
 	sdb = new Sdb(db_file);
-	main_menu();
-	return;
+	try { main_menu(); } catch (StdioException) {}
+	return 0;
 }
 
 @trusted
@@ -61,9 +61,8 @@ void main_menu()
 	menu.show();
 }
 
-void exit()
-{
-	writefln("\nA la prochaine...");
+void exit() {
+	writefln("\n" ~ exit_message);
 }
 
 void admins()

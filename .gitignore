@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2017 SeeSchloss <seeschloss@seeschloss.org>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-bin/*
-obj/*
+.dub/
+bin/
+obj/
 *.db

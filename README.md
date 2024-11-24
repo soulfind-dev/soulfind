@@ -14,26 +14,30 @@ production.
 
 ## Building
 
-To build Soulfind, just type:
+Ensure the following dependencies are installed:
+ - `dub`
+ - `gcc`
+ - `ldc` or `dmd`
+ - `sqlite3`
+
+To build Soulfind, run:
 
 ```sh
-make
+dub build
 ```
 
-The Makefile uses LDC by default to build Soulfind. Set the DC environment
-variable to `dmd` to use DMD instead:
+To build Soulfind with debug logging enabled:
 
 ```sh
-DC=dmd make
+dub build --debug=db --debug=msg --debug=user
 ```
 
-Valid targets are:
+LDC is used as the default D compiler. Set the DC environment variable to
+`dmd` to use DMD instead:
 
- - `all` (default target)
- - `soulfind`
- - `soulsetup`
-
-You'll also need to have the sqlite3 library installed.
+```sh
+DC=dmd dub build
+```
 
 
 ## Configuration
