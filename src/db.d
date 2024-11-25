@@ -33,10 +33,9 @@ class Sdb
 	{
 		open_db(file);
 
-		if (!exists(file) || !isFile(file)) {
+		if (!exists(file) || !isFile(file))
 			throw new Exception("Cannot create database file %s".format(file));
-			return;
-		}
+
 		query(users_table_format.format(users_table));
 		query(admins_table_format.format(admins_table));
 		init_config();
@@ -263,7 +262,6 @@ class Sdb
 			debug(db) writefln("DB: Result Code %d (%s)", res, sqlite3_errstr(res).to!string);
 			debug(db) writefln("    >Final Code %d (%s)", fin, sqlite3_errstr(fin).to!string);
 			throw new Exception(sqlite3_errstr(fin).to!string);
-			return null;
 		}
 		return ret;
 	}
