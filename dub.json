@@ -4,9 +4,9 @@
 	"copyright": "Copyright © 2005-2024, Soulfind Contributors",
 	"license": "GPL-3.0-or-later",
 	"toolchainRequirements": {
+		"ldc": ">=1.28.0",
 		"dmd": ">=2.98.0",
-		"gdc": "no",
-		"ldc": ">=1.28.0"
+		"gdc": "no"
 	},
 	"dependencies": {
 		"soulfind:server": "*",

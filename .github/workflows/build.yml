@@ -8,54 +8,86 @@ on: [push, pull_request]
 jobs:
 
   build:
-    runs-on: ubuntu-latest
-    container: alpine:edge
     timeout-minutes: 15
     strategy:
       matrix:
-        arch: [x86_64]
-        compiler: [dmd, ldc]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: apk add ${{ matrix.compiler }} dub gcc musl-dev reuse sqlite-dev
-
-      - name: REUSE compliance
-        run: reuse lint
-
-      - name: Build
-        run: dub build
-
-      - name: Linting
-        run: dub lint
-
-  artifacts:
-    runs-on: ubuntu-latest
-    container: alpine:edge
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        arch: [x86_64]
+        os: [linux-x86_64, macos-x86_64, macos-arm64]
+        compiler: [ldc, dmd]
         type: [release, debug]
         include:
+          - os: linux-x86_64
+            image: ubuntu-latest
+            container: alpine:edge
+
+          - os: macos-x86_64
+            image: macos-13
+            target: 10.12
+
+          - os: macos-arm64
+            image: macos-latest
+            target: 11
+
+          - os: linux-x86_64
+            compiler: ldc
+            dflags: -static
+
           - type: debug
             flags: --debug=db --debug=msg --debug=user
+        exclude:
+          - os: macos-arm64
+            compiler: dmd
+    runs-on: ${{ matrix.image }}
+    container: ${{ matrix.container }}
     env:
-      DFLAGS: -static
+      DFLAGS: ${{ matrix.dflags }}
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: apk add dub gcc ldc musl-dev sqlite-static
+      - name: Set up D (Linux)
+        if: runner.os == 'Linux'
+        run: apk add ${{ matrix.compiler }} dub gcc musl-dev sqlite-static
+
+      - name: Set up D (macOS)
+        if: runner.os == 'macOS'
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
 
       - name: Build
         run: dub build --build=${{ matrix.type }} ${{ matrix.flags }}
 
+      - name: Sign binaries (macOS)
+        if: runner.os == 'macOS'
+        run: codesign -s - bin/*
+
       - name: Archive artifacts
+        if: matrix.compiler == 'ldc'
         uses: actions/upload-artifact@v4
         with:
-          name: soulfind-${{ matrix.arch }}-linux-${{ matrix.type }}
+          name: soulfind-${{ matrix.os }}-${{ matrix.type }}
           path: bin
+
+  linting:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up D
+        uses: dlang-community/setup-dlang@v2
+
+      - name: Linting
+        run: dub lint
+
+  reuse-compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: REUSE compliance
+        uses: fsfe/reuse-action@v5
