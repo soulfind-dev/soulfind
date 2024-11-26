@@ -9,6 +9,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    container: alpine:edge
     timeout-minutes: 15
     strategy:
       matrix:
@@ -18,10 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up D
-        uses: dlang-community/setup-dlang@v2
-        with:
-          compiler: ${{ matrix.compiler }}
+      - name: Install dependencies
+        run: apk add ${{ matrix.compiler }} dub gcc musl-dev reuse sqlite-dev
+
+      - name: REUSE compliance
+        run: reuse lint
 
       - name: Build
         run: dub build
