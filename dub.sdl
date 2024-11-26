@@ -1,0 +1,27 @@
+// SPDX-FileCopyrightText: 2024 Soulfind Contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+name "soulfind"
+description "Soulseek server implementation in D"
+copyright "Copyright © 2005-2024, Soulfind Contributors"
+license "GPL-3.0-or-later"
+toolchainRequirements gdc="no"
+dependency "soulfind:server" version="*"
+dependency "soulfind:setup" version="*"
+targetType "none"
+subPackage {
+	name "server"
+	versions "server"
+	targetType "executable"
+	targetPath "bin"
+	targetName "soulfind"
+	libs "sqlite3"
+}
+subPackage {
+	name "setup"
+	versions "setup"
+	targetType "executable"
+	targetPath "bin"
+	targetName "soulsetup"
+	libs "sqlite3"
+}

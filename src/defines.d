@@ -12,6 +12,7 @@ const default_port		= 2242;
 const default_max_users	= 65535;
 const max_msg_size		= 16384;
 const server_user		= "server";
+const exit_message		= "A la prochaine...";
 
 // colours
 const norm	= "\033[0m";		// reset to normal

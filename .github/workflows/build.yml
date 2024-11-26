@@ -9,27 +9,22 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: alpine:edge
     timeout-minutes: 15
     strategy:
       matrix:
-        include:
-          - compiler: dmd
-            ccommand: dmd
-          - compiler: ldc
-            ccommand: ldmd2
-    env:
-      DC: ${{ matrix.ccommand }}
-      DEBUG: 1
+        arch: [x86_64]
+        compiler: [dmd, ldc]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: apk add ${{ matrix.compiler }} gcc make musl-dev sqlite-dev
+      - name: Set up D
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ${{ matrix.compiler }}
 
       - name: Build
-        run: make
+        run: dub build
 
   artifacts:
     runs-on: ubuntu-latest
@@ -39,18 +34,20 @@ jobs:
       matrix:
         arch: [x86_64]
         type: [release, debug]
+        include:
+          - type: debug
+            flags: --debug=db --debug=msg --debug=user
     env:
-      DC: ldmd2 -static -O
-      DEBUG: ${{ matrix.type == 'debug' && '1' || '0' }}
+      DFLAGS: -static
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: apk add gcc ldc ldc-static make musl-dev sqlite-dev sqlite-static
+        run: apk add dub gcc ldc musl-dev sqlite-static
 
       - name: Build
-        run: make
+        run: dub build --build=${{ matrix.type }} ${{ matrix.flags }}
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4

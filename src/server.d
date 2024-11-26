@@ -28,35 +28,9 @@ import std.process : thisProcessID;
 import std.exception : ifThrown;
 
 import core.sys.posix.unistd : fork;
-import core.sys.posix.signal;
 import core.time : Duration, MonoTime, minutes, seconds;
 
-extern(C) void handle_termination(int)
-{
-	writefln("\nA la prochaine...");
-}
-
-@trusted
-private void setup_signal_handler()
-{
-	sigaction_t act;
-	act.sa_handler = &handle_termination;
-
-	sigaction(SIGINT, &act, null);
-	sigaction(SIGTERM, &act, null);
-}
-
-private void help(string[] args)
-{
-	writefln("Usage: %s [database_file] [-d|--daemon]", args[0]);
-	writefln(
-		"\tdatabase_file: path to the sqlite3 database (default: %s)",
-		default_db_file
-	);
-	writefln("\t-d, --daemon : fork in the background");
-}
-
-private int main(string[] args)
+int run(string[] args)
 {
 	bool daemon;
 	string db = default_db_file;
@@ -82,10 +56,18 @@ private int main(string[] args)
 	if (daemon && fork())
 		return 0;
 
-	setup_signal_handler();
-
 	auto server = new Server(db);
 	return server.listen();
+}
+
+private void help(string[] args)
+{
+	writefln("Usage: %s [database_file] [-d|--daemon]", args[0]);
+	writefln(
+		"\tdatabase_file: path to the sqlite3 database (default: %s)",
+		default_db_file
+	);
+	writefln("\t-d, --daemon : fork in the background");
 }
 
 class Server
