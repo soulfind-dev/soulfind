@@ -11,65 +11,69 @@ import std.datetime : Clock;
 
 class PM
 {
-	// static
-	private static PM[uint] pm_list;
+    // Static
 
-	static void add_pm(PM pm)
-	{
-		pm_list[pm.id] = pm;
-	}
+    private static PM[uint] pm_list;
 
-	static void del_pm(uint id)
-	{
-		if (find_pm(id))
-			pm_list.remove(id);
-	}
+    static void add_pm(PM pm)
+    {
+        pm_list[pm.id] = pm;
+    }
 
-	static PM[] get_pms_for(string user)
-	{
-		PM[] pms;
-		foreach (pm ; pm_list) if (pm.to == user) pms ~= pm;
-		return pms;
-	}
+    static void del_pm(uint id)
+    {
+        if (find_pm(id))
+            pm_list.remove(id);
+    }
 
-	private static bool find_pm(uint id)
-	{
-		return(id in pm_list) ? true : false;
-	}
+    static PM[] get_pms_for(string user)
+    {
+        PM[] pms;
+        foreach (pm ; pm_list) if (pm.to == user) pms ~= pm;
+        return pms;
+    }
 
-	private static PM get_pm(uint id)
-	{
-		if (!find_pm(id))
-			return null;
+    private static bool find_pm(uint id)
+    {
+        return(id in pm_list) ? true : false;
+    }
 
-		return pm_list[id];
-	}
+    private static PM get_pm(uint id)
+    {
+        if (!find_pm(id))
+            return null;
 
-	private static uint new_id()
-	{
-		uint id = cast(uint) pm_list.length;
-		while (find_pm(id)) id++;
-		return id;
-	}
-	
-	// attributes
-	uint	id;
-	ulong	timestamp;	// in UTC time
+        return pm_list[id];
+    }
 
-	string	from;
-	string	to;
+    private static uint new_id()
+    {
+        uint id = cast(uint) pm_list.length;
+        while (find_pm(id)) id++;
+        return id;
+    }
 
-	string	content;
-	
-	// constructor
-	this(string content, string from, string to)
-	{
-		this.id			= PM.new_id();
-		this.from		= from;
-		this.to			= to;
-		this.content	= content;
 
-		this.timestamp  = Clock.currTime.toUnixTime;
-			// timestamp is in seconds since 01/01/1970
-	}
+    // Attributes
+
+    uint    id;
+    ulong   timestamp;    // in seconds since 01/01/1970
+
+    string  from;
+    string  to;
+
+    string  content;
+
+
+    // Constructor
+
+    this(string content, string from, string to)
+    {
+        this.id         = PM.new_id();
+        this.from       = from;
+        this.to         = to;
+        this.content    = content;
+
+        this.timestamp  = Clock.currTime.toUnixTime;
+    }
 }

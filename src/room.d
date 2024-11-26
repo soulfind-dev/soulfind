@@ -11,228 +11,239 @@ import defines;
 import messages;
 
 class Room
-	{
-	// static stuff
-	private static Room[string]		room_list;
-	private static string[string]	global_room_user_list;
+    {
+    // Static
 
-	static void join_room(string roomname, User user)
-	{
-		auto room = get_room(roomname);
-		if (!room) room = new Room(roomname);
-		room.add_user(user);
-	}
+    private static Room[string]   room_list;
+    private static string[string] global_room_user_list;
 
-	static Room get_room(string roomname)
-	{
-		if (roomname !in room_list)
-			return null;
+    static void join_room(string roomname, User user)
+    {
+        auto room = get_room(roomname);
+        if (!room) room = new Room(roomname);
+        room.add_user(user);
+    }
 
-		return room_list[roomname];
-	}
+    static Room get_room(string roomname)
+    {
+        if (roomname !in room_list)
+            return null;
 
-	static Room[] rooms()
-	{
-		return room_list.values;
-	}
+        return room_list[roomname];
+    }
 
-	static ulong[string] room_stats()
-	{
-		ulong[string] stats;
-		foreach (room ; rooms) stats[room.name] = room.nb_users;
-		return stats;
-	}
+    static Room[] rooms()
+    {
+        return room_list.values;
+    }
 
-	static void add_global_room_user(string username)
-	{
-		if (username !in global_room_user_list)
-			global_room_user_list[username] = username;
-	}
+    static ulong[string] room_stats()
+    {
+        ulong[string] stats;
+        foreach (room ; rooms) stats[room.name] = room.nb_users;
+        return stats;
+    }
 
-	static void remove_global_room_user(string username)
-	{
-		if (username in global_room_user_list)
-			global_room_user_list.remove(username);
-	}
+    static void add_global_room_user(string username)
+    {
+        if (username !in global_room_user_list)
+            global_room_user_list[username] = username;
+    }
 
-	static string[] global_room_users()
-	{
-		return global_room_user_list.keys;
-	}
+    static void remove_global_room_user(string username)
+    {
+        if (username in global_room_user_list)
+            global_room_user_list.remove(username);
+    }
 
-	string name;
+    static string[] global_room_users()
+    {
+        return global_room_user_list.keys;
+    }
 
-	// constructor
-	this(string name)
-	{
-		this.name = name;
-		room_list[name] = this;
-	}
+    string name;
 
-	// misc
-	void send_to_all(Message msg)
-	{
-		foreach (user ; users) user.send_message(msg);
-	}
 
-	void say(string username, string message)
-	{
-		if (username in user_list)
-			send_to_all(new SSayChatroom(name, username, message));
-	}
+    // Attributes
 
-	// users
-	private User[string] user_list;	// user_list[username] = user
+    private User[string]    user_list;
+    private string[string]  tickers;
 
-	void leave(User user)
-	{
-		if (user.username !in user_list)
-			return;
 
-		user_list.remove(user.username);
-		user.leave_room(this);
-		send_to_all(new SUserLeftRoom(user.username, name));
+    // Constructor
 
-		if (nb_users == 0) room_list.remove(name);
-	}
+    this(string name)
+    {
+        this.name = name;
+        room_list[name] = this;
+    }
 
-	private void add_user(User user)
-	{
-		if (user.username in user_list)
-			return;
 
-		user_list[user.username] = user;
+    // Misc
 
-		send_to_all(
-			new SUserJoinedRoom(
-				name, user.username, user.status,
-				user.speed, user.upload_number, user.something,
-				user.shared_files, user.shared_folders,
-				user.slots_full, user.country_code
-			)
-		);
-		user.send_message(
-			new SJoinRoom(
-				name, user_names, statuses, speeds,
-				upload_numbers, somethings, shared_files,
-				shared_folders, slots_full, country_codes
-			)
-		);
-		user.send_message(new SRoomTicker(name, tickers));
-		user.join_room(this);
-	}
+    void send_to_all(Message msg)
+    {
+        foreach (user ; users) user.send_message(msg);
+    }
 
-	bool is_joined(string username)
-	{
-		return (username in user_list) ? true : false;
-	}
+    void say(string username, string message)
+    {
+        if (username in user_list)
+            send_to_all(new SSayChatroom(name, username, message));
+    }
 
-	ulong nb_users()
-	{
-		return user_list.length;
-	}
 
-	private User[] users()
-	{
-		return user_list.values;
-	}
+    // Users
 
-	private string[] user_names()
-	{
-		return user_list.keys;
-	}
+    void leave(User user)
+    {
+        if (user.username !in user_list)
+            return;
 
-	private uint[string] statuses()
-	{
-		uint[string] statuses;
-		foreach (user ; users)
-			statuses[user.username] = user.status;
+        user_list.remove(user.username);
+        user.leave_room(this);
+        send_to_all(new SUserLeftRoom(user.username, name));
 
-		return statuses;
-	}
+        if (nb_users == 0) room_list.remove(name);
+    }
 
-	private uint[string] speeds()
-	{
-		uint[string] speeds;
-		foreach (user ; users)
-			speeds[user.username] = user.speed;
+    private void add_user(User user)
+    {
+        if (user.username in user_list)
+            return;
 
-		return speeds;
-	}
+        user_list[user.username] = user;
 
-	private uint[string] upload_numbers()
-	{
-		uint[string] upload_numbers;
-		foreach (user ; users)
-			upload_numbers[user.username] = user.upload_number;
+        send_to_all(
+            new SUserJoinedRoom(
+                name, user.username, user.status,
+                user.speed, user.upload_number, user.something,
+                user.shared_files, user.shared_folders,
+                user.slots_full, user.country_code
+            )
+        );
+        user.send_message(
+            new SJoinRoom(
+                name, user_names, statuses, speeds,
+                upload_numbers, somethings, shared_files,
+                shared_folders, slots_full, country_codes
+            )
+        );
+        user.send_message(new SRoomTicker(name, tickers));
+        user.join_room(this);
+    }
 
-		return upload_numbers;
-	}
-	
-	private uint[string] somethings()
-	{
-		uint[string] somethings;
-		foreach (user ; users)
-			somethings[user.username] = user.something;
+    bool is_joined(string username)
+    {
+        return (username in user_list) ? true : false;
+    }
 
-		return somethings;
-	}
-	
-	private uint[string] shared_files()
-	{
-		uint[string] shared_files;
-		foreach (user ; users)
-			shared_files[user.username] = user.shared_files;
+    ulong nb_users()
+    {
+        return user_list.length;
+    }
 
-		return shared_files;
-	}
-	
-	private uint[string] shared_folders()
-	{
-		uint[string] shared_folders;
-		foreach (user ; users)
-			shared_folders[user.username] = user.shared_folders;
+    private User[] users()
+    {
+        return user_list.values;
+    }
 
-		return shared_folders;
-	}
-	
-	private uint[string] slots_full()
-	{
-		uint[string] slots_full;
-		foreach (user ; users)
-			slots_full[user.username] = user.slots_full;
+    private string[] user_names()
+    {
+        return user_list.keys;
+    }
 
-		return slots_full;
-	}
+    private uint[string] statuses()
+    {
+        uint[string] statuses;
+        foreach (user ; users)
+            statuses[user.username] = user.status;
 
-	private string[string] country_codes()
-	{
-		string[string] country_codes;
-		foreach (user ; users)
-			country_codes[user.username] = user.country_code;
+        return statuses;
+    }
 
-		return country_codes;
-	}
-	
-	// tickers
-	private string[string] tickers;	// tickers[username] = content
-	
-	void add_ticker(string username, string content)
-	{
-		if (!content) {
-			del_ticker(username);
-			return;
-		}
-		tickers[username] = content;
-		send_to_all(new SRoomTickerAdd(name, username, content));
-	}
-	
-	private void del_ticker(string username)
-	{
-		if (username !in tickers)
-			return;
+    private uint[string] speeds()
+    {
+        uint[string] speeds;
+        foreach (user ; users)
+            speeds[user.username] = user.speed;
 
-		tickers.remove(username);
-		send_to_all(new SRoomTickerRemove(name, username));
-	}
+        return speeds;
+    }
+
+    private uint[string] upload_numbers()
+    {
+        uint[string] upload_numbers;
+        foreach (user ; users)
+            upload_numbers[user.username] = user.upload_number;
+
+        return upload_numbers;
+    }
+
+    private uint[string] somethings()
+    {
+        uint[string] somethings;
+        foreach (user ; users)
+            somethings[user.username] = user.something;
+
+        return somethings;
+    }
+
+    private uint[string] shared_files()
+    {
+        uint[string] shared_files;
+        foreach (user ; users)
+            shared_files[user.username] = user.shared_files;
+
+        return shared_files;
+    }
+
+    private uint[string] shared_folders()
+    {
+        uint[string] shared_folders;
+        foreach (user ; users)
+            shared_folders[user.username] = user.shared_folders;
+
+        return shared_folders;
+    }
+
+    private uint[string] slots_full()
+    {
+        uint[string] slots_full;
+        foreach (user ; users)
+            slots_full[user.username] = user.slots_full;
+
+        return slots_full;
+    }
+
+    private string[string] country_codes()
+    {
+        string[string] country_codes;
+        foreach (user ; users)
+            country_codes[user.username] = user.country_code;
+
+        return country_codes;
+    }
+
+
+    // Tickers
+
+    void add_ticker(string username, string content)
+    {
+        if (!content) {
+            del_ticker(username);
+            return;
+        }
+        tickers[username] = content;
+        send_to_all(new SRoomTickerAdd(name, username, content));
+    }
+
+    private void del_ticker(string username)
+    {
+        if (username !in tickers)
+            return;
+
+        tickers.remove(username);
+        send_to_all(new SRoomTickerRemove(name, username));
+    }
 }
