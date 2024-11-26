@@ -7,14 +7,12 @@ module messages;
 @safe:
 
 import defines;
-
-import std.bitmanip;
+import message_codes;
+import std.bitmanip : Endian, read;
 import std.conv : to;
 import std.format : format;
 import std.outbuffer : OutBuffer;
 import std.stdio : writefln;
-
-import message_codes;
 
 class Message
 {	// Server message

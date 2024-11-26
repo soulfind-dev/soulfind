@@ -28,6 +28,9 @@ jobs:
       - name: Build
         run: dub build
 
+      - name: Linting
+        run: dub lint
+
   artifacts:
     runs-on: ubuntu-latest
     container: alpine:edge

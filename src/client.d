@@ -6,23 +6,20 @@
 module client;
 @safe:
 
+import core.time : seconds;
 import defines;
-
-import messages;
-import server;
-import room;
-import pm;
 import message_codes;
-
+import messages;
+import pm;
+import room;
+import server;
 import std.bitmanip : read;
 import std.conv : to;
 import std.datetime : Clock, SysTime;
 import std.outbuffer : OutBuffer;
-import std.socket : Socket, InternetAddress;
+import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 import std.system : Endian;
-
-import core.time : seconds;
 
 class User
 {
@@ -191,7 +188,7 @@ class User
 	private uint[string] global_recommendations()
 	{
 		uint[string] list;
-		foreach (User user ; server.users)
+		foreach (user ; server.users)
 			foreach (thing ; user.liked_things) list[thing]++;
 
 		return list;
@@ -462,56 +459,59 @@ class User
 			case GetPeerAddress:
 				const msg = new UGetPeerAddress(msg_buf);
 				auto user = server.get_user(msg.user);
-				uint address;
-				uint port;
+				uint user_address;
+				uint user_port;
 
 				if (user) {
-					address = user.address;
-					port = user.port;
+					user_address = user.address;
+					user_port = user.port;
 				}
 
-				send_message(new SGetPeerAddress(msg.user, address, port));
+				send_message(
+					new SGetPeerAddress(msg.user, user_address, user_port)
+				);
 				break;
 
 			case WatchUser:
 				const msg = new UWatchUser(msg_buf);
 				auto user = server.get_user(msg.user);
 
-				bool exists;
-				uint status = Status.offline;
-				uint speed, upload_number, something;
-				uint shared_files, shared_folders;
-				string country_code;
+				bool user_exists;
+				uint user_status = Status.offline;
+				uint user_speed, user_upload_number, user_something;
+				uint user_shared_files, user_shared_folders;
+				string user_country_code;
 
 				if (msg.user == server_user) {
-					exists = true;
-					status = Status.online;
+					user_exists = true;
+					user_status = Status.online;
 				}
 				else if (user)
 				{
-					exists = true;
-					status = user.status;
-					speed = user.speed;
-					upload_number = user.upload_number;
-					something = user.something;
-					shared_files = user.shared_files;
-					shared_folders = user.shared_folders;
-					country_code = user.country_code;
+					user_exists = true;
+					user_status = user.status;
+					user_speed = user.speed;
+					user_upload_number = user.upload_number;
+					user_something = user.something;
+					user_shared_files = user.shared_files;
+					user_shared_folders = user.shared_folders;
+					user_country_code = user.country_code;
 				}
 				else {
-					exists = server.db.get_user(
-						msg.user, speed, upload_number, shared_files,
-						shared_folders
+					user_exists = server.db.get_user(
+						msg.user, user_speed, user_upload_number,
+						user_shared_files, user_shared_folders
 					);
 				}
 
 				watch(msg.user);
 				send_message(
 					new SWatchUser(
-						msg.user, exists, status, speed, upload_number,
-						something, shared_files, shared_folders, country_code
-						)
-					);
+						msg.user, user_exists, user_status, user_speed,
+						user_upload_number, user_something, user_shared_files,
+						user_shared_folders, user_country_code
+					)
+				);
 				break;
 
 			case UnwatchUser:
@@ -522,30 +522,30 @@ class User
 			case GetUserStatus:
 				const msg = new UGetUserStatus(msg_buf);
 				auto user = server.get_user(msg.user);
-				uint status = Status.offline;
-				bool privileged;
+				uint user_status = Status.offline;
+				bool user_privileged;
 
 				if (msg.user == server_user) {
 					debug (user) writefln(
 						"Telling user %s that host %s is online",
 						blue ~ username ~ norm, blue ~ server_user ~ norm
 					);
-					status = Status.online;
+					user_status = Status.online;
 				}
 				else if (user) {
 					debug (user) writefln(
 						"Telling user %s that user %s is online",
 						blue ~ username ~ norm, blue ~ msg.user ~ norm
 					);
-					status = user.status;
-					privileged = user.privileged;
+					user_status = user.status;
+					user_privileged = user.privileged;
 				}
 				else if (server.db.user_exists(msg.user)) {
 					debug (user) writefln(
 						"Telling user %s that user %s is offline",
 						blue ~ username ~ norm, red ~ msg.user ~ norm
 					);
-					privileged = server.db.get_user_privileges(msg.user)
+					user_privileged = server.db.get_user_privileges(msg.user)
 						> Clock.currTime.toUnixTime;
 				}
 				else {
@@ -555,7 +555,9 @@ class User
 					);
 				}
 
-				send_message(new SGetUserStatus(msg.user, status, privileged));
+				send_message(
+					new SGetUserStatus(msg.user, user_status, user_privileged)
+				);
 				break;
 
 			case SayChatroom:
@@ -670,27 +672,27 @@ class User
 				const msg = new UGetUserStats(msg_buf);
 				auto user = server.get_user(msg.user);
 
-				uint speed, upload_number, something;
-				uint shared_files, shared_folders;
+				uint user_speed, user_upload_number, user_something;
+				uint user_shared_files, user_shared_folders;
 
 				if (user) {
-					speed = user.speed;
-					upload_number = user.upload_number;
-					something = user.something;
-					shared_files = user.shared_files;
-					shared_folders = user.shared_folders;
+					user_speed = user.speed;
+					user_upload_number = user.upload_number;
+					user_something = user.something;
+					user_shared_files = user.shared_files;
+					user_shared_folders = user.shared_folders;
 				}
 				else {
 					server.db.get_user(
-						msg.user, speed, upload_number, shared_files,
-						shared_folders
+						msg.user, user_speed, user_upload_number,
+						user_shared_files, user_shared_folders
 					);
 				}
 
 				send_message(
 					new SGetUserStats(
-						msg.user, speed, upload_number, something,
-						shared_files, shared_folders
+						msg.user, user_speed, user_upload_number,
+						user_something, user_shared_files, user_shared_folders
 					)
 				);
 				break;
@@ -757,7 +759,7 @@ class User
 
 				const msg = new UAdminMessage(msg_buf);
 
-				foreach (User user ; server.users)
+				foreach (user ; server.users)
 					user.send_message(new SAdminMessage(msg.mesg));
 				break;
 

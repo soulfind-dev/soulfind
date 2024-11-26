@@ -7,7 +7,6 @@ module pm;
 @safe:
 
 import defines;
-
 import std.datetime : Clock;
 
 class PM
