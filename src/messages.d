@@ -114,7 +114,7 @@ class Message
 	
 	private string reads()
 	{ // read a string
-		auto slen = readi();
+		uint slen = readi();
 		if (slen > in_buf.length) slen = cast(uint) in_buf.length;
 		const str = cast(string) in_buf[0 .. slen].idup;
 

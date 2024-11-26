@@ -48,7 +48,7 @@ class PM
 
 	private static uint new_id()
 	{
-		auto id = cast(uint) pm_list.length;
+		uint id = cast(uint) pm_list.length;
 		while (find_pm(id)) id++;
 		return id;
 	}

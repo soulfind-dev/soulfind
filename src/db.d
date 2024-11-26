@@ -213,7 +213,7 @@ class Sdb
 	string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
 	{
 		string[] ret;
-		auto query_str = "SELECT username FROM %s".format(users_table);
+		string query_str = "SELECT username FROM %s".format(users_table);
 		if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
 			escape(filter_field), min, max
 		);
@@ -224,7 +224,7 @@ class Sdb
 
 	uint num_users(string filter_field = null, uint min = 1, uint max = -1)
 	{
-		auto query_str = "SELECT COUNT(1) FROM %s".format(users_table);
+		string query_str = "SELECT COUNT(1) FROM %s".format(users_table);
 		if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
 			escape(filter_field), min, max
 		);

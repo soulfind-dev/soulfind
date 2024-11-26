@@ -134,7 +134,7 @@ class User
 
 	uint privileges()
 	{
-		auto privileges = priv_expiration - Clock.currTime.toUnixTime;
+		long privileges = priv_expiration - Clock.currTime.toUnixTime;
 		if (privileges <= 0) privileges = 0;
 		return privileges.to!uint;
 	}
@@ -336,9 +336,9 @@ class User
 
 	// messages
 	private ubyte[]		in_buf;
-	private auto		in_msg_size = -1;
+	private uint			in_msg_size = -1;
 	private ubyte[]		out_buf;
-	private auto		msg_size_buf = new OutBuffer();
+	private OutBuffer	msg_size_buf = new OutBuffer();
 
 	bool is_sending()
 	{
@@ -627,8 +627,7 @@ class User
 				}
 				else if (server.db.user_exists(msg.user)) {
 					// user exists but not connected
-					auto pm = new PM(msg.message, username, msg.user);
-					PM.add_pm(pm);
+					PM.add_pm(new PM(msg.message, username, msg.user));
 				}
 				break;
 
@@ -773,16 +772,20 @@ class User
 
 			case ItemRecommendations:
 				const msg = new UGetItemRecommendations(msg_buf);
-				auto recommendations = get_item_recommendations(msg.item);
 				send_message(
-					new SGetItemRecommendations(msg.item, recommendations)
+					new SGetItemRecommendations(
+						msg.item, get_item_recommendations(msg.item)
+					)
 				);
 				break;
 
 			case ItemSimilarUsers:
 				const msg = new UItemSimilarUsers(msg_buf);
-				auto similar_users = get_item_similar_users(msg.item);
-				send_message(new SItemSimilarUsers(msg.item, similar_users));
+				send_message(
+					new SItemSimilarUsers(
+						msg.item, get_item_similar_users(msg.item)
+					)
+				);
 				break;
 
 			case SetRoomTicker:
@@ -851,8 +854,10 @@ class User
 					if (!user)
 						continue;
 
-					PM pm = new PM(msg.message, username, target_username);
-					user.send_pm(pm, new_message);
+					user.send_pm(
+						new PM(msg.message, username, target_username),
+						new_message
+					);
 				}
 				break;
 

@@ -81,8 +81,8 @@ class Server
 
 	private Socket			sock;
 	private User[Socket]	user_socks;
-	private auto			keepalive_time = 60;
-	private auto			keepalive_interval = 5;
+	private int			keepalive_time = 60;
+	private int			keepalive_interval = 5;
 	private Duration		select_timeout = 2.minutes;
 
 	private this(string db_file)
@@ -136,7 +136,7 @@ class Server
 				if (user.is_sending) write_socks.add(user_sock);
 			}
 
-			auto nb = Socket.select(
+			int nb = Socket.select(
 				read_socks, write_socks, null, select_timeout
 			);
 			const terminating = (nb == -1);
@@ -173,8 +173,8 @@ class Server
 				if (nb == 0)
 					break;
 
-				auto recv_success = true;
-				auto send_success = true;
+				bool recv_success = true;
+				bool send_success = true;
 				bool changed;
 
 				if (read_socks.isSet(user_sock)) {
@@ -210,29 +210,26 @@ class Server
 	// Filesearches
 	void do_FileSearch(uint token, string query, string username)
 	{
-		auto msg = new SFileSearch(username, token, query);
-		send_to_all(msg);
+		send_to_all(new SFileSearch(username, token, query));
 	}
 
 	void do_UserSearch(uint token, string query, string username, string to)
 	{
-		auto msg = new SFileSearch(username, token, query);
 		auto user = get_user(to);
 		if (!user)
 			return;
 
-		user.send_message(msg);
+		user.send_message(new SFileSearch(username, token, query));
 	}
 
 	void do_RoomSearch(uint token, string query, string username,
 						string room_name)
 	{
-		auto msg = new SFileSearch(username, token, query);
 		auto room = Room.get_room(room_name);
 		if (!room)
 			return;
 
-		room.send_to_all(msg);
+		room.send_to_all(new SFileSearch(username, token, query));
 	}
 
 	// Users
