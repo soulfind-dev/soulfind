@@ -11,8 +11,8 @@ import core.sys.posix.unistd : fork;
 import defines;
 import std.stdio : writefln;
 
-version (server) import server : run;
-version (setup) import setup : run;
+version (Have_soulfind_server) import server : run;
+version (Have_soulfind_setup) import setup : run;
 
 private extern(C) void handle_termination(int) {
 	writefln("\n" ~ exit_message);

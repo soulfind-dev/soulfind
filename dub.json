@@ -16,7 +16,6 @@
 	"subPackages": [
 		{
 			"name": "server",
-			"versions": ["server"],
 			"targetType": "executable",
 			"targetPath": "bin",
 			"targetName": "soulfind",
@@ -24,7 +23,6 @@
 		},
 		{
 			"name": "setup",
-			"versions": ["setup"],
 			"targetType": "executable",
 			"targetPath": "bin",
 			"targetName": "soulsetup",
