@@ -3,12 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module setup;
+module soulfind.setup;
 @safe:
 
-import db;
-import defines;
-
+import soulfind.db;
+import soulfind.defines;
 import std.algorithm : sort;
 import std.conv : ConvException, to;
 import std.exception : ifThrown;

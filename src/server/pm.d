@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module pm;
+module soulfind.server.pm;
 @safe:
 
-import defines;
+import soulfind.defines;
 import std.datetime : Clock;
 
 class PM
