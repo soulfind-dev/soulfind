@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module db;
+module soulfind.db;
 @safe:
 
-import defines;
 import etc.c.sqlite3;
+import soulfind.defines;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;

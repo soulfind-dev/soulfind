@@ -3,18 +3,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module server;
+module soulfind.server.server;
 @safe:
 
-import client;
-import core.sys.posix.unistd : fork;
 import core.time : Duration, minutes, MonoTime, seconds;
-import db;
-import defines;
-import message_codes;
-import messages;
-import pm;
-import room;
+import soulfind.db;
+import soulfind.defines;
+import soulfind.server.messages;
+import soulfind.server.pm;
+import soulfind.server.room;
+import soulfind.server.user;
 import std.algorithm : canFind;
 import std.array : join, replace, split;
 import std.ascii : isPrintable, isPunctuation;
@@ -29,46 +27,6 @@ import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketSet, SocketShutdown, TcpSocket;
 import std.stdio : writefln;
 import std.string : strip;
-
-int run(string[] args)
-{
-    bool daemon;
-    string db = default_db_file;
-
-    if (args.length > 3) help(args);
-
-    foreach (arg ; args[1 .. $]) {
-        switch (arg) {
-            case "-h":
-            case "--help":
-                help(args);
-                return 0;
-            case "-d":
-            case "--daemon":
-                daemon = true;
-                break;
-            default:
-                db = arg;
-                break;
-        }
-    }
-
-    if (daemon && fork())
-        return 0;
-
-    auto server = new Server(db);
-    return server.listen();
-}
-
-private void help(string[] args)
-{
-    writefln("Usage: %s [database_file] [-d|--daemon]", args[0]);
-    writefln(
-        "\tdatabase_file: path to the sqlite3 database (default: %s)",
-        default_db_file
-    );
-    writefln("\t-d, --daemon : fork in the background");
-}
 
 class Server
 {
@@ -91,7 +49,7 @@ class Server
 
     // Constructor
 
-    private this(string db_file)
+    this(string db_file)
     {
         started_at = MonoTime.currTime;
         db = new Sdb(db_file);
@@ -107,7 +65,7 @@ class Server
 
     // Connections
 
-    private int listen()
+    int listen()
     {
         sock = new TcpSocket();
         sock.blocking = false;

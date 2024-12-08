@@ -3,23 +3,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module client;
+module soulfind.server.user;
 @safe:
 
 import core.time : seconds;
-import defines;
-import message_codes;
-import messages;
-import pm;
-import room;
-import server;
-import std.bitmanip : read;
+import soulfind.defines;
+import soulfind.server.messages;
+import soulfind.server.pm;
+import soulfind.server.room;
+import soulfind.server.server;
+import std.bitmanip : Endian, read;
 import std.conv : to;
 import std.datetime : Clock, SysTime;
 import std.outbuffer : OutBuffer;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
-import std.system : Endian;
 
 class User
 {

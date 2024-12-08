@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module room;
+module soulfind.server.room;
 @safe:
 
-import client;
-import defines;
-import messages;
+import soulfind.defines;
+import soulfind.server.messages;
+import soulfind.server.user;
 
 class Room
     {

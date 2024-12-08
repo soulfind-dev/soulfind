@@ -19,14 +19,16 @@
             "targetType": "executable",
             "targetPath": "bin",
             "targetName": "soulfind",
-            "libs": ["sqlite3"]
+            "libs": ["sqlite3"],
+            "excludedSourceFiles": ["src/setup/*"]
         },
         {
             "name": "setup",
             "targetType": "executable",
             "targetPath": "bin",
             "targetName": "soulsetup",
-            "libs": ["sqlite3"]
+            "libs": ["sqlite3"],
+            "excludedSourceFiles": ["src/server/*"]
         }
     ]
 }
