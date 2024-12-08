@@ -635,18 +635,6 @@ class UUserPrivileged : Message
     }
 }
 
-class UAdminMessage : Message
-{
-    string mesg;
-
-    this(ubyte[] in_buf)
-    {
-        super(in_buf);
-
-        mesg = reads();
-    }
-}
-
 class UGivePrivileges : Message
 {
     string  user;

@@ -766,16 +766,6 @@ class User
                 send_message(new SRoomList(Room.room_stats));
                 break;
 
-            case AdminMessage:
-                if (!server.db.is_admin(username))
-                    break;
-
-                const msg = new UAdminMessage(msg_buf);
-
-                foreach (user ; server.users)
-                    user.send_message(new SAdminMessage(msg.mesg));
-                break;
-
             case CheckPrivileges:
                 send_message(new SCheckPrivileges(privileges));
                 break;
