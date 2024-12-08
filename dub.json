@@ -1,32 +1,32 @@
 {
-	"name": "soulfind",
-	"description": "Soulseek server implementation in D",
-	"copyright": "Copyright © 2005-2024, Soulfind Contributors",
-	"license": "GPL-3.0-or-later",
-	"toolchainRequirements": {
-		"ldc": ">=1.28.0",
-		"dmd": ">=2.98.0",
-		"gdc": "no"
-	},
-	"dependencies": {
-		"soulfind:server": "*",
-		"soulfind:setup": "*"
-	},
-	"targetType": "none",
-	"subPackages": [
-		{
-			"name": "server",
-			"targetType": "executable",
-			"targetPath": "bin",
-			"targetName": "soulfind",
-			"libs": ["sqlite3"]
-		},
-		{
-			"name": "setup",
-			"targetType": "executable",
-			"targetPath": "bin",
-			"targetName": "soulsetup",
-			"libs": ["sqlite3"]
-		}
-	]
+    "name": "soulfind",
+    "description": "Soulseek server implementation in D",
+    "copyright": "Copyright © 2005-2024, Soulfind Contributors",
+    "license": "GPL-3.0-or-later",
+    "toolchainRequirements": {
+        "ldc": ">=1.28.0",
+        "dmd": ">=2.98.0",
+        "gdc": "no"
+    },
+    "dependencies": {
+        "soulfind:server": "*",
+        "soulfind:setup": "*"
+    },
+    "targetType": "none",
+    "subPackages": [
+        {
+            "name": "server",
+            "targetType": "executable",
+            "targetPath": "bin",
+            "targetName": "soulfind",
+            "libs": ["sqlite3"]
+        },
+        {
+            "name": "setup",
+            "targetType": "executable",
+            "targetPath": "bin",
+            "targetName": "soulsetup",
+            "libs": ["sqlite3"]
+        }
+    ]
 }

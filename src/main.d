@@ -12,24 +12,24 @@ import defines;
 import std.stdio : writefln;
 
 version (Have_soulfind_server) import server : run;
-version (Have_soulfind_setup) import setup : run;
+version (Have_soulfind_setup)  import setup : run;
 
 private extern(C) void handle_termination(int) {
-	writefln("\n" ~ exit_message);
+    writefln("\n" ~ exit_message);
 }
 
 @trusted
 private void setup_signal_handler()
 {
-	sigaction_t act;
-	act.sa_handler = &handle_termination;
+    sigaction_t act;
+    act.sa_handler = &handle_termination;
 
-	sigaction(SIGINT, &act, null);
-	sigaction(SIGTERM, &act, null);
+    sigaction(SIGINT, &act, null);
+    sigaction(SIGTERM, &act, null);
 }
 
 private int main(string[] args)
 {
-	setup_signal_handler();
-	return run(args);
+    setup_signal_handler();
+    return run(args);
 }
