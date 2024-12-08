@@ -283,16 +283,20 @@ class User
 
     // Watchlist
 
-    private void watch(string username)
+    private void watch(string peer_username)
     {
-        if (username != server_user)
-            watch_list[username] = username;
+        if (peer_username != server_user)
+            watch_list[peer_username] = peer_username;
     }
 
-    private void unwatch(string username)
+    private void unwatch(string peer_username)
     {
-        if (username in watch_list)
-            watch_list.remove(username);
+        if (peer_username == username)
+            // Always watch our own username for updates
+            return;
+
+        if (peer_username in watch_list)
+            watch_list.remove(peer_username);
     }
 
     private bool is_watching(string peer_username)
@@ -314,7 +318,7 @@ class User
             blue ~ message_name[msg.code] ~ norm, msg.code,
             blue ~ username ~ norm
         );
-        foreach (user ; server.users) if (user !is this)
+        foreach (user ; server.users)
             if (user.is_watching(username)) user.send_message(msg);
     }
 
@@ -904,6 +908,7 @@ class User
 
         if (server.db.is_admin(username)) writefln("%s is an admin", username);
         server.add_user(this);
+        watch(username);
 
         send_message(
             new SLogin(
