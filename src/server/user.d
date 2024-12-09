@@ -12,10 +12,9 @@ import soulfind.server.messages;
 import soulfind.server.pm;
 import soulfind.server.room;
 import soulfind.server.server;
-import std.bitmanip : Endian, read;
+import std.bitmanip : Endian, nativeToLittleEndian, read;
 import std.conv : to;
 import std.datetime : Clock, SysTime;
-import std.outbuffer : OutBuffer;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 
@@ -57,7 +56,6 @@ class User
     private ubyte[]         in_buf;
     private uint            in_msg_size = -1;
     private ubyte[]         out_buf;
-    private OutBuffer       msg_size_buf = new OutBuffer();
 
 
     // Constructor
@@ -372,15 +370,17 @@ class User
     void send_message(Message msg)
     {
         const msg_buf = msg.bytes;
-        msg_size_buf.write(cast(uint) msg_buf.length);
-        out_buf ~= msg_size_buf.toBytes;
-        out_buf ~= msg_buf;
-        msg_size_buf.clear();
+        const msg_len = cast(uint) msg_buf.length;
+        const offset = out_buf.length;
+
+        out_buf.length += (uint.sizeof + msg_len);
+        out_buf[offset .. offset + uint.sizeof] = msg_len.nativeToLittleEndian;
+        out_buf[offset + uint.sizeof .. $] = msg_buf;
 
         debug (msg) writefln(
             "Sending -> %s (code %d) of %d bytes -> to user %s",
             blue ~ message_name[msg.code] ~ norm, msg.code,
-            msg_buf.length, blue ~ username ~ norm
+            msg_len, blue ~ username ~ norm
         );
     }
 
