@@ -311,12 +311,11 @@ class User
         return false;
     }
 
-    private void send_to_watching(Message msg)
+    private void send_to_watching(SMessage msg)
     {
         debug (msg) writefln(
             "Transmit=> %s (code %d) to users watching user %s...",
-            blue ~ message_name[msg.code] ~ norm, msg.code,
-            blue ~ username ~ norm
+            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
         foreach (user ; server.users)
             if (user.is_watching(username)) user.send_message(msg);
@@ -369,7 +368,7 @@ class User
         return true;
     }
 
-    void send_message(Message msg)
+    void send_message(SMessage msg)
     {
         const msg_buf = msg.bytes;
         msg_size_buf.write(cast(uint) msg_buf.length);
@@ -379,7 +378,7 @@ class User
 
         debug (msg) writefln(
             "Sending -> %s (code %d) of %d bytes -> to user %s",
-            blue ~ message_name[msg.code] ~ norm, msg.code,
+            blue ~ msg.name ~ norm, msg.code,
             msg_buf.length, blue ~ username ~ norm
         );
     }
@@ -419,23 +418,18 @@ class User
         const code = msg_buf.read!(uint, Endian.littleEndian);
 
         in_buf = in_buf[in_msg_size .. $];
-
-        debug (msg) writefln(
-            "Receive <- %s (code %d) of %d bytes <- from user %s",
-            blue ~ message_name[code] ~ norm, code,
-            in_msg_size, blue ~ username ~ norm
-        );
-
         in_msg_size = -1;
 
         if (status == Status.offline && code != Login)
-            return;
-        if (status != Status.offline && code == Login)
             return;
 
         switch (code) {
             case Login:
                 const msg = new ULogin(msg_buf);
+
+                if (status != Status.offline)
+                    break;
+
                 const error = server.check_login(msg.username, msg.password);
 
                 if (error) {
@@ -446,7 +440,7 @@ class User
                         red ~ username ~ norm, bg_w ~ red ~ error ~ norm
                     );
                     send_message(new SLogin(false, error));
-                    return;
+                    break;
                 }
 
                 auto user = server.get_user(msg.username);
@@ -466,15 +460,15 @@ class User
                     msg.major_version, msg.minor_version
                 );
                 login(msg);
-                return;
+                break;
 
             case SetWaitPort:
-                const msg = new USetWaitPort(msg_buf);
+                const msg = new USetWaitPort(msg_buf, username);
                 port = cast(ushort) msg.port;
                 break;
 
             case GetPeerAddress:
-                const msg = new UGetPeerAddress(msg_buf);
+                const msg = new UGetPeerAddress(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 uint user_address;
                 uint user_port;
@@ -490,7 +484,7 @@ class User
                 break;
 
             case WatchUser:
-                const msg = new UWatchUser(msg_buf);
+                const msg = new UWatchUser(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 bool user_exists;
@@ -532,12 +526,12 @@ class User
                 break;
 
             case UnwatchUser:
-                const msg = new UUnwatchUser(msg_buf);
+                const msg = new UUnwatchUser(msg_buf, username);
                 unwatch(msg.user);
                 break;
 
             case GetUserStatus:
-                const msg = new UGetUserStatus(msg_buf);
+                const msg = new UGetUserStatus(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 uint user_status = Status.offline;
                 bool user_privileged;
@@ -578,7 +572,7 @@ class User
                 break;
 
             case SayChatroom:
-                const msg = new USayChatroom(msg_buf);
+                const msg = new USayChatroom(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (!room)
                     break;
@@ -595,13 +589,13 @@ class User
                 break;
 
             case JoinRoom:
-                const msg = new UJoinRoom(msg_buf);
+                const msg = new UJoinRoom(msg_buf, username);
                 if (server.check_name(msg.room))
                     Room.join_room(msg.room, this);
                 break;
 
             case LeaveRoom:
-                const msg = new ULeaveRoom(msg_buf);
+                const msg = new ULeaveRoom(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (!room)
                     break;
@@ -611,7 +605,7 @@ class User
                 break;
 
             case ConnectToPeer:
-                const msg = new UConnectToPeer(msg_buf);
+                const msg = new UConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
@@ -630,7 +624,7 @@ class User
                 break;
 
             case MessageUser:
-                const msg = new UMessageUser(msg_buf);
+                const msg = new UMessageUser(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 if (msg.user == server_user) {
@@ -651,25 +645,26 @@ class User
                 break;
 
             case MessageAcked:
-                const msg = new UMessageAcked(msg_buf);
+                const msg = new UMessageAcked(msg_buf, username);
                 PM.del_pm(msg.id);
                 break;
 
             case FileSearch:
-                const msg = new UFileSearch(msg_buf);
+                const msg = new UFileSearch(msg_buf, username);
                 server.do_FileSearch(msg.token, msg.query, username);
                 break;
 
             case SetStatus:
-                const msg = new USetStatus(msg_buf);
+                const msg = new USetStatus(msg_buf, username);
                 set_status(msg.status);
                 break;
 
             case ServerPing:
+                const msg = new UServerPing(msg_buf, username);
                 break;
 
             case SharedFoldersFiles:
-                const msg = new USharedFoldersFiles(msg_buf);
+                const msg = new USharedFoldersFiles(msg_buf, username);
                 debug (user) writefln(
                     "User %s reports sharing %d files in %d folders",
                     blue ~ username ~ norm, msg.nb_files, msg.nb_folders
@@ -686,7 +681,7 @@ class User
                 break;
 
             case GetUserStats:
-                const msg = new UGetUserStats(msg_buf);
+                const msg = new UGetUserStats(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 uint user_speed, user_upload_number, user_something;
@@ -715,46 +710,49 @@ class User
                 break;
 
             case UserSearch:
-                const msg = new UUserSearch(msg_buf);
+                const msg = new UUserSearch(msg_buf, username);
                 server.do_UserSearch(msg.token, msg.query, username, msg.user);
                 break;
 
             case AddThingILike:
-                const msg = new UAddThingILike(msg_buf);
+                const msg = new UAddThingILike(msg_buf, username);
                 add_thing_he_likes(msg.thing);
                 break;
 
             case RemoveThingILike:
-                const msg = new URemoveThingILike(msg_buf);
+                const msg = new URemoveThingILike(msg_buf, username);
                 del_thing_he_likes(msg.thing);
                 break;
 
             case AddThingIHate:
-                const msg = new UAddThingIHate(msg_buf);
+                const msg = new UAddThingIHate(msg_buf, username);
                 add_thing_he_hates(msg.thing);
                 break;
 
             case RemoveThingIHate:
-                const msg = new URemoveThingIHate(msg_buf);
+                const msg = new URemoveThingIHate(msg_buf, username);
                 del_thing_he_hates(msg.thing);
                 break;
 
             case GetRecommendations:
+                const msg = new UGetRecommendations(msg_buf, username);
                 send_message(new SGetRecommendations(recommendations));
                 break;
 
             case GlobalRecommendations:
+                const msg = new UGlobalRecommendations(msg_buf, username);
                 send_message(
                     new SGetGlobalRecommendations(global_recommendations)
                 );
                 break;
 
             case SimilarUsers:
+                const msg = new USimilarUsers(msg_buf, username);
                 send_message(new SSimilarUsers(similar_users));
                 break;
 
             case UserInterests:
-                const msg = new UUserInterests(msg_buf);
+                const msg = new UUserInterests(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
@@ -767,29 +765,31 @@ class User
                 break;
 
             case RoomList:
+                const msg = new URoomList(msg_buf, username);
                 send_message(new SRoomList(Room.room_stats));
                 break;
 
             case CheckPrivileges:
+                const msg = new UCheckPrivileges(msg_buf, username);
                 send_message(new SCheckPrivileges(privileges));
                 break;
 
             case WishlistSearch:
-                const msg = new UWishlistSearch(msg_buf);
+                const msg = new UWishlistSearch(msg_buf, username);
                 server.do_FileSearch(msg.token, msg.query, username);
                 break;
 
             case ItemRecommendations:
-                const msg = new UGetItemRecommendations(msg_buf);
+                const msg = new UItemRecommendations(msg_buf, username);
                 send_message(
-                    new SGetItemRecommendations(
+                    new SItemRecommendations(
                         msg.item, get_item_recommendations(msg.item)
                     )
                 );
                 break;
 
             case ItemSimilarUsers:
-                const msg = new UItemSimilarUsers(msg_buf);
+                const msg = new UItemSimilarUsers(msg_buf, username);
                 send_message(
                     new SItemSimilarUsers(
                         msg.item, get_item_similar_users(msg.item)
@@ -798,18 +798,18 @@ class User
                 break;
 
             case SetRoomTicker:
-                const msg = new USetRoomTicker(msg_buf);
+                const msg = new USetRoomTicker(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (room) room.add_ticker(username, msg.tick);
                 break;
 
             case RoomSearch:
-                const msg = new URoomSearch(msg_buf);
+                const msg = new URoomSearch(msg_buf, username);
                 server.do_RoomSearch(msg.token, msg.query, username, msg.room);
                 break;
 
             case SendUploadSpeed:
-                const msg = new USendUploadSpeed(msg_buf);
+                const msg = new USendUploadSpeed(msg_buf, username);
                 auto user = server.get_user(username);
                 if (!user)
                     break;
@@ -822,7 +822,7 @@ class User
                 break;
 
             case UserPrivileged:
-                const msg = new UUserPrivileged(msg_buf);
+                const msg = new UUserPrivileged(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
@@ -833,7 +833,7 @@ class User
                 break;
 
             case GivePrivileges:
-                const msg = new UGivePrivileges(msg_buf);
+                const msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 const admin = server.db.is_admin(msg.user);
                 if (!user)
@@ -846,7 +846,7 @@ class User
                 break;
 
             case ChangePassword:
-                const msg = new UChangePassword(msg_buf);
+                const msg = new UChangePassword(msg_buf, username);
 
                 server.db.user_update_field(
                     username, "password", server.encode_password(msg.password)
@@ -855,7 +855,7 @@ class User
                 break;
 
             case MessageUsers:
-                const msg = new UMessageUsers(msg_buf);
+                const msg = new UMessageUsers(msg_buf, username);
                 bool new_message = true;
 
                 foreach (target_username ; msg.users) {
@@ -871,15 +871,17 @@ class User
                 break;
 
             case JoinGlobalRoom:
+                const msg = new UJoinGlobalRoom(msg_buf, username);
                 Room.add_global_room_user(username);
                 break;
 
             case LeaveGlobalRoom:
+                const msg = new ULeaveGlobalRoom(msg_buf, username);
                 Room.remove_global_room_user(username);
                 break;
 
             case CantConnectToPeer:
-                const msg = new UCantConnectToPeer(msg_buf);
+                const msg = new UCantConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (user)
                     user.send_message(new SCantConnectToPeer(msg.token));
@@ -893,7 +895,6 @@ class User
                 );
                 break;
         }
-        return;
     }
 
     private void login(const ULogin msg)
