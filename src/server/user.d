@@ -442,7 +442,7 @@ class User
                     should_quit = true;
                     writefln(
                         "User %s denied (%s)",
-                        red ~ username ~ norm, bg_w ~ red ~ error ~ norm
+                        red ~ username ~ norm, red ~ error ~ norm
                     );
                     send_message(new SLogin(false, error));
                     return;

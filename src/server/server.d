@@ -84,9 +84,9 @@ class Server
         }
 
         writefln(
-            "%s %s process %s listening on port %s",
-            bg_w ~ "▌" ~ red ~ "♥" ~ norm ~ bg_w ~ "▐" ~ norm ~ bold
-            ~ "Soulfind", VERSION ~ norm, thisProcessID, port
+            "%s %s %s process %s listening on port %s",
+            red ~ "♥" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
+            thisProcessID, port
         );
 
         auto read_socks = new SocketSet(max_users + 1);
