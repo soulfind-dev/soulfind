@@ -17,6 +17,7 @@ import std.algorithm : canFind;
 import std.array : join, replace, split;
 import std.ascii : isPrintable, isPunctuation;
 import std.conv : ConvException, to;
+import std.datetime : Clock;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.exception : ifThrown;
@@ -36,12 +37,14 @@ class Server
 
     private ushort        port;
     private uint          max_users;
-    private User[string]  user_list;
 
     private MonoTime      started_at;
 
     private Socket        sock;
     private User[Socket]  user_socks;
+
+    private PM[uint]      pm_list;
+    private User[string]  user_list;
 
 
     // Constructor
@@ -276,6 +279,48 @@ class Server
     }
 
 
+    // Private Messages
+
+    PM add_pm(string from, string to, string content)
+    {
+        auto pm = PM();
+
+        pm.id = new_pm_id;
+        pm.timestamp = Clock.currTime.toUnixTime;
+        pm.from = from;
+        pm.to = to;
+        pm.content = content;
+
+        pm_list[pm.id] = pm;
+        return pm;
+    }
+
+    void del_pm(uint id)
+    {
+        if (find_pm(id))
+            pm_list.remove(id);
+    }
+
+    PM[] get_pms_for(string user)
+    {
+        PM[] pms;
+        foreach (pm ; pm_list) if (pm.to == user) pms ~= pm;
+        return pms;
+    }
+
+    private bool find_pm(uint id)
+    {
+        return(id in pm_list) ? true : false;
+    }
+
+    private uint new_pm_id()
+    {
+        uint id = cast(uint) pm_list.length;
+        while (find_pm(id)) id++;
+        return id;
+    }
+
+
     // Users
 
     void add_user(User user)
@@ -476,7 +521,7 @@ class Server
 
     private void admin_pm(User admin, string message)
     {
-        PM pm = new PM(message, server_user, admin.username);
+        const pm = add_pm(message, server_user, admin.username);
         const new_message = true;
         admin.send_pm(pm, new_message);
     }

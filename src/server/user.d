@@ -647,21 +647,20 @@ class User
                 }
                 else if (user) {
                     // user is connected
-                    auto pm = new PM(msg.message, username, msg.user);
+                    const pm = server.add_pm(msg.message, username, msg.user);
                     const new_message = true;
 
-                    PM.add_pm(pm);
                     user.send_pm(pm, new_message);
                 }
                 else if (server.db.user_exists(msg.user)) {
                     // user exists but not connected
-                    PM.add_pm(new PM(msg.message, username, msg.user));
+                    server.add_pm(msg.message, username, msg.user);
                 }
                 break;
 
             case MessageAcked:
                 scope msg = new UMessageAcked(msg_buf, username);
-                PM.del_pm(msg.id);
+                server.del_pm(msg.id);
                 break;
 
             case FileSearch:
@@ -882,10 +881,10 @@ class User
                     if (!user)
                         continue;
 
-                    user.send_pm(
-                        new PM(msg.message, username, target_username),
-                        new_message
+                    const pm = server.add_pm(
+                        msg.message, username, target_username
                     );
+                    user.send_pm(pm, new_message);
                 }
                 break;
 
@@ -950,7 +949,7 @@ class User
 
         set_status(Status.online);
 
-        foreach (pm ; PM.get_pms_for(username)) {
+        foreach (pm ; server.get_pms_for(username)) {
             const new_message = false;
             debug (user) writefln(
                 "Sending offline PM (id %d) from %s to %s",
