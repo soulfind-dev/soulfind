@@ -165,7 +165,7 @@ class Message
             out_buf.length = (offset + size) * 2;
     }
 
-    private void write(const(ubyte)[] bytes)
+    private void write(scope const(ubyte)[] bytes)
     {
         resize_buffer(bytes.length);
         out_buf[offset .. offset + bytes.length] = bytes[];
