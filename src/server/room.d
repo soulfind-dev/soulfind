@@ -81,15 +81,18 @@ class Room
 
     // Misc
 
-    void send_to_all(SMessage msg)
+    void send_to_all(scope SMessage msg)
     {
         foreach (user ; users) user.send_message(msg);
     }
 
     void say(string username, string message)
     {
-        if (username in user_list)
-            send_to_all(new SSayChatroom(name, username, message));
+        if (username !in user_list)
+            return;
+
+        scope msg = new SSayChatroom(name, username, message);
+        send_to_all(msg);
     }
 
 
@@ -102,7 +105,9 @@ class Room
 
         user_list.remove(user.username);
         user.leave_room(this);
-        send_to_all(new SUserLeftRoom(user.username, name));
+
+        scope msg = new SUserLeftRoom(user.username, name);
+        send_to_all(msg);
 
         if (nb_users == 0) room_list.remove(name);
     }
@@ -114,22 +119,23 @@ class Room
 
         user_list[user.username] = user;
 
-        send_to_all(
-            new SUserJoinedRoom(
-                name, user.username, user.status,
-                user.speed, user.upload_number, user.something,
-                user.shared_files, user.shared_folders,
-                user.slots_full, user.country_code
-            )
+        scope joined_room_msg = new SUserJoinedRoom(
+            name, user.username, user.status,
+            user.speed, user.upload_number, user.something,
+            user.shared_files, user.shared_folders,
+            user.slots_full, user.country_code
         );
-        user.send_message(
-            new SJoinRoom(
-                name, user_names, statuses, speeds,
-                upload_numbers, somethings, shared_files,
-                shared_folders, slots_full, country_codes
-            )
+        scope join_room_msg = new SJoinRoom(
+            name, user_names, statuses, speeds,
+            upload_numbers, somethings, shared_files,
+            shared_folders, slots_full, country_codes
         );
-        user.send_message(new SRoomTicker(name, tickers));
+        scope tickers_msg = new SRoomTicker(name, tickers);
+
+        send_to_all(joined_room_msg);
+        user.send_message(join_room_msg);
+        user.send_message(tickers_msg);
+
         user.join_room(this);
     }
 
@@ -235,7 +241,9 @@ class Room
             return;
         }
         tickers[username] = content;
-        send_to_all(new SRoomTickerAdd(name, username, content));
+
+        scope msg = new SRoomTickerAdd(name, username, content);
+        send_to_all(msg);
     }
 
     private void del_ticker(string username)
@@ -244,6 +252,8 @@ class Room
             return;
 
         tickers.remove(username);
-        send_to_all(new SRoomTickerRemove(name, username));
+
+        scope msg = new SRoomTickerRemove(name, username);
+        send_to_all(msg);
     }
 }

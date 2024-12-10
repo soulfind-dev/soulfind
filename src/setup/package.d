@@ -45,7 +45,7 @@ private string input()
 
 private void main_menu()
 {
-    auto menu = new Menu("Soulfind %s configuration".format(VERSION));
+    scope menu = new Menu("Soulfind %s configuration".format(VERSION));
 
     menu.add("0", "Admins",            &admins);
     menu.add("1", "Listen port",       &listen_port);
@@ -64,7 +64,7 @@ private void exit() {
 
 private void admins()
 {
-    auto menu = new Menu("Admins (%d)".format(sdb.admins.length));
+    scope menu = new Menu("Admins (%d)".format(sdb.admins.length));
 
     menu.add("1", "Add an admin",    &add_admin);
     menu.add("2", "Remove an admin", &del_admin);
@@ -104,7 +104,7 @@ private void listen_port()
     const port = sdb.get_config_value("port").to!ushort.ifThrown(
         default_port
     );
-    auto menu = new Menu(format("Listen port : %d", port));
+    scope menu = new Menu(format("Listen port : %d", port));
     menu.add("1", "Change listen port", &set_listen_port);
     menu.add("q", "Return",             &main_menu);
 
@@ -132,7 +132,7 @@ private void max_users()
     const max_users = sdb.get_config_value("max_users").to!uint.ifThrown(
         default_max_users
     );
-    auto menu = new Menu(format("Max users allowed : %d", max_users));
+    scope menu = new Menu(format("Max users allowed : %d", max_users));
     menu.add("1", "Change max users", &set_max_users);
     menu.add("q", "Return",           &main_menu);
 
@@ -160,7 +160,7 @@ private void set_max_users()
 
 private void motd()
 {
-    auto menu = new Menu(
+    scope menu = new Menu(
         format("Current message of the day :\n--\n%s\n--",
             sdb.get_config_value("motd"))
     );
@@ -198,7 +198,7 @@ private void set_motd()
 
 private void info()
 {
-    auto menu = new Menu(
+    scope menu = new Menu(
         "Soulsetup for Soulfind %s (compiled on %s)".format(VERSION, __DATE__)
     );
     menu.info = "\t%d registered users".format(sdb.num_users);
@@ -213,7 +213,7 @@ private void info()
 
 private void banned_users()
 {
-    auto menu = new Menu("Banned users (%d)".format(sdb.num_users("banned")));
+    scope menu = new Menu("Banned users (%d)".format(sdb.num_users("banned")));
 
     menu.add("1", "Ban user",          &ban_user);
     menu.add("2", "Unban user",        &unban_user);
@@ -254,18 +254,18 @@ private class Menu
     string[]                entries;
     void function()[string] actions;
 
-    this(string title)
+    this(string title) scope
     {
         this.title = title;
     }
 
-    void add(string index, string entry, void function() @safe action)
+    void add(string index, string entry, void function() @safe action) scope
     {
         entries ~= "%s. %s".format(index, entry);
         actions[index] = action;
     }
 
-    void show()
+    void show() scope
     {
         writefln("\n%s\n", title);
         if (info.length > 0) writefln("%s\n", info);

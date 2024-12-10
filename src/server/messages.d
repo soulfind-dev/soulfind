@@ -82,7 +82,7 @@ class UMessage
     uint               code;
     private ubyte[]    in_buf;
 
-    this(ubyte[] in_buf, string in_username = "?")
+    this(ubyte[] in_buf, string in_username = "?") scope
     {
         this.in_buf = in_buf;
         code = readi();
@@ -94,13 +94,13 @@ class UMessage
         );
     }
 
-    string name()
+    string name() scope
     {
         const cls_name = typeid(this).name;
         return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
     }
 
-    private uint readi()
+    private uint readi() scope
     {
         uint i;
         if (in_buf.length < uint.sizeof) {
@@ -115,7 +115,7 @@ class UMessage
         return i;
     }
 
-    private uint readsi()
+    private uint readsi() scope
     {
         int i;
         if (in_buf.length < int.sizeof) {
@@ -130,7 +130,7 @@ class UMessage
         return i;
     }
 
-    private bool readb()
+    private bool readb() scope
     {
         bool i;
         if (in_buf.length < bool.sizeof) {
@@ -145,7 +145,7 @@ class UMessage
         return i;
     }
 
-    private string reads()
+    private string reads() scope
     {
         uint slen = readi();
         if (slen > in_buf.length) slen = cast(uint) in_buf.length;
@@ -164,7 +164,7 @@ class ULogin : UMessage
     string  hash;            // MD5 hash of username + password
     uint    minor_version;
 
-    this(ubyte[] in_buf)
+    this(ubyte[] in_buf) scope
     {
         super(in_buf);
 
@@ -184,7 +184,7 @@ class USetWaitPort : UMessage
 {
     uint port;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -196,7 +196,7 @@ class UGetPeerAddress : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -208,7 +208,7 @@ class UWatchUser : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -220,7 +220,7 @@ class UUnwatchUser : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -232,7 +232,7 @@ class UGetUserStatus : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -245,7 +245,7 @@ class USayChatroom : UMessage
     string  room;
     string  message;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -258,7 +258,7 @@ class UJoinRoom : UMessage
 {
     string room;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -270,7 +270,7 @@ class ULeaveRoom : UMessage
 {
     string room;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -284,7 +284,7 @@ class UConnectToPeer : UMessage
     string  user;
     string  type;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -299,7 +299,7 @@ class UMessageUser : UMessage
     string  user;
     string  message;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -312,7 +312,7 @@ class UMessageAcked : UMessage
 {
     uint id;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -325,7 +325,7 @@ class UFileSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -339,7 +339,7 @@ class UWishlistSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -350,7 +350,7 @@ class UWishlistSearch : UMessage
 
 class USimilarUsers : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -360,7 +360,7 @@ class USetStatus : UMessage
 {
     uint status;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -370,7 +370,7 @@ class USetStatus : UMessage
 
 class UServerPing : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -380,7 +380,7 @@ class USendUploadSpeed : UMessage
 {
     uint speed;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -393,7 +393,7 @@ class USharedFoldersFiles : UMessage
     uint  nb_folders;
     uint  nb_files;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -406,7 +406,7 @@ class UGetUserStats : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -420,7 +420,7 @@ class UUserSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -434,7 +434,7 @@ class UAddThingILike : UMessage
 {
     string thing;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -446,7 +446,7 @@ class URemoveThingILike : UMessage
 {
     string thing;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -456,7 +456,7 @@ class URemoveThingILike : UMessage
 
 class UGetRecommendations : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -464,7 +464,7 @@ class UGetRecommendations : UMessage
 
 class UGlobalRecommendations : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -474,7 +474,7 @@ class UUserInterests : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -484,7 +484,7 @@ class UUserInterests : UMessage
 
 class URoomList : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -492,7 +492,7 @@ class URoomList : UMessage
 
 class UCheckPrivileges : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -502,7 +502,7 @@ class UAddThingIHate : UMessage
 {
     string thing;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -514,7 +514,7 @@ class URemoveThingIHate : UMessage
 {
     string thing;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -526,7 +526,7 @@ class UItemRecommendations : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -538,7 +538,7 @@ class UItemSimilarUsers : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -551,7 +551,7 @@ class USetRoomTicker : UMessage
     string  room;
     string  tick;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -566,7 +566,7 @@ class URoomSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -580,7 +580,7 @@ class UUserPrivileged : UMessage
 {
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -593,7 +593,7 @@ class UGivePrivileges : UMessage
     string  user;
     uint    time;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -606,7 +606,7 @@ class UChangePassword : UMessage
 {
     string password;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -619,7 +619,7 @@ class UMessageUsers : UMessage
     string[]  users;
     string    message;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -630,7 +630,7 @@ class UMessageUsers : UMessage
 
 class UJoinGlobalRoom : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -638,7 +638,7 @@ class UJoinGlobalRoom : UMessage
 
 class ULeaveGlobalRoom : UMessage
 {
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -649,7 +649,7 @@ class UCantConnectToPeer : UMessage
     uint token;
     string user;
 
-    this(ubyte[] in_buf, string in_username)
+    this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -667,24 +667,24 @@ class SMessage
     private uint     offset;
     private ubyte[]  out_buf;
 
-    this(uint code)
+    this(uint code) scope
     {
         this.code = code;
         writei(code);
     }
 
-    string name()
+    string name() scope
     {
         const cls_name = typeid(this).name;
         return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
     }
 
-    const(ubyte)[] bytes()
+    const(ubyte)[] bytes() scope
     {
         return out_buf[0 .. offset];
     }
 
-    private void resize_buffer(ulong size)
+    private void resize_buffer(ulong size) scope
     {
         // Preallocate larger buffer size than required to reduce
         // number of resizes while filling the buffer
@@ -692,31 +692,31 @@ class SMessage
             out_buf.length = (offset + size) * 2;
     }
 
-    private void write(scope const(ubyte)[] bytes)
+    private void write(scope const(ubyte)[] bytes) scope
     {
         resize_buffer(bytes.length);
         out_buf[offset .. offset + bytes.length] = bytes[];
         offset += bytes.length;
     }
 
-    private void writeb(bool b)
+    private void writeb(bool b) scope
     {
         resize_buffer(ubyte.sizeof);
         out_buf[offset] = b;
         offset += ubyte.sizeof;
     }
 
-    private void writei(uint i)
+    private void writei(uint i) scope
     {
         write(i.nativeToLittleEndian);
     }
 
-    private void writesi(int i)
+    private void writesi(int i) scope
     {
         write(i.nativeToLittleEndian);
     }
 
-    private void writes(string s)
+    private void writes(string s) scope
     {
         writei(cast(uint) s.length);
         write(cast(immutable(ubyte)[]) s);
@@ -726,7 +726,7 @@ class SMessage
 class SLogin : SMessage
 {
     this(bool success, string mesg, uint ip_address = 0,
-         string password = null, bool supporter = false)
+         string password = null, bool supporter = false) scope
     {
         super(Login);
 
@@ -745,7 +745,7 @@ class SLogin : SMessage
 class SGetPeerAddress : SMessage
 {
     this(string username, uint ip_address, uint port, uint unknown = 0,
-            uint obfuscated_port = 0)
+            uint obfuscated_port = 0) scope
     {
         super(GetPeerAddress);
 
@@ -761,7 +761,7 @@ class SWatchUser : SMessage
 {
     this(string user, bool exists, uint status, uint speed,
          uint upload_number, uint something, uint shared_files,
-         uint shared_folders, string country_code)
+         uint shared_folders, string country_code) scope
     {
         super(WatchUser);
 
@@ -782,7 +782,7 @@ class SWatchUser : SMessage
 
 class SGetUserStatus : SMessage
 {
-    this(string username, uint status, bool privileged)
+    this(string username, uint status, bool privileged) scope
     {
         super(GetUserStatus);
 
@@ -794,7 +794,7 @@ class SGetUserStatus : SMessage
 
 class SSayChatroom : SMessage
 {
-    this(string room, string user, string mesg)
+    this(string room, string user, string mesg) scope
     {
         super(SayChatroom);
 
@@ -806,7 +806,7 @@ class SSayChatroom : SMessage
 
 class SRoomList : SMessage
 {
-    this(ulong[string] rooms)
+    this(ulong[string] rooms) scope
     {
         super(RoomList);
 
@@ -830,7 +830,7 @@ class SJoinRoom : SMessage
          uint[string] speeds, uint[string] upload_numbers,
          uint[string] somethings, uint[string] shared_files,
          uint[string] shared_folders, uint[string] slots_full,
-         string[string] country_codes)
+         string[string] country_codes) scope
     {
         super(JoinRoom);
 
@@ -863,7 +863,7 @@ class SJoinRoom : SMessage
 
 class SLeaveRoom : SMessage
 {
-    this(string room)
+    this(string room) scope
     {
         super(LeaveRoom);
 
@@ -876,7 +876,7 @@ class SUserJoinedRoom : SMessage
     this(string room, string username, uint status,
          uint speed, uint upload_number, uint something,
          uint shared_files, uint shared_folders,
-         uint slots_full, string country_code)
+         uint slots_full, string country_code) scope
     {
         super(UserJoinedRoom);
 
@@ -895,7 +895,7 @@ class SUserJoinedRoom : SMessage
 
 class SUserLeftRoom : SMessage
 {
-    this(string username, string room)
+    this(string username, string room) scope
     {
         super(UserLeftRoom);
 
@@ -908,7 +908,7 @@ class SConnectToPeer : SMessage
 {
     this(string username, string type, uint ip_address, uint port,
             uint token, bool privileged, uint unknown = 0,
-            uint obfuscated_port = 0)
+            uint obfuscated_port = 0) scope
     {
         super(ConnectToPeer);
 
@@ -926,7 +926,7 @@ class SConnectToPeer : SMessage
 class SMessageUser : SMessage
 {
     this(uint id, ulong timestamp, string from, string content,
-            bool new_message)
+            bool new_message) scope
     {
         super(MessageUser);
 
@@ -940,7 +940,7 @@ class SMessageUser : SMessage
 
 class SFileSearch : SMessage
 {
-    this(string username, uint token, string text)
+    this(string username, uint token, string text) scope
     {
         super(FileSearch);
 
@@ -953,7 +953,7 @@ class SFileSearch : SMessage
 class SGetUserStats : SMessage
 {
     this(string username, uint speed, uint upload_number, uint something,
-            uint shared_files, uint shared_folders)
+            uint shared_files, uint shared_folders) scope
     {
         super(GetUserStats);
 
@@ -968,7 +968,7 @@ class SGetUserStats : SMessage
 
 class SGetRecommendations : SMessage
 {
-    this(uint[string] list)
+    this(uint[string] list) scope
     {
         super(GetRecommendations);
 
@@ -983,7 +983,7 @@ class SGetRecommendations : SMessage
 
 class SGetGlobalRecommendations : SMessage
 {
-    this(uint[string] list)
+    this(uint[string] list) scope
     {
         super(GlobalRecommendations);
 
@@ -998,7 +998,7 @@ class SGetGlobalRecommendations : SMessage
 
 class SUserInterests : SMessage
 {
-    this(string user, string[string] likes, string[string] hates)
+    this(string user, string[string] likes, string[string] hates) scope
     {
         super(UserInterests);
 
@@ -1014,7 +1014,7 @@ class SUserInterests : SMessage
 
 class SRelogged : SMessage
 {
-    this()
+    this() scope
     {
         super(Relogged);
     }
@@ -1022,7 +1022,7 @@ class SRelogged : SMessage
 
 class SUserSearch : SMessage
 {
-    this(string user, uint token, string query)
+    this(string user, uint token, string query) scope
     {
         super(UserSearch);
 
@@ -1034,7 +1034,7 @@ class SUserSearch : SMessage
 
 class SAdminMessage : SMessage
 {
-    this(string message)
+    this(string message) scope
     {
         super(AdminMessage);
 
@@ -1044,7 +1044,7 @@ class SAdminMessage : SMessage
 
 class SCheckPrivileges : SMessage
 {
-    this(long time)
+    this(long time) scope
     {
         super(CheckPrivileges);
 
@@ -1054,7 +1054,7 @@ class SCheckPrivileges : SMessage
 
 class SWishlistInterval : SMessage
 {
-    this(uint interval)
+    this(uint interval) scope
     {
         super(WishlistInterval);
 
@@ -1064,7 +1064,7 @@ class SWishlistInterval : SMessage
 
 class SSimilarUsers : SMessage
 {
-    this(uint[string] list)
+    this(uint[string] list) scope
     {
         super(SimilarUsers);
 
@@ -1079,7 +1079,7 @@ class SSimilarUsers : SMessage
 
 class SItemRecommendations : SMessage
 {
-    this(string item, uint[string] list)
+    this(string item, uint[string] list) scope
     {
         super(ItemRecommendations);
 
@@ -1096,7 +1096,7 @@ class SItemRecommendations : SMessage
 
 class SItemSimilarUsers : SMessage
 {
-    this(string item, string[] list)
+    this(string item, string[] list) scope
     {
         super(ItemSimilarUsers);
 
@@ -1108,7 +1108,7 @@ class SItemSimilarUsers : SMessage
 
 class SRoomTicker : SMessage
 {
-    this(string room, string[string] tickers)
+    this(string room, string[string] tickers) scope
     {
         super(RoomTicker);
 
@@ -1124,7 +1124,7 @@ class SRoomTicker : SMessage
 
 class SRoomTickerAdd : SMessage
 {
-    this(string room, string user, string ticker)
+    this(string room, string user, string ticker) scope
     {
         super(RoomTickerAdd);
 
@@ -1136,7 +1136,7 @@ class SRoomTickerAdd : SMessage
 
 class SRoomTickerRemove : SMessage
 {
-    this(string room, string user)
+    this(string room, string user) scope
     {
         super(RoomTickerRemove);
 
@@ -1147,7 +1147,7 @@ class SRoomTickerRemove : SMessage
 
 class SRoomSearch : SMessage
 {
-    this(string user, uint token, string query)
+    this(string user, uint token, string query) scope
     {
         super(RoomSearch);
 
@@ -1159,7 +1159,7 @@ class SRoomSearch : SMessage
 
 class SUserPrivileged : SMessage
 {
-    this(string username, bool privileged)
+    this(string username, bool privileged) scope
     {
         super(UserPrivileged);
 
@@ -1170,7 +1170,7 @@ class SUserPrivileged : SMessage
 
 class SChangePassword : SMessage
 {
-    this(string password)
+    this(string password) scope
     {
         super(ChangePassword);
 
@@ -1180,7 +1180,7 @@ class SChangePassword : SMessage
 
 class SGlobalRoomMessage : SMessage
 {
-    this(string room, string user, string mesg)
+    this(string room, string user, string mesg) scope
     {
         super(GlobalRoomMessage);
 
@@ -1192,7 +1192,7 @@ class SGlobalRoomMessage : SMessage
 
 class SCantConnectToPeer : SMessage
 {
-    this(uint token)
+    this(uint token) scope
     {
         super(CantConnectToPeer);
 

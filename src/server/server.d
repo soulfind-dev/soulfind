@@ -176,7 +176,8 @@ class Server
 
     void do_FileSearch(uint token, string query, string username)
     {
-        send_to_all(new SFileSearch(username, token, query));
+        scope msg = new SFileSearch(username, token, query);
+        send_to_all(msg);
     }
 
     void do_UserSearch(uint token, string query, string username, string to)
@@ -185,7 +186,8 @@ class Server
         if (!user)
             return;
 
-        user.send_message(new SFileSearch(username, token, query));
+        scope msg = new SFileSearch(username, token, query);
+        user.send_message(msg);
     }
 
     void do_RoomSearch(uint token, string query, string username,
@@ -195,7 +197,8 @@ class Server
         if (!room)
             return;
 
-        room.send_to_all(new SFileSearch(username, token, query));
+        scope msg = new SFileSearch(username, token, query);
+        room.send_to_all(msg);
     }
 
 
@@ -232,7 +235,7 @@ class Server
         }
     }
 
-    private void send_to_all(SMessage msg)
+    private void send_to_all(scope SMessage msg)
     {
         debug (msg) writefln(
             "Transmit=> %s (code %d) to all users...",
@@ -406,8 +409,9 @@ class Server
 
     private void global_message(string message)
     {
+        scope msg = new SAdminMessage(message);
         foreach (user ; user_list) {
-            user.send_message(new SAdminMessage(message));
+            user.send_message(msg);
         }
     }
 

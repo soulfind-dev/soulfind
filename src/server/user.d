@@ -84,12 +84,11 @@ class User
 
     void send_pm(PM pm, bool new_message)
     {
-        send_message(
-            new SMessageUser(
-                pm.id, pm.timestamp, pm.from, pm.content,
-                new_message
-            )
+        scope msg = new SMessageUser(
+            pm.id, pm.timestamp, pm.from, pm.content,
+            new_message
         );
+        send_message(msg);
     }
 
     private void calc_speed(uint new_speed)
@@ -103,12 +102,12 @@ class User
             upload_number++;
         }
 
-        send_to_watching(
-            new SGetUserStats(
-                username, speed, upload_number, something, shared_files,
-                shared_folders
-            )
+        scope msg = new SGetUserStats(
+            username, speed, upload_number, something, shared_files,
+            shared_folders
         );
+        send_to_watching(msg);
+
         server.db.user_update_field(username, "speed", speed);
     }
 
@@ -131,9 +130,10 @@ class User
     {
         if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
         priv_expiration += seconds;
-
         server.db.user_update_field(username, "privileges", priv_expiration);
-        send_message(new SCheckPrivileges(privileges));
+
+        scope msg = new SCheckPrivileges(privileges);
+        send_message(msg);
 
         debug (user) writefln(
             "Given %d secs of privileges to user %s who now has %d secs",
@@ -145,9 +145,10 @@ class User
     {
         priv_expiration -= seconds;
         if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
-
         server.db.user_update_field(username, "privileges", priv_expiration);
-        send_message(new SCheckPrivileges(privileges));
+
+        scope msg = new SCheckPrivileges(privileges);
+        send_message(msg);
 
         debug (user) writefln(
             "Taken %d secs of privileges from user %s who now has %d secs",
@@ -320,7 +321,7 @@ class User
         return false;
     }
 
-    private void send_to_watching(SMessage msg)
+    private void send_to_watching(scope SMessage msg)
     {
         debug (msg) writefln(
             "Transmit=> %s (code %d) to users watching user %s...",
@@ -333,9 +334,8 @@ class User
     private void set_status(uint new_status)
     {
         status = new_status;
-        send_to_watching(
-            new SGetUserStatus(username, new_status, privileged)
-        );
+        scope msg = new SGetUserStatus(username, new_status, privileged);
+        send_to_watching(msg);
     }
 
 
@@ -375,7 +375,7 @@ class User
         return true;
     }
 
-    void send_message(SMessage msg)
+    void send_message(scope SMessage msg)
     {
         const msg_buf = msg.bytes;
         const msg_len = cast(uint) msg_buf.length;
@@ -433,7 +433,7 @@ class User
 
         switch (code) {
             case Login:
-                const msg = new ULogin(msg_buf);
+                scope msg = new ULogin(msg_buf);
 
                 if (status != Status.offline)
                     break;
@@ -447,7 +447,8 @@ class User
                         "User %s denied (%s)",
                         red ~ username ~ norm, red ~ error ~ norm
                     );
-                    send_message(new SLogin(false, error));
+                    scope response_msg = new SLogin(false, error);
+                    send_message(response_msg);
                     break;
                 }
 
@@ -459,7 +460,8 @@ class User
                         red ~ msg.username ~ norm,
                         user.major_version, user.minor_version
                     );
-                    user.send_message(new SRelogged());
+                    scope relogged_msg = new SRelogged();
+                    user.send_message(relogged_msg);
                     user.quit();
                 }
                 writefln(
@@ -471,12 +473,12 @@ class User
                 break;
 
             case SetWaitPort:
-                const msg = new USetWaitPort(msg_buf, username);
+                scope msg = new USetWaitPort(msg_buf, username);
                 port = cast(ushort) msg.port;
                 break;
 
             case GetPeerAddress:
-                const msg = new UGetPeerAddress(msg_buf, username);
+                scope msg = new UGetPeerAddress(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 uint user_address;
                 uint user_port;
@@ -486,13 +488,14 @@ class User
                     user_port = user.port;
                 }
 
-                send_message(
-                    new SGetPeerAddress(msg.user, user_address, user_port)
+                scope response_msg = new SGetPeerAddress(
+                    msg.user, user_address, user_port
                 );
+                send_message(response_msg);
                 break;
 
             case WatchUser:
-                const msg = new UWatchUser(msg_buf, username);
+                scope msg = new UWatchUser(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 bool user_exists;
@@ -526,22 +529,22 @@ class User
                 }
 
                 watch(msg.user);
-                send_message(
-                    new SWatchUser(
-                        msg.user, user_exists, user_status, user_speed,
-                        user_upload_number, user_something, user_shared_files,
-                        user_shared_folders, user_country_code
-                    )
+
+                scope response_msg = new SWatchUser(
+                    msg.user, user_exists, user_status, user_speed,
+                    user_upload_number, user_something, user_shared_files,
+                    user_shared_folders, user_country_code
                 );
+                send_message(response_msg);
                 break;
 
             case UnwatchUser:
-                const msg = new UUnwatchUser(msg_buf, username);
+                scope msg = new UUnwatchUser(msg_buf, username);
                 unwatch(msg.user);
                 break;
 
             case GetUserStatus:
-                const msg = new UGetUserStatus(msg_buf, username);
+                scope msg = new UGetUserStatus(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 uint user_status = Status.offline;
                 bool user_privileged;
@@ -576,46 +579,49 @@ class User
                     );
                 }
 
-                send_message(
-                    new SGetUserStatus(msg.user, user_status, user_privileged)
+                scope response_msg = new SGetUserStatus(
+                    msg.user, user_status, user_privileged
                 );
+                send_message(response_msg);
                 break;
 
             case SayChatroom:
-                const msg = new USayChatroom(msg_buf, username);
+                scope msg = new USayChatroom(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (!room)
                     break;
 
                 room.say(username, msg.message);
+
+                scope global_msg = new SGlobalRoomMessage(
+                    msg.room, username, msg.message
+                );
                 foreach (global_username ; Room.global_room_users) {
                     auto user = server.get_user(global_username);
-                    user.send_message(
-                        new SGlobalRoomMessage(
-                            msg.room, username, msg.message
-                        )
-                    );
+                    user.send_message(global_msg);
                 }
                 break;
 
             case JoinRoom:
-                const msg = new UJoinRoom(msg_buf, username);
+                scope msg = new UJoinRoom(msg_buf, username);
                 if (server.check_name(msg.room))
                     Room.join_room(msg.room, this);
                 break;
 
             case LeaveRoom:
-                const msg = new ULeaveRoom(msg_buf, username);
+                scope msg = new ULeaveRoom(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (!room)
                     break;
 
                 room.leave(this);
-                send_message(new SLeaveRoom(msg.room));
+
+                scope response_msg = new SLeaveRoom(msg.room);
+                send_message(response_msg);
                 break;
 
             case ConnectToPeer:
-                const msg = new UConnectToPeer(msg_buf, username);
+                scope msg = new UConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
@@ -624,16 +630,16 @@ class User
                     "User %s trying to connect indirectly to peer %s @ %s",
                     blue ~ username ~ norm, blue ~ msg.user ~ norm, h_address
                 );
-                user.send_message(
-                    new SConnectToPeer(
-                        user.username, msg.type, user.ip_address, user.port,
-                        msg.token, user.privileged
-                    )
+
+                scope response_msg = new SConnectToPeer(
+                    user.username, msg.type, user.ip_address, user.port,
+                    msg.token, user.privileged
                 );
+                user.send_message(response_msg);
                 break;
 
             case MessageUser:
-                const msg = new UMessageUser(msg_buf, username);
+                scope msg = new UMessageUser(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 if (msg.user == server_user) {
@@ -654,26 +660,26 @@ class User
                 break;
 
             case MessageAcked:
-                const msg = new UMessageAcked(msg_buf, username);
+                scope msg = new UMessageAcked(msg_buf, username);
                 PM.del_pm(msg.id);
                 break;
 
             case FileSearch:
-                const msg = new UFileSearch(msg_buf, username);
+                scope msg = new UFileSearch(msg_buf, username);
                 server.do_FileSearch(msg.token, msg.query, username);
                 break;
 
             case SetStatus:
-                const msg = new USetStatus(msg_buf, username);
+                scope msg = new USetStatus(msg_buf, username);
                 set_status(msg.status);
                 break;
 
             case ServerPing:
-                const msg = new UServerPing(msg_buf, username);
+                scope msg = new UServerPing(msg_buf, username);
                 break;
 
             case SharedFoldersFiles:
-                const msg = new USharedFoldersFiles(msg_buf, username);
+                scope msg = new USharedFoldersFiles(msg_buf, username);
                 debug (user) writefln(
                     "User %s reports sharing %d files in %d folders",
                     blue ~ username ~ norm, msg.nb_files, msg.nb_folders
@@ -681,16 +687,15 @@ class User
                 set_shared_folders(msg.nb_folders);
                 set_shared_files(msg.nb_files);
 
-                send_to_watching(
-                    new SGetUserStats(
-                        username, speed, upload_number, something,
-                        shared_files, shared_folders
-                    )
+                scope response_msg = new SGetUserStats(
+                    username, speed, upload_number, something,
+                    shared_files, shared_folders
                 );
+                send_to_watching(response_msg);
                 break;
 
             case GetUserStats:
-                const msg = new UGetUserStats(msg_buf, username);
+                scope msg = new UGetUserStats(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
                 uint user_speed, user_upload_number, user_something;
@@ -711,115 +716,116 @@ class User
                     user_shared_folders = user_stats.shared_folders;
                 }
 
-                send_message(
-                    new SGetUserStats(
-                        msg.user, user_speed, user_upload_number,
-                        user_something, user_shared_files, user_shared_folders
-                    )
+                scope response_msg = new SGetUserStats(
+                    msg.user, user_speed, user_upload_number,
+                    user_something, user_shared_files, user_shared_folders
                 );
+                send_message(response_msg);
                 break;
 
             case UserSearch:
-                const msg = new UUserSearch(msg_buf, username);
+                scope msg = new UUserSearch(msg_buf, username);
                 server.do_UserSearch(msg.token, msg.query, username, msg.user);
                 break;
 
             case AddThingILike:
-                const msg = new UAddThingILike(msg_buf, username);
+                scope msg = new UAddThingILike(msg_buf, username);
                 add_thing_he_likes(msg.thing);
                 break;
 
             case RemoveThingILike:
-                const msg = new URemoveThingILike(msg_buf, username);
+                scope msg = new URemoveThingILike(msg_buf, username);
                 del_thing_he_likes(msg.thing);
                 break;
 
             case AddThingIHate:
-                const msg = new UAddThingIHate(msg_buf, username);
+                scope msg = new UAddThingIHate(msg_buf, username);
                 add_thing_he_hates(msg.thing);
                 break;
 
             case RemoveThingIHate:
-                const msg = new URemoveThingIHate(msg_buf, username);
+                scope msg = new URemoveThingIHate(msg_buf, username);
                 del_thing_he_hates(msg.thing);
                 break;
 
             case GetRecommendations:
-                const msg = new UGetRecommendations(msg_buf, username);
-                send_message(new SGetRecommendations(recommendations));
+                scope msg = new UGetRecommendations(msg_buf, username);
+                scope response_msg = new SGetRecommendations(recommendations);
+                send_message(response_msg);
                 break;
 
             case GlobalRecommendations:
-                const msg = new UGlobalRecommendations(msg_buf, username);
-                send_message(
-                    new SGetGlobalRecommendations(global_recommendations)
+                scope msg = new UGlobalRecommendations(msg_buf, username);
+                scope response_msg = new SGetGlobalRecommendations(
+                    global_recommendations
                 );
+                send_message(response_msg);
                 break;
 
             case SimilarUsers:
-                const msg = new USimilarUsers(msg_buf, username);
-                send_message(new SSimilarUsers(similar_users));
+                scope msg = new USimilarUsers(msg_buf, username);
+                scope response_msg = new SSimilarUsers(similar_users);
+                send_message(response_msg);
                 break;
 
             case UserInterests:
-                const msg = new UUserInterests(msg_buf, username);
+                scope msg = new UUserInterests(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
 
-                send_message(
-                    new SUserInterests(
-                        user.username, user.liked_things, user.hated_things
-                    )
+                scope response_msg = new SUserInterests(
+                    user.username, user.liked_things, user.hated_things
                 );
+                send_message(response_msg);
                 break;
 
             case RoomList:
-                const msg = new URoomList(msg_buf, username);
-                send_message(new SRoomList(Room.room_stats));
+                scope msg = new URoomList(msg_buf, username);
+                scope response_msg = new SRoomList(Room.room_stats);
+                send_message(response_msg);
                 break;
 
             case CheckPrivileges:
-                const msg = new UCheckPrivileges(msg_buf, username);
-                send_message(new SCheckPrivileges(privileges));
+                scope msg = new UCheckPrivileges(msg_buf, username);
+                scope response_msg = new SCheckPrivileges(privileges);
+                send_message(response_msg);
                 break;
 
             case WishlistSearch:
-                const msg = new UWishlistSearch(msg_buf, username);
+                scope msg = new UWishlistSearch(msg_buf, username);
                 server.do_FileSearch(msg.token, msg.query, username);
                 break;
 
             case ItemRecommendations:
-                const msg = new UItemRecommendations(msg_buf, username);
-                send_message(
-                    new SItemRecommendations(
-                        msg.item, get_item_recommendations(msg.item)
-                    )
+                scope msg = new UItemRecommendations(msg_buf, username);
+                scope response_msg = new SItemRecommendations(
+                    msg.item, get_item_recommendations(msg.item)
                 );
+                send_message(response_msg);
                 break;
 
             case ItemSimilarUsers:
-                const msg = new UItemSimilarUsers(msg_buf, username);
-                send_message(
-                    new SItemSimilarUsers(
-                        msg.item, get_item_similar_users(msg.item)
-                    )
+                scope msg = new UItemSimilarUsers(msg_buf, username);
+                scope response_msg = new SItemSimilarUsers(
+                    msg.item, get_item_similar_users(msg.item)
                 );
+                send_message(response_msg);
                 break;
 
             case SetRoomTicker:
-                const msg = new USetRoomTicker(msg_buf, username);
+                scope msg = new USetRoomTicker(msg_buf, username);
                 auto room = Room.get_room(msg.room);
                 if (room) room.add_ticker(username, msg.tick);
                 break;
 
             case RoomSearch:
-                const msg = new URoomSearch(msg_buf, username);
+                scope msg = new URoomSearch(msg_buf, username);
                 server.do_RoomSearch(msg.token, msg.query, username, msg.room);
                 break;
 
             case SendUploadSpeed:
-                const msg = new USendUploadSpeed(msg_buf, username);
+                scope msg = new USendUploadSpeed(msg_buf, username);
                 auto user = server.get_user(username);
                 if (!user)
                     break;
@@ -832,18 +838,19 @@ class User
                 break;
 
             case UserPrivileged:
-                const msg = new UUserPrivileged(msg_buf, username);
+                scope msg = new UUserPrivileged(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 if (!user)
                     break;
 
-                send_message(
-                    new SUserPrivileged(user.username, user.privileged)
+                scope response_msg = new SUserPrivileged(
+                    user.username, user.privileged
                 );
+                send_message(response_msg);
                 break;
 
             case GivePrivileges:
-                const msg = new UGivePrivileges(msg_buf, username);
+                scope msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.user);
                 const admin = server.db.is_admin(msg.user);
                 if (!user)
@@ -856,16 +863,18 @@ class User
                 break;
 
             case ChangePassword:
-                const msg = new UChangePassword(msg_buf, username);
+                scope msg = new UChangePassword(msg_buf, username);
 
                 server.db.user_update_field(
                     username, "password", server.encode_password(msg.password)
                 );
-                send_message(new SChangePassword(msg.password));
+
+                scope response_msg = new SChangePassword(msg.password);
+                send_message(response_msg);
                 break;
 
             case MessageUsers:
-                const msg = new UMessageUsers(msg_buf, username);
+                scope msg = new UMessageUsers(msg_buf, username);
                 bool new_message = true;
 
                 foreach (target_username ; msg.users) {
@@ -881,20 +890,23 @@ class User
                 break;
 
             case JoinGlobalRoom:
-                const msg = new UJoinGlobalRoom(msg_buf, username);
+                scope msg = new UJoinGlobalRoom(msg_buf, username);
                 Room.add_global_room_user(username);
                 break;
 
             case LeaveGlobalRoom:
-                const msg = new ULeaveGlobalRoom(msg_buf, username);
+                scope msg = new ULeaveGlobalRoom(msg_buf, username);
                 Room.remove_global_room_user(username);
                 break;
 
             case CantConnectToPeer:
-                const msg = new UCantConnectToPeer(msg_buf, username);
+                scope msg = new UCantConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.user);
-                if (user)
-                    user.send_message(new SCantConnectToPeer(msg.token));
+                if (!user)
+                    return;
+
+                scope response_msg = new SCantConnectToPeer(msg.token);
+                user.send_message(response_msg);
                 break;
 
             default:
@@ -907,7 +919,7 @@ class User
         }
     }
 
-    private void login(const ULogin msg)
+    private void login(scope ULogin msg)
     {
         username = msg.username;
         major_version = msg.major_version;
@@ -924,16 +936,18 @@ class User
         server.add_user(this);
         watch(username);
 
-        send_message(
-            new SLogin(
-                true, server.get_motd(this), ip_address,
-                server.encode_password(msg.password), supporter
-            )
+        scope response_msg = new SLogin(
+            true, server.get_motd(this), ip_address,
+            server.encode_password(msg.password), supporter
         );
-        send_message(new SRoomList(Room.room_stats));
-        send_message(
-            new SWishlistInterval(privileged ? 120 : 720)  // in seconds
+        scope room_list_msg = new SRoomList(Room.room_stats);
+        scope wish_interval_msg = new SWishlistInterval(
+            privileged ? 120 : 720  // in seconds
         );
+        send_message(response_msg);
+        send_message(room_list_msg);
+        send_message(wish_interval_msg);
+
         set_status(Status.online);
 
         foreach (pm ; PM.get_pms_for(username)) {
