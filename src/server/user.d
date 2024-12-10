@@ -592,14 +592,7 @@ class User
                     break;
 
                 room.say(username, msg.message);
-
-                scope global_msg = new SGlobalRoomMessage(
-                    msg.room, username, msg.message
-                );
-                foreach (global_username ; Room.global_room_users) {
-                    auto user = server.get_user(global_username);
-                    user.send_message(global_msg);
-                }
+                server.global_room.say(msg.room, username, msg.message);
                 break;
 
             case JoinRoom:
@@ -890,12 +883,12 @@ class User
 
             case JoinGlobalRoom:
                 scope msg = new UJoinGlobalRoom(msg_buf, username);
-                Room.add_global_room_user(username);
+                server.global_room.add_user(this);
                 break;
 
             case LeaveGlobalRoom:
                 scope msg = new ULeaveGlobalRoom(msg_buf, username);
-                Room.remove_global_room_user(username);
+                server.global_room.remove_user(username);
                 break;
 
             case CantConnectToPeer:
@@ -965,7 +958,7 @@ class User
             return;
 
         foreach (room ; joined_rooms) room.leave(this);
-        Room.remove_global_room_user(username);
+        server.global_room.remove_user(username);
 
         set_status(Status.offline);
         writefln("User %s has quit", red ~ username ~ norm);

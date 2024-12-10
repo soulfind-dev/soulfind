@@ -15,7 +15,6 @@ class Room
     // Static
 
     private static Room[string]   room_list;
-    private static string[string] global_room_user_list;
 
     static void join_room(string roomname, User user)
     {
@@ -42,23 +41,6 @@ class Room
         ulong[string] stats;
         foreach (room ; rooms) stats[room.name] = room.nb_users;
         return stats;
-    }
-
-    static void add_global_room_user(string username)
-    {
-        if (username !in global_room_user_list)
-            global_room_user_list[username] = username;
-    }
-
-    static void remove_global_room_user(string username)
-    {
-        if (username in global_room_user_list)
-            global_room_user_list.remove(username);
-    }
-
-    static string[] global_room_users()
-    {
-        return global_room_user_list.keys;
     }
 
     string name;
@@ -255,5 +237,30 @@ class Room
 
         scope msg = new SRoomTickerRemove(name, username);
         send_to_all(msg);
+    }
+}
+
+class GlobalRoom
+{
+    private User[string] user_list;
+
+
+    void add_user(User user)
+    {
+        if (user.username !in user_list)
+            user_list[user.username] = user;
+    }
+
+    void remove_user(string username)
+    {
+        if (username in user_list)
+             user_list.remove(username);
+    }
+
+    void say(string room_name, string username, string message)
+    {
+        scope msg = new SGlobalRoomMessage(room_name, username, message);
+        foreach (user ; user_list)
+            user.send_message(msg);
     }
 }

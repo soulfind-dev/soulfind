@@ -34,6 +34,7 @@ class Server
     // Attributes
 
     Sdb                   db;
+    GlobalRoom            global_room;
 
     private MonoTime      started_at;
     private ushort        port;
@@ -50,6 +51,7 @@ class Server
     {
         started_at = MonoTime.currTime;
         db = new Sdb(db_file);
+        global_room = new GlobalRoom();
 
         port = db.get_config_value("port").to!ushort.ifThrown(
             cast(ushort) default_port
