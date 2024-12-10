@@ -31,8 +31,6 @@ import std.string : strip;
 
 class Server
 {
-    // Attributes
-
     Sdb                   db;
     GlobalRoom            global_room;
 
@@ -45,8 +43,6 @@ class Server
     private Room[string]  room_list;
     private User[string]  user_list;
 
-
-    // Constructor
 
     this(string db_file)
     {

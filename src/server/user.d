@@ -21,8 +21,6 @@ import std.stdio : writefln;
 
 class User
 {
-    // Attributes
-
     string                  username;
     uint                    major_version;
     uint                    minor_version;
@@ -44,22 +42,19 @@ class User
 
     private uint            ip_address;
     private ushort          port;
-
     private long            priv_expiration;
 
     private string[string]  liked_things;
     private string[string]  hated_things;
 
-    private string[string]  watch_list;
-
     private Room[string]    joined_rooms;
+
+    private string[string]  watch_list;
 
     private ubyte[]         in_buf;
     private long            in_msg_size = -1;
     private ubyte[]         out_buf;
 
-
-    // Constructor
 
     this(Server serv, Socket sock, uint ip_address)
     {
@@ -70,7 +65,7 @@ class User
     }
 
 
-    // Misc
+    // Client
 
     string h_client_version()
     {
@@ -82,14 +77,18 @@ class User
         return "%s:%d".format(InternetAddress.addrToString(ip_address), port);
     }
 
-    void send_pm(PM pm, bool new_message)
+
+    // Status
+
+    private void set_status(uint new_status)
     {
-        scope msg = new SMessageUser(
-            pm.id, pm.timestamp, pm.from, pm.content,
-            new_message
-        );
-        send_message(msg);
+        status = new_status;
+        scope msg = new SGetUserStatus(username, new_status, privileged);
+        send_to_watching(msg);
     }
+
+
+    // Stats
 
     private void calc_speed(uint new_speed)
     {
@@ -176,6 +175,47 @@ class User
     bool supporter()
     {    // user has had privileges at some point
         return priv_expiration > 0;
+    }
+
+
+    // Watchlist
+
+    private void watch(string peer_username)
+    {
+        if (peer_username != server_user)
+            watch_list[peer_username] = peer_username;
+    }
+
+    private void unwatch(string peer_username)
+    {
+        if (peer_username == username)
+            // Always watch our own username for updates
+            return;
+
+        if (peer_username in watch_list)
+            watch_list.remove(peer_username);
+    }
+
+    private bool is_watching(string peer_username)
+    {
+        if (peer_username in watch_list)
+            return true;
+
+        foreach (room ; joined_rooms)
+            if (room.is_joined(peer_username))
+                return true;
+
+        return false;
+    }
+
+    private void send_to_watching(scope SMessage msg)
+    {
+        debug (msg) writefln(
+            "Transmit=> %s (code %d) to users watching user %s...",
+            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
+        );
+        foreach (user ; server.users)
+            if (user.is_watching(username)) user.send_message(msg);
     }
 
 
@@ -291,51 +331,15 @@ class User
     }
 
 
-    // Watchlist
+    // Private Messages
 
-    private void watch(string peer_username)
+    void send_pm(PM pm, bool new_message)
     {
-        if (peer_username != server_user)
-            watch_list[peer_username] = peer_username;
-    }
-
-    private void unwatch(string peer_username)
-    {
-        if (peer_username == username)
-            // Always watch our own username for updates
-            return;
-
-        if (peer_username in watch_list)
-            watch_list.remove(peer_username);
-    }
-
-    private bool is_watching(string peer_username)
-    {
-        if (peer_username in watch_list)
-            return true;
-
-        foreach (room ; joined_rooms)
-            if (room.is_joined(peer_username))
-                return true;
-
-        return false;
-    }
-
-    private void send_to_watching(scope SMessage msg)
-    {
-        debug (msg) writefln(
-            "Transmit=> %s (code %d) to users watching user %s...",
-            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
+        scope msg = new SMessageUser(
+            pm.id, pm.timestamp, pm.from, pm.content,
+            new_message
         );
-        foreach (user ; server.users)
-            if (user.is_watching(username)) user.send_message(msg);
-    }
-
-    private void set_status(uint new_status)
-    {
-        status = new_status;
-        scope msg = new SGetUserStatus(username, new_status, privileged);
-        send_to_watching(msg);
+        send_message(msg);
     }
 
 

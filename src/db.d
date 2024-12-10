@@ -26,8 +26,6 @@ struct SdbUserStats
 
 class Sdb
 {
-    // Attributes
-
     sqlite3*       db;
     sqlite3_stmt*  stmt;
 
@@ -35,8 +33,6 @@ class Sdb
     const admins_table  = "admins";
     const config_table  = "config";
 
-
-    // Constructor
 
     this(string file, bool update = false)
     {
