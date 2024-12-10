@@ -35,14 +35,11 @@ class Server
 
     Sdb                   db;
 
+    private MonoTime      started_at;
     private ushort        port;
     private uint          max_users;
 
-    private MonoTime      started_at;
-
-    private Socket        sock;
     private User[Socket]  user_socks;
-
     private PM[uint]      pm_list;
     private User[string]  user_list;
 
@@ -67,7 +64,7 @@ class Server
 
     int listen()
     {
-        sock = new TcpSocket();
+        auto sock = new TcpSocket();
         sock.blocking = false;
         sock.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
 
@@ -124,11 +121,10 @@ class Server
                     debug (user) writefln(
                         "Connection accepted from %s", new_sock.remoteAddress
                     );
-                    auto user = new User(
+                    user_socks[new_sock] = new User(
                         this, new_sock,
                         (cast(InternetAddress) new_sock.remoteAddress).addr
                     );
-                    user_socks[new_sock] = user;
                 }
                 nb--;
                 read_socks.remove(sock);
@@ -281,15 +277,15 @@ class Server
 
     // Private Messages
 
-    PM add_pm(string from, string to, string content)
+    PM add_pm(string content, string from, string to)
     {
-        auto pm = PM();
-
-        pm.id = new_pm_id;
-        pm.timestamp = Clock.currTime.toUnixTime;
-        pm.from = from;
-        pm.to = to;
-        pm.content = content;
+        auto pm = PM(
+            new_pm_id,
+            Clock.currTime.toUnixTime,
+            from,
+            to,
+            content
+        );
 
         pm_list[pm.id] = pm;
         return pm;
