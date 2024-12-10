@@ -13,7 +13,6 @@ import soulfind.server.pm;
 import soulfind.server.room;
 import soulfind.server.server;
 import std.bitmanip : Endian, nativeToLittleEndian, read;
-import std.conv : to;
 import std.datetime : Clock, SysTime;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
@@ -54,7 +53,7 @@ class User
     private Room[string]    joined_rooms;
 
     private ubyte[]         in_buf;
-    private uint            in_msg_size = -1;
+    private long            in_msg_size = -1;
     private ubyte[]         out_buf;
 
 
@@ -75,7 +74,7 @@ class User
     {
         send_message(
             new SMessageUser(
-                pm.id, cast(uint) pm.timestamp, pm.from, pm.content,
+                pm.id, pm.timestamp, pm.from, pm.content,
                 new_message
             )
         );
@@ -144,11 +143,11 @@ class User
         );
     }
 
-    uint privileges()
+    long privileges()
     {
         long privileges = priv_expiration - Clock.currTime.toUnixTime;
         if (privileges <= 0) privileges = 0;
-        return privileges.to!uint;
+        return privileges;
     }
 
     string h_privileges()
