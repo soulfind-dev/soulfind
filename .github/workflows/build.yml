@@ -29,10 +29,13 @@ jobs:
 
           - os: linux-x86_64
             compiler: ldc
-            dflags: -static
+            dflags: -static -preview=all
 
           - type: debug
             flags: --debug=db --debug=msg --debug=user
+
+          - compiler: ldc
+            dflags: -preview=all
         exclude:
           - os: macos-arm64
             compiler: dmd
@@ -56,7 +59,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
 
       - name: Build
-        run: dub build --build=${{ matrix.type }} ${{ matrix.flags }}
+        run: dub build -v --build=${{ matrix.type }} ${{ matrix.flags }}
 
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'
