@@ -42,8 +42,6 @@ class Server
 
     private Socket        sock;
     private User[Socket]  user_socks;
-    private int           keepalive_time = 60;
-    private int           keepalive_interval = 5;
 
 
     // Constructor
@@ -114,7 +112,7 @@ class Server
                     catch (SocketAcceptException) {
                         break;
                     }
-                    new_sock.setKeepAlive(keepalive_time, keepalive_interval);
+                    enable_keep_alive(new_sock);
                     new_sock.setOption(
                         SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
                     );
@@ -169,6 +167,82 @@ class Server
 
         sock.close();
         return 0;
+    }
+
+    void enable_keep_alive(Socket sock)
+    {
+        int TCP_KEEPIDLE;
+        int TCP_KEEPINTVL;
+        int TCP_KEEPCNT;
+        int TCP_KEEPALIVE_ABORT_THRESHOLD;
+        int TCP_KEEPALIVE_THRESHOLD;
+
+        version (linux) {
+            TCP_KEEPIDLE                   = 0x4;
+            TCP_KEEPINTVL                  = 0x5;
+            TCP_KEEPCNT                    = 0x6;
+        }
+        version (OSX) {
+            TCP_KEEPIDLE                   = 0x10;   // TCP_KEEPALIVE on macOS
+            TCP_KEEPINTVL                  = 0x101;
+            TCP_KEEPCNT                    = 0x102;
+        }
+        version (Windows) {
+            TCP_KEEPIDLE                   = 0x03;
+            TCP_KEEPCNT                    = 0x10;
+            TCP_KEEPINTVL                  = 0x11;
+        }
+        version (NetBSD) {
+            TCP_KEEPIDLE                   = 0x3;
+            TCP_KEEPINTVL                  = 0x5;
+            TCP_KEEPCNT                    = 0x6;
+        }
+        version (FreeBSD) {
+            TCP_KEEPIDLE                   = 0x100;
+            TCP_KEEPINTVL                  = 0x200;
+            TCP_KEEPCNT                    = 0x400;
+        }
+        version (DragonFlyBSD) {
+            TCP_KEEPIDLE                   = 0x100;
+            TCP_KEEPINTVL                  = 0x200;
+            TCP_KEEPCNT                    = 0x400;
+        }
+        version (Solaris) {
+            TCP_KEEPALIVE_THRESHOLD        = 0x16;
+            TCP_KEEPALIVE_ABORT_THRESHOLD  = 0x17;
+        }
+
+        const idle = 60;
+        const interval = 5;
+        const count = 10;
+
+        if (TCP_KEEPIDLE)
+            sock.setOption(
+                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPIDLE, idle
+            );
+        if (TCP_KEEPINTVL)
+            sock.setOption(
+                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPINTVL,
+                interval
+            );
+        if (TCP_KEEPCNT)
+            sock.setOption(
+                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPCNT, count
+            );
+        if (TCP_KEEPALIVE_THRESHOLD)
+            sock.setOption(
+                SocketOptionLevel.TCP,
+                cast(SocketOption) TCP_KEEPALIVE_THRESHOLD,
+                idle * 1000              // milliseconds
+            );
+        if (TCP_KEEPALIVE_ABORT_THRESHOLD)
+            sock.setOption(
+                SocketOptionLevel.TCP,
+                cast(SocketOption) TCP_KEEPALIVE_ABORT_THRESHOLD,
+                count * interval * 1000  // milliseconds
+            );
+
+        sock.setOption(SocketOptionLevel.SOCKET, SocketOption.KEEPALIVE, true);
     }
 
 
