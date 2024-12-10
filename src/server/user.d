@@ -12,8 +12,10 @@ import soulfind.server.messages;
 import soulfind.server.pm;
 import soulfind.server.room;
 import soulfind.server.server;
+import std.array : join;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : Clock, SysTime;
+import std.format : format;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 
@@ -40,7 +42,7 @@ class User
     Socket                  sock;
     Server                  server;
 
-    private uint            address;
+    private uint            ip_address;
     private ushort          port;
 
     private long            priv_expiration;
@@ -59,16 +61,26 @@ class User
 
     // Constructor
 
-    this(Server serv, Socket sock, uint address)
+    this(Server serv, Socket sock, uint ip_address)
     {
         this.server        = serv;
         this.sock          = sock;
-        this.address       = address;
+        this.ip_address    = ip_address;
         this.connected_at  = Clock.currTime;
     }
 
 
     // Misc
+
+    string h_client_version()
+    {
+        return "%d.%d".format(major_version, minor_version);
+    }
+
+    string h_address()
+    {
+        return "%s:%d".format(InternetAddress.addrToString(ip_address), port);
+    }
 
     void send_pm(PM pm, bool new_message)
     {
@@ -152,7 +164,7 @@ class User
 
     string h_privileges()
     {
-        return privileges > 0 ? privileges.seconds.toString : "None";
+        return privileges > 0 ? privileges.seconds.toString : "none";
     }
 
     bool privileged()
@@ -340,11 +352,9 @@ class User
             joined_rooms.remove(room.name);
     }
 
-    string list_joined_rooms()
+    string h_joined_rooms()
     {
-        string rooms;
-        foreach (room_name, room ; joined_rooms) rooms ~= room_name ~ " ";
-        return rooms;
+        return joined_rooms.keys.join(", ");
     }
 
 
@@ -472,7 +482,7 @@ class User
                 uint user_port;
 
                 if (user) {
-                    user_address = user.address;
+                    user_address = user.ip_address;
                     user_port = user.port;
                 }
 
@@ -610,14 +620,13 @@ class User
                 if (!user)
                     break;
 
-                const ia = new InternetAddress(user.address, user.port);
                 debug (user) writefln(
                     "User %s trying to connect indirectly to peer %s @ %s",
-                    blue ~ username ~ norm, blue ~ msg.user ~ norm, ia
+                    blue ~ username ~ norm, blue ~ msg.user ~ norm, h_address
                 );
                 user.send_message(
                     new SConnectToPeer(
-                        user.username, msg.type, user.address, user.port,
+                        user.username, msg.type, user.ip_address, user.port,
                         msg.token, user.privileged
                     )
                 );
@@ -917,7 +926,7 @@ class User
 
         send_message(
             new SLogin(
-                true, server.get_motd(this), address,
+                true, server.get_motd(this), ip_address,
                 server.encode_password(msg.password), supporter
             )
         );

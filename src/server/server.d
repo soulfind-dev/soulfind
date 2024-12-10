@@ -84,7 +84,7 @@ class Server
         }
 
         writefln(
-            "%s %s %s process %s listening on port %s",
+            "%s %s %s process %d listening on port %d",
             red ~ "♥" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
             thisProcessID, port
         );
@@ -285,7 +285,7 @@ class Server
                     break;
                 }
 
-                const username = join(command[2 .. $], " ");
+                const username = command[2 .. $].join(" ");
                 auto user = get_user(username);
                 if (!user) {
                     admin_pm(
@@ -298,8 +298,10 @@ class Server
                 break;
 
             case "users":
-                string list = "%d connected users.".format(user_list.length);
-                foreach (username, user ; user_list) list ~= "\n\t" ~ username;
+                const list = "%d connected users.\n\t%s".format(
+                    user_list.length,
+                    user_list.keys.join("\n\t")
+                );
                 admin_pm(admin, list);
                 break;
 
@@ -308,7 +310,7 @@ class Server
                     admin_pm(admin, "Syntax is : info <user>");
                     break;
                 }
-                const username = join(command[1 .. $], " ");
+                const username = command[1 .. $].join(" ");
                 const user_info = show_user(username);
                 admin_pm(admin, user_info);
                 break;
@@ -325,7 +327,7 @@ class Server
                     admin_pm(admin, "Syntax is : kick <user>");
                     break;
                 }
-                const username = join(command[1 .. $], " ");
+                const username = command[1 .. $].join(" ");
                 kick_user(username);
                 admin_pm(
                     admin, "User %s kicked from the server".format(username)
@@ -337,7 +339,7 @@ class Server
                     admin_pm(admin, "Syntax is : ban <user>");
                     break;
                 }
-                const username = join(command[1 .. $], " ");
+                const username = command[1 .. $].join(" ");
                 ban_user(username);
                 admin_pm(
                     admin, "User %s banned from the server".format(username)
@@ -349,7 +351,7 @@ class Server
                     admin_pm(admin, "Syntax is : unban <user>");
                     break;
                 }
-                const username = join(command[1 .. $], " ");
+                const username = command[1 .. $].join(" ");
                 unban_user(username);
                 admin_pm(
                     admin, "User %s not banned anymore".format(username)
@@ -358,8 +360,10 @@ class Server
 
             case "admins":
                 const names = db.admins;
-                string list = "%d registered admins.".format(names.length);
-                foreach (name ; names) list ~= "\n\t%s".format(name);
+                const list = "%d registered admins.\n\t%s".format(
+                    names.length,
+                    names.join("\n\t")
+                );
                 admin_pm(admin, list);
                 break;
 
@@ -375,7 +379,7 @@ class Server
                     admin_pm(admin, "Syntax is : message <message>");
                     break;
                 }
-                const msg = join(command[1 .. $], " ");
+                const msg = command[1 .. $].join(" ");
                 global_message(msg);
                 break;
 
@@ -425,14 +429,14 @@ class Server
             ~ "\n\tjoined rooms: %s",
                 username,
                 user.connected_at,
-                "%d.%d".format(user.major_version, user.minor_version),
-                user.sock.remoteAddress,
+                user.h_client_version,
+                user.h_address,
                 db.is_admin(username),
                 user.shared_files,
                 user.shared_folders,
                 user.status,
                 user.h_privileges,
-                user.list_joined_rooms
+                user.h_joined_rooms
         );
     }
 
@@ -464,16 +468,11 @@ class Server
 
     string get_motd(User user)
     {
-        string motd;
-        const motd_template = db.get_config_value("motd");
-        const client_version = "%d.%d".format(
-            user.major_version, user.minor_version);
-
-        motd = replace(motd_template, "%sversion%", VERSION);
-        motd = replace(motd, "%users%", user_list.length.to!string);
-        motd = replace(motd, "%username%", user.username);
-        motd = replace(motd, "%version%", client_version);
-        return motd;
+        return db.get_config_value("motd")
+            .replace("%sversion%", VERSION)
+            .replace("%users%", user_list.length.to!string)
+            .replace("%username%", user.username)
+            .replace("%version%", user.h_client_version);
     }
 
     private Duration uptime()

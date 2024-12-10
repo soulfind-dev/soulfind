@@ -725,7 +725,7 @@ class SMessage
 
 class SLogin : SMessage
 {
-    this(bool success, string mesg, uint addr = 0,
+    this(bool success, string mesg, uint ip_address = 0,
          string password = null, bool supporter = false)
     {
         super(Login);
@@ -735,7 +735,7 @@ class SLogin : SMessage
 
         if (success)
         {
-            writei(addr);
+            writei(ip_address);
             writes(password);
             writeb(supporter);
         }
@@ -744,13 +744,13 @@ class SLogin : SMessage
 
 class SGetPeerAddress : SMessage
 {
-    this(string username, uint address, uint port, uint unknown = 0,
+    this(string username, uint ip_address, uint port, uint unknown = 0,
             uint obfuscated_port = 0)
     {
         super(GetPeerAddress);
 
         writes(username);
-        writei(address);
+        writei(ip_address);
         writei(port);
         writei(unknown);
         writei(obfuscated_port);
@@ -906,7 +906,7 @@ class SUserLeftRoom : SMessage
 
 class SConnectToPeer : SMessage
 {
-    this(string username, string type, uint address, uint port,
+    this(string username, string type, uint ip_address, uint port,
             uint token, bool privileged, uint unknown = 0,
             uint obfuscated_port = 0)
     {
@@ -914,7 +914,7 @@ class SConnectToPeer : SMessage
 
         writes(username);
         writes(type);
-        writei(address);
+        writei(ip_address);
         writei(port);
         writei(token);
         writeb(privileged);
