@@ -314,7 +314,7 @@ class User
         if (peer_username in watch_list)
             return true;
 
-        foreach (room_name, room ; joined_rooms)
+        foreach (room ; joined_rooms)
             if (room.is_joined(peer_username))
                 return true;
 
@@ -341,15 +341,29 @@ class User
 
     // Rooms
 
-    void join_room(Room room)
+    void join_room(string name)
     {
-        joined_rooms[room.name] = room;
+        auto room = server.get_room(name);
+        if (!room) room = server.add_room(name);
+
+        joined_rooms[name] = room;
+        room.add_user(this);
     }
 
-    void leave_room(Room room)
+    bool leave_room(string name)
     {
-        if (room.name in joined_rooms)
-            joined_rooms.remove(room.name);
+        if (name !in joined_rooms)
+            return false;
+
+        auto room = server.get_room(name);
+
+        room.remove_user(username);
+        joined_rooms.remove(name);
+
+        if (room.nb_users == 0)
+            server.del_room(name);
+
+        return true;
     }
 
     string h_joined_rooms()
@@ -587,7 +601,7 @@ class User
 
             case SayChatroom:
                 scope msg = new USayChatroom(msg_buf, username);
-                auto room = Room.get_room(msg.room);
+                auto room = server.get_room(msg.room);
                 if (!room)
                     break;
 
@@ -598,16 +612,13 @@ class User
             case JoinRoom:
                 scope msg = new UJoinRoom(msg_buf, username);
                 if (server.check_name(msg.room))
-                    Room.join_room(msg.room, this);
+                    join_room(msg.room);
                 break;
 
             case LeaveRoom:
                 scope msg = new ULeaveRoom(msg_buf, username);
-                auto room = Room.get_room(msg.room);
-                if (!room)
+                if (!leave_room(msg.room))
                     break;
-
-                room.leave(this);
 
                 scope response_msg = new SLeaveRoom(msg.room);
                 send_message(response_msg);
@@ -774,7 +785,7 @@ class User
 
             case RoomList:
                 scope msg = new URoomList(msg_buf, username);
-                scope response_msg = new SRoomList(Room.room_stats);
+                scope response_msg = new SRoomList(server.room_stats);
                 send_message(response_msg);
                 break;
 
@@ -807,7 +818,7 @@ class User
 
             case SetRoomTicker:
                 scope msg = new USetRoomTicker(msg_buf, username);
-                auto room = Room.get_room(msg.room);
+                auto room = server.get_room(msg.room);
                 if (room) room.add_ticker(username, msg.tick);
                 break;
 
@@ -932,7 +943,7 @@ class User
             true, server.get_motd(this), ip_address,
             server.encode_password(msg.password), supporter
         );
-        scope room_list_msg = new SRoomList(Room.room_stats);
+        scope room_list_msg = new SRoomList(server.room_stats);
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? 120 : 720  // in seconds
         );
@@ -957,7 +968,7 @@ class User
         if (status == Status.offline)
             return;
 
-        foreach (room ; joined_rooms) room.leave(this);
+        foreach (name, room ; joined_rooms) leave_room(name);
         server.global_room.remove_user(username);
 
         set_status(Status.offline);

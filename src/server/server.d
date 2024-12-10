@@ -42,6 +42,7 @@ class Server
 
     private User[Socket]  user_socks;
     private PM[uint]      pm_list;
+    private Room[string]  room_list;
     private User[string]  user_list;
 
 
@@ -268,7 +269,7 @@ class Server
     void do_RoomSearch(uint token, string query, string username,
                         string room_name)
     {
-        auto room = Room.get_room(room_name);
+        auto room = get_room(room_name);
         if (!room)
             return;
 
@@ -316,6 +317,37 @@ class Server
         uint id = cast(uint) pm_list.length;
         while (find_pm(id)) id++;
         return id;
+    }
+
+
+    // Rooms
+
+    Room add_room(string name)
+    {
+        auto room = new Room(name);
+        room_list[name] = room;
+        return room;
+    }
+
+    void del_room(string name)
+    {
+        if (name in room_list)
+            room_list.remove(name);
+    }
+
+    Room get_room(string name)
+    {
+        if (name !in room_list)
+            return null;
+
+        return room_list[name];
+    }
+
+    ulong[string] room_stats()
+    {
+        ulong[string] stats;
+        foreach (room ; room_list.values) stats[room.name] = room.nb_users;
+        return stats;
     }
 
 
@@ -489,7 +521,7 @@ class Server
 
             case "rooms":
                 string list;
-                foreach (room ; Room.rooms)
+                foreach (room ; room_list.values)
                     list ~= "%s:%d ".format(room.name, room.nb_users);
                 admin_pm(admin, list);
                 break;

@@ -11,90 +11,22 @@ import soulfind.server.messages;
 import soulfind.server.user;
 
 class Room
-    {
-    // Static
-
-    private static Room[string]   room_list;
-
-    static void join_room(string roomname, User user)
-    {
-        auto room = get_room(roomname);
-        if (!room) room = new Room(roomname);
-        room.add_user(user);
-    }
-
-    static Room get_room(string roomname)
-    {
-        if (roomname !in room_list)
-            return null;
-
-        return room_list[roomname];
-    }
-
-    static Room[] rooms()
-    {
-        return room_list.values;
-    }
-
-    static ulong[string] room_stats()
-    {
-        ulong[string] stats;
-        foreach (room ; rooms) stats[room.name] = room.nb_users;
-        return stats;
-    }
-
+{
     string name;
-
-
-    // Attributes
 
     private User[string]    user_list;
     private string[string]  tickers;
 
 
-    // Constructor
-
     this(string name)
     {
         this.name = name;
-        room_list[name] = this;
-    }
-
-
-    // Misc
-
-    void send_to_all(scope SMessage msg)
-    {
-        foreach (user ; users) user.send_message(msg);
-    }
-
-    void say(string username, string message)
-    {
-        if (username !in user_list)
-            return;
-
-        scope msg = new SSayChatroom(name, username, message);
-        send_to_all(msg);
     }
 
 
     // Users
 
-    void leave(User user)
-    {
-        if (user.username !in user_list)
-            return;
-
-        user_list.remove(user.username);
-        user.leave_room(this);
-
-        scope msg = new SUserLeftRoom(user.username, name);
-        send_to_all(msg);
-
-        if (nb_users == 0) room_list.remove(name);
-    }
-
-    private void add_user(User user)
+    void add_user(User user)
     {
         if (user.username in user_list)
             return;
@@ -117,8 +49,17 @@ class Room
         send_to_all(joined_room_msg);
         user.send_message(join_room_msg);
         user.send_message(tickers_msg);
+    }
 
-        user.join_room(this);
+    void remove_user(string username)
+    {
+        if (username !in user_list)
+            return;
+
+        user_list.remove(username);
+
+        scope msg = new SUserLeftRoom(username, name);
+        send_to_all(msg);
     }
 
     bool is_joined(string username)
@@ -131,11 +72,6 @@ class Room
         return user_list.length;
     }
 
-    private User[] users()
-    {
-        return user_list.values;
-    }
-
     private string[] user_names()
     {
         return user_list.keys;
@@ -144,7 +80,7 @@ class Room
     private uint[string] statuses()
     {
         uint[string] statuses;
-        foreach (user ; users)
+        foreach (user ; user_list)
             statuses[user.username] = user.status;
 
         return statuses;
@@ -153,7 +89,7 @@ class Room
     private uint[string] speeds()
     {
         uint[string] speeds;
-        foreach (user ; users)
+        foreach (user ; user_list)
             speeds[user.username] = user.speed;
 
         return speeds;
@@ -162,7 +98,7 @@ class Room
     private uint[string] upload_numbers()
     {
         uint[string] upload_numbers;
-        foreach (user ; users)
+        foreach (user ; user_list)
             upload_numbers[user.username] = user.upload_number;
 
         return upload_numbers;
@@ -171,7 +107,7 @@ class Room
     private uint[string] somethings()
     {
         uint[string] somethings;
-        foreach (user ; users)
+        foreach (user ; user_list)
             somethings[user.username] = user.something;
 
         return somethings;
@@ -180,7 +116,7 @@ class Room
     private uint[string] shared_files()
     {
         uint[string] shared_files;
-        foreach (user ; users)
+        foreach (user ; user_list)
             shared_files[user.username] = user.shared_files;
 
         return shared_files;
@@ -189,7 +125,7 @@ class Room
     private uint[string] shared_folders()
     {
         uint[string] shared_folders;
-        foreach (user ; users)
+        foreach (user ; user_list)
             shared_folders[user.username] = user.shared_folders;
 
         return shared_folders;
@@ -198,7 +134,7 @@ class Room
     private uint[string] slots_full()
     {
         uint[string] slots_full;
-        foreach (user ; users)
+        foreach (user ; user_list)
             slots_full[user.username] = user.slots_full;
 
         return slots_full;
@@ -207,10 +143,28 @@ class Room
     private string[string] country_codes()
     {
         string[string] country_codes;
-        foreach (user ; users)
+        foreach (user ; user_list)
             country_codes[user.username] = user.country_code;
 
         return country_codes;
+    }
+
+    void send_to_all(scope SMessage msg)
+    {
+        foreach (user ; user_list)
+            user.send_message(msg);
+    }
+
+
+    // Chat
+
+    void say(string username, string message)
+    {
+        if (username !in user_list)
+            return;
+
+        scope msg = new SSayChatroom(name, username, message);
+        send_to_all(msg);
     }
 
 
