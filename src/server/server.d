@@ -232,11 +232,11 @@ class Server
         }
     }
 
-    private void send_to_all(Message msg)
+    private void send_to_all(SMessage msg)
     {
         debug (msg) writefln(
             "Transmit=> %s (code %d) to all users...",
-            blue ~ message_name[msg.code] ~ norm, msg.code
+            blue ~ msg.name ~ norm, msg.code
         );
         foreach (user ; users) user.send_message(msg);
     }

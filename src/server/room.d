@@ -81,7 +81,7 @@ class Room
 
     // Misc
 
-    void send_to_all(Message msg)
+    void send_to_all(SMessage msg)
     {
         foreach (user ; users) user.send_message(msg);
     }
