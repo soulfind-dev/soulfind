@@ -514,10 +514,12 @@ class User
                     user_country_code = user.country_code;
                 }
                 else {
-                    user_exists = server.db.get_user(
-                        msg.user, user_speed, user_upload_number,
-                        user_shared_files, user_shared_folders
-                    );
+                    const user_stats = server.db.get_user_stats(msg.user);
+                    user_exists = user_stats.exists;
+                    user_speed = user_stats.speed;
+                    user_upload_number = user_stats.upload_number;
+                    user_shared_files = user_stats.shared_files;
+                    user_shared_folders = user_stats.shared_folders;
                 }
 
                 watch(msg.user);
@@ -699,10 +701,11 @@ class User
                     user_shared_folders = user.shared_folders;
                 }
                 else {
-                    server.db.get_user(
-                        msg.user, user_speed, user_upload_number,
-                        user_shared_files, user_shared_folders
-                    );
+                    const user_stats = server.db.get_user_stats(msg.user);
+                    user_speed = user_stats.speed;
+                    user_upload_number = user_stats.upload_number;
+                    user_shared_files = user_stats.shared_files;
+                    user_shared_folders = user_stats.shared_folders;
                 }
 
                 send_message(
@@ -901,9 +904,12 @@ class User
         major_version = msg.major_version;
         minor_version = msg.minor_version;
         priv_expiration = server.db.get_user_privileges(username);
-        server.db.get_user(
-            username, speed, upload_number, shared_files, shared_folders
-        );
+
+        const user_stats = server.db.get_user_stats(username);
+        speed = user_stats.speed;
+        upload_number = user_stats.upload_number;
+        shared_files = user_stats.shared_files;
+        shared_folders = user_stats.shared_folders;
 
         if (server.db.is_admin(username)) writefln("%s is an admin", username);
         server.add_user(this);
