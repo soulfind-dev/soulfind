@@ -12,7 +12,7 @@ import soulfind.server.messages;
 import soulfind.server.pm;
 import soulfind.server.room;
 import soulfind.server.server;
-import std.bitmanip : Endian, nativeToLittleEndian, read;
+import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : Clock, SysTime;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
@@ -413,7 +413,7 @@ class User
     private void proc_message()
     {
         auto msg_buf = in_buf[0 .. in_msg_size];
-        const code = msg_buf.read!(uint, Endian.littleEndian);
+        const code = msg_buf.peek!(uint, Endian.littleEndian);
 
         in_buf = in_buf[in_msg_size .. $];
         in_msg_size = -1;

@@ -82,9 +82,10 @@ class UMessage
     uint               code;
     private ubyte[]    in_buf;
 
-    this(uint code, ubyte[] in_buf, string in_username = "?")
+    this(ubyte[] in_buf, string in_username = "?")
     {
         this.in_buf = in_buf;
+        code = readi();
 
         debug (msg) writefln(
             "Receive <- %s (code %d) of %d bytes <- from user %s",
@@ -165,7 +166,7 @@ class ULogin : UMessage
 
     this(ubyte[] in_buf)
     {
-        super(Login, in_buf);
+        super(in_buf);
 
         username      = reads();
         password      = reads();
@@ -185,7 +186,7 @@ class USetWaitPort : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SetWaitPort, in_buf, in_username);
+        super(in_buf, in_username);
 
         port = readi();
     }
@@ -197,7 +198,7 @@ class UGetPeerAddress : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(GetPeerAddress, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -209,7 +210,7 @@ class UWatchUser : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(WatchUser, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -221,7 +222,7 @@ class UUnwatchUser : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(UnwatchUser, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -233,7 +234,7 @@ class UGetUserStatus : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(GetUserStatus, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -246,7 +247,7 @@ class USayChatroom : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SayChatroom, in_buf, in_username);
+        super(in_buf, in_username);
 
         room    = reads();
         message = reads();
@@ -259,7 +260,7 @@ class UJoinRoom : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(JoinRoom, in_buf, in_username);
+        super(in_buf, in_username);
 
         room = reads();
     }
@@ -271,7 +272,7 @@ class ULeaveRoom : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(LeaveRoom, in_buf, in_username);
+        super(in_buf, in_username);
 
         room = reads();
     }
@@ -285,7 +286,7 @@ class UConnectToPeer : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(ConnectToPeer, in_buf, in_username);
+        super(in_buf, in_username);
 
         token = readi();
         user  = reads();
@@ -300,7 +301,7 @@ class UMessageUser : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(MessageUser, in_buf, in_username);
+        super(in_buf, in_username);
 
         user    = reads();
         message = reads();
@@ -313,7 +314,7 @@ class UMessageAcked : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(MessageAcked, in_buf, in_username);
+        super(in_buf, in_username);
 
         id = readi();
     }
@@ -326,7 +327,7 @@ class UFileSearch : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(FileSearch, in_buf, in_username);
+        super(in_buf, in_username);
 
         token = readi();
         query = reads();
@@ -340,7 +341,7 @@ class UWishlistSearch : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(WishlistSearch, in_buf, in_username);
+        super(in_buf, in_username);
 
         token = readi();
         query = reads();
@@ -351,7 +352,7 @@ class USimilarUsers : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(SimilarUsers, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -361,7 +362,7 @@ class USetStatus : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SetStatus, in_buf, in_username);
+        super(in_buf, in_username);
 
         status = readi();
     }
@@ -371,7 +372,7 @@ class UServerPing : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(ServerPing, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -381,7 +382,7 @@ class USendUploadSpeed : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SendUploadSpeed, in_buf, in_username);
+        super(in_buf, in_username);
 
         speed = readi();
     }
@@ -394,7 +395,7 @@ class USharedFoldersFiles : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SharedFoldersFiles, in_buf, in_username);
+        super(in_buf, in_username);
 
         nb_folders = readi();
         nb_files   = readi();
@@ -407,7 +408,7 @@ class UGetUserStats : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(GetUserStats, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -421,7 +422,7 @@ class UUserSearch : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(UserSearch, in_buf, in_username);
+        super(in_buf, in_username);
 
         user  = reads();
         token = readi();
@@ -435,7 +436,7 @@ class UAddThingILike : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(AddThingILike, in_buf, in_username);
+        super(in_buf, in_username);
 
         thing = reads();
     }
@@ -447,7 +448,7 @@ class URemoveThingILike : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(RemoveThingILike, in_buf, in_username);
+        super(in_buf, in_username);
 
         thing = reads();
     }
@@ -457,7 +458,7 @@ class UGetRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(GetRecommendations, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -465,7 +466,7 @@ class UGlobalRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(GlobalRecommendations, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -475,7 +476,7 @@ class UUserInterests : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(UserInterests, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -485,7 +486,7 @@ class URoomList : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(RoomList, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -493,7 +494,7 @@ class UCheckPrivileges : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(CheckPrivileges, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -503,7 +504,7 @@ class UAddThingIHate : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(AddThingIHate, in_buf, in_username);
+        super(in_buf, in_username);
 
         thing = reads();
     }
@@ -515,7 +516,7 @@ class URemoveThingIHate : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(RemoveThingIHate, in_buf, in_username);
+        super(in_buf, in_username);
 
         thing = reads();
     }
@@ -527,7 +528,7 @@ class UItemRecommendations : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(ItemRecommendations, in_buf, in_username);
+        super(in_buf, in_username);
 
         item = reads();
     }
@@ -539,7 +540,7 @@ class UItemSimilarUsers : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(ItemSimilarUsers, in_buf, in_username);
+        super(in_buf, in_username);
 
         item = reads();
     }
@@ -552,7 +553,7 @@ class USetRoomTicker : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(SetRoomTicker, in_buf, in_username);
+        super(in_buf, in_username);
 
         room = reads();
         tick = reads();
@@ -567,7 +568,7 @@ class URoomSearch : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(RoomSearch, in_buf, in_username);
+        super(in_buf, in_username);
 
         room  = reads();
         token = readi();
@@ -581,7 +582,7 @@ class UUserPrivileged : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(UserPrivileged, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
     }
@@ -594,7 +595,7 @@ class UGivePrivileges : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(GivePrivileges, in_buf, in_username);
+        super(in_buf, in_username);
 
         user = reads();
         time = readi();
@@ -607,7 +608,7 @@ class UChangePassword : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(ChangePassword, in_buf, in_username);
+        super(in_buf, in_username);
 
         password = reads();
     }
@@ -620,7 +621,7 @@ class UMessageUsers : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(MessageUsers, in_buf, in_username);
+        super(in_buf, in_username);
 
         foreach (i ; 0 .. readi()) users ~= reads();
         message = reads();
@@ -631,7 +632,7 @@ class UJoinGlobalRoom : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(JoinGlobalRoom, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -639,7 +640,7 @@ class ULeaveGlobalRoom : UMessage
 {
     this(ubyte[] in_buf, string in_username)
     {
-        super(LeaveGlobalRoom, in_buf, in_username);
+        super(in_buf, in_username);
     }
 }
 
@@ -650,7 +651,7 @@ class UCantConnectToPeer : UMessage
 
     this(ubyte[] in_buf, string in_username)
     {
-        super(CantConnectToPeer, in_buf, in_username);
+        super(in_buf, in_username);
 
         token = readi();
         user  = reads();
