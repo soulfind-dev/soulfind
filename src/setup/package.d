@@ -8,7 +8,6 @@ module soulfind.setup;
 
 import soulfind.db;
 import soulfind.defines;
-import std.algorithm : sort;
 import std.conv : ConvException, to;
 import std.exception : ifThrown;
 import std.format : format;
@@ -252,7 +251,7 @@ private class Menu
 {
     string                  title;
     string                  info;
-    string[string]          entries;
+    string[]                entries;
     void function()[string] actions;
 
     this(string title)
@@ -262,7 +261,7 @@ private class Menu
 
     void add(string index, string entry, void function() @safe action)
     {
-        entries[index] = entry;
+        entries ~= "%s. %s".format(index, entry);
         actions[index] = action;
     }
 
@@ -271,8 +270,8 @@ private class Menu
         writefln("\n%s\n", title);
         if (info.length > 0) writefln("%s\n", info);
 
-        foreach (index ; sort(entries.keys))
-            writefln("%s. %s", index, entries[index]);
+        foreach (entry ; entries)
+            writefln(entry);
 
         write("\nYour choice : ");
         const choice = input.strip;

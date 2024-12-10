@@ -44,7 +44,6 @@ class Server
     private User[Socket]  user_socks;
     private int           keepalive_time = 60;
     private int           keepalive_interval = 5;
-    private Duration      select_timeout = 2.minutes;
 
 
     // Constructor
@@ -85,9 +84,9 @@ class Server
         }
 
         writefln(
-            "%s %s process %s listening on port %s",
-            bg_w ~ "▌" ~ red ~ "♥" ~ norm ~ bg_w ~ "▐" ~ norm ~ bold
-            ~ "Soulfind", VERSION ~ norm, thisProcessID, port
+            "%s %s %s process %s listening on port %s",
+            red ~ "♥" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
+            thisProcessID, port
         );
 
         auto read_socks = new SocketSet(max_users + 1);
@@ -103,9 +102,7 @@ class Server
                 if (user.is_sending) write_socks.add(user_sock);
             }
 
-            int nb = Socket.select(
-                read_socks, write_socks, null, select_timeout
-            );
+            int nb = Socket.select(read_socks, write_socks, null);
             const terminating = (nb == -1);
 
             if (read_socks.isSet(sock)) {

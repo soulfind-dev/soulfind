@@ -7,9 +7,7 @@ module soulfind.server.messages;
 @safe:
 
 import soulfind.defines;
-import std.bitmanip : Endian, read;
-import std.conv : to;
-import std.outbuffer : OutBuffer;
+import std.bitmanip : Endian, nativeToLittleEndian, read;
 import std.stdio : writefln;
 import std.string : lastIndexOf;
 
@@ -81,8 +79,8 @@ const CantConnectToPeer      = 1001;
 
 class UMessage
 {
-    uint       code;
-    ubyte[]    in_buf;
+    uint               code;
+    private ubyte[]    in_buf;
 
     this(uint code, ubyte[] in_buf, string in_username = "?")
     {
@@ -664,12 +662,12 @@ class UCantConnectToPeer : UMessage
 
 class SMessage
 {
-    uint       code;
-    OutBuffer  out_buf;
+    uint             code;
+    private uint     offset;
+    private ubyte[]  out_buf;
 
     this(uint code)
     {
-        out_buf = new OutBuffer();
         this.code = code;
         writei(code);
     }
@@ -680,35 +678,47 @@ class SMessage
         return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
     }
 
-    ubyte[] bytes()
+    const(ubyte)[] bytes()
     {
-        return out_buf.toBytes();
+        return out_buf[0 .. offset];
     }
 
-    private void writei(uint i)
+    private void resize_buffer(ulong size)
     {
-        out_buf.write(i);
+        // Preallocate larger buffer size than required to reduce
+        // number of resizes while filling the buffer
+        if (out_buf.length < offset + size)
+            out_buf.length = (offset + size) * 2;
     }
 
-    private void writei(ulong i)
+    private void write(scope const(ubyte)[] bytes)
     {
-        out_buf.write(cast(uint) i);
-    }
-
-    private void writesi(int i)
-    {
-        out_buf.write(i);
+        resize_buffer(bytes.length);
+        out_buf[offset .. offset + bytes.length] = bytes[];
+        offset += bytes.length;
     }
 
     private void writeb(bool b)
     {
-        out_buf.write(cast(ubyte) b);
+        resize_buffer(ubyte.sizeof);
+        out_buf[offset] = b;
+        offset += ubyte.sizeof;
+    }
+
+    private void writei(uint i)
+    {
+        write(i.nativeToLittleEndian);
+    }
+
+    private void writesi(int i)
+    {
+        write(i.nativeToLittleEndian);
     }
 
     private void writes(string s)
     {
-        writei(s.length);
-        out_buf.write(s);
+        writei(cast(uint) s.length);
+        write(cast(immutable(ubyte)[]) s);
     }
 }
 
@@ -799,11 +809,11 @@ class SRoomList : SMessage
     {
         super(RoomList);
 
-        writei(rooms.length);
+        writei(cast(uint) rooms.length);
         foreach (room, users ; rooms) writes(room);
 
-        writei(rooms.length);
-        foreach (room, users ; rooms) writei(users);
+        writei(cast(uint) rooms.length);
+        foreach (room, users ; rooms) writei(cast(uint) users);
 
         writei(0);    // number of owned private rooms(unimplemented)
         writei(0);    // number of owned private rooms(unimplemented)
@@ -824,7 +834,7 @@ class SJoinRoom : SMessage
         super(JoinRoom);
 
         writes(room);
-        const n = usernames.length;
+        const n = cast(uint) usernames.length;
 
         writei(n);
         foreach (username ; usernames) writes(username);
@@ -914,13 +924,13 @@ class SConnectToPeer : SMessage
 
 class SMessageUser : SMessage
 {
-    this(uint id, uint timestamp, string from, string content,
+    this(uint id, ulong timestamp, string from, string content,
             bool new_message)
     {
         super(MessageUser);
 
         writei(id);
-        writei(timestamp);
+        writei(cast(uint) timestamp);
         writes(from);
         writes(content);
         writeb(new_message);
@@ -961,7 +971,7 @@ class SGetRecommendations : SMessage
     {
         super(GetRecommendations);
 
-        writei(list.length);
+        writei(cast(uint) list.length);
         foreach (artist, level ; list)
         {
             writes(artist);
@@ -976,7 +986,7 @@ class SGetGlobalRecommendations : SMessage
     {
         super(GlobalRecommendations);
 
-        writei(list.length);
+        writei(cast(uint) list.length);
         foreach (artist, level ; list)
         {
             writes(artist);
@@ -993,10 +1003,10 @@ class SUserInterests : SMessage
 
         writes(user);
 
-        writei(likes.length);
+        writei(cast(uint) likes.length);
         foreach (thing ; likes) writes(thing);
 
-        writei(hates.length);
+        writei(cast(uint) hates.length);
         foreach (thing ; hates) writes(thing);
     }
 }
@@ -1033,11 +1043,11 @@ class SAdminMessage : SMessage
 
 class SCheckPrivileges : SMessage
 {
-    this(uint time)
+    this(long time)
     {
         super(CheckPrivileges);
 
-        writei(time);
+        writei(cast(uint) time);
     }
 }
 
@@ -1057,11 +1067,11 @@ class SSimilarUsers : SMessage
     {
         super(SimilarUsers);
 
-        writei(list.length);
+        writei(cast(uint) list.length);
         foreach (user, weight ; list)
         {
-            writes (user);
-            writesi(weight);
+            writes(user);
+            writei(weight);
         }
     }
 }
@@ -1073,7 +1083,7 @@ class SItemRecommendations : SMessage
         super(ItemRecommendations);
 
         writes(item);
-        writei(list.length);
+        writei(cast(uint) list.length);
 
         foreach (recommendation, weight ; list)
         {
@@ -1090,7 +1100,7 @@ class SItemSimilarUsers : SMessage
         super(ItemSimilarUsers);
 
         writes(item);
-        writei(list.length);
+        writei(cast(uint) list.length);
         foreach (user ; list) writes(user);
     }
 }
@@ -1102,7 +1112,7 @@ class SRoomTicker : SMessage
         super(RoomTicker);
 
         writes(room);
-        writei(tickers.length);
+        writei(cast(uint) tickers.length);
         foreach (string user, string ticker ; tickers)
         {
             writes(user);

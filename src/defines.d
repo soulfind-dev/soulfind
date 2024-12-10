@@ -21,6 +21,5 @@ const exit_message       = "A la prochaine...";
 
 const norm               = "\033[0m";        // reset to normal
 const bold               = "\033[1m";        // bold intensity
-const bg_w               = "\033[30;107m";   // background white
 const blue               = "\033[01;94m";    // foreground blue
 const red                = "\033[01;91m";    // foreground red

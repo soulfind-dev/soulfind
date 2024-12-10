@@ -12,10 +12,8 @@ import soulfind.server.messages;
 import soulfind.server.pm;
 import soulfind.server.room;
 import soulfind.server.server;
-import std.bitmanip : Endian, read;
-import std.conv : to;
+import std.bitmanip : Endian, nativeToLittleEndian, read;
 import std.datetime : Clock, SysTime;
-import std.outbuffer : OutBuffer;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 
@@ -55,9 +53,8 @@ class User
     private Room[string]    joined_rooms;
 
     private ubyte[]         in_buf;
-    private uint            in_msg_size = -1;
+    private long            in_msg_size = -1;
     private ubyte[]         out_buf;
-    private OutBuffer       msg_size_buf = new OutBuffer();
 
 
     // Constructor
@@ -77,7 +74,7 @@ class User
     {
         send_message(
             new SMessageUser(
-                pm.id, cast(uint) pm.timestamp, pm.from, pm.content,
+                pm.id, pm.timestamp, pm.from, pm.content,
                 new_message
             )
         );
@@ -146,11 +143,11 @@ class User
         );
     }
 
-    uint privileges()
+    long privileges()
     {
         long privileges = priv_expiration - Clock.currTime.toUnixTime;
         if (privileges <= 0) privileges = 0;
-        return privileges.to!uint;
+        return privileges;
     }
 
     string h_privileges()
@@ -371,15 +368,16 @@ class User
     void send_message(SMessage msg)
     {
         const msg_buf = msg.bytes;
-        msg_size_buf.write(cast(uint) msg_buf.length);
-        out_buf ~= msg_size_buf.toBytes;
-        out_buf ~= msg_buf;
-        msg_size_buf.clear();
+        const msg_len = cast(uint) msg_buf.length;
+        const offset = out_buf.length;
+
+        out_buf.length += (uint.sizeof + msg_len);
+        out_buf[offset .. offset + uint.sizeof] = msg_len.nativeToLittleEndian;
+        out_buf[offset + uint.sizeof .. $] = msg_buf;
 
         debug (msg) writefln(
             "Sending -> %s (code %d) of %d bytes -> to user %s",
-            blue ~ msg.name ~ norm, msg.code,
-            msg_buf.length, blue ~ username ~ norm
+            blue ~ msg.name ~ norm, msg.code, msg_len, blue ~ username ~ norm
         );
     }
 
@@ -437,7 +435,7 @@ class User
                     should_quit = true;
                     writefln(
                         "User %s denied (%s)",
-                        red ~ username ~ norm, bg_w ~ red ~ error ~ norm
+                        red ~ username ~ norm, red ~ error ~ norm
                     );
                     send_message(new SLogin(false, error));
                     break;
@@ -509,10 +507,12 @@ class User
                     user_country_code = user.country_code;
                 }
                 else {
-                    user_exists = server.db.get_user(
-                        msg.user, user_speed, user_upload_number,
-                        user_shared_files, user_shared_folders
-                    );
+                    const user_stats = server.db.get_user_stats(msg.user);
+                    user_exists = user_stats.exists;
+                    user_speed = user_stats.speed;
+                    user_upload_number = user_stats.upload_number;
+                    user_shared_files = user_stats.shared_files;
+                    user_shared_folders = user_stats.shared_folders;
                 }
 
                 watch(msg.user);
@@ -695,10 +695,11 @@ class User
                     user_shared_folders = user.shared_folders;
                 }
                 else {
-                    server.db.get_user(
-                        msg.user, user_speed, user_upload_number,
-                        user_shared_files, user_shared_folders
-                    );
+                    const user_stats = server.db.get_user_stats(msg.user);
+                    user_speed = user_stats.speed;
+                    user_upload_number = user_stats.upload_number;
+                    user_shared_files = user_stats.shared_files;
+                    user_shared_folders = user_stats.shared_folders;
                 }
 
                 send_message(
@@ -903,9 +904,12 @@ class User
         major_version = msg.major_version;
         minor_version = msg.minor_version;
         priv_expiration = server.db.get_user_privileges(username);
-        server.db.get_user(
-            username, speed, upload_number, shared_files, shared_folders
-        );
+
+        const user_stats = server.db.get_user_stats(username);
+        speed = user_stats.speed;
+        upload_number = user_stats.upload_number;
+        shared_files = user_stats.shared_files;
+        shared_folders = user_stats.shared_folders;
 
         if (server.db.is_admin(username)) writefln("%s is an admin", username);
         server.add_user(this);

@@ -14,6 +14,16 @@ import std.file : exists, isFile;
 import std.stdio : writefln;
 import std.string : format, replace, toStringz;
 
+struct SdbUserStats
+{
+    string  username;
+    bool    exists;
+    uint    speed;
+    uint    upload_number;
+    uint    shared_files;
+    uint    shared_folders;
+}
+
 class Sdb
 {
     // Attributes
@@ -211,8 +221,7 @@ class Sdb
         return false;
     }
 
-    bool get_user(string username, out uint speed, out uint upload_number,
-            out uint shared_files, out uint shared_folders)
+    SdbUserStats get_user_stats(string username)
     {
         debug(db) writefln(
             "DB: Requested %s's info...", blue ~ username ~ norm);
@@ -222,17 +231,17 @@ class Sdb
              WHERE username = '%s';".format(
             users_table, escape(username)
         ));
+        auto user_stats = SdbUserStats();
 
         if (res.length > 0) {
-            const user      = res[0];
-
-            speed           = user[0].to!uint.ifThrown(0);
-            upload_number   = user[1].to!uint.ifThrown(0);
-            shared_files    = user[2].to!uint.ifThrown(0);
-            shared_folders  = user[3].to!uint.ifThrown(0);
-            return true;
+            const user                 = res[0];
+            user_stats.exists          = true;
+            user_stats.speed           = user[0].to!uint.ifThrown(0);
+            user_stats.upload_number   = user[1].to!uint.ifThrown(0);
+            user_stats.shared_files    = user[2].to!uint.ifThrown(0);
+            user_stats.shared_folders  = user[3].to!uint.ifThrown(0);
         }
-        return false;
+        return user_stats;
     }
 
     string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
