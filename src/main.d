@@ -19,8 +19,7 @@ private extern(C) void handle_termination(int) {
 @trusted
 private void setup_signal_handler()
 {
-    version (Windows) {}
-    else {
+    version (Posix) {
         import core.sys.posix.signal : sigaction, sigaction_t, SIGINT, SIGTERM;
         import core.sys.posix.unistd : fork;
 

@@ -33,8 +33,7 @@ int run(string[] args)
         }
     }
 
-    version (Windows) {}
-    else {
+    version (Posix) {
         import core.sys.posix.unistd : fork;
 
         if (daemon && fork())
