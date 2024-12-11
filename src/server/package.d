@@ -6,7 +6,6 @@
 module soulfind.server;
 @safe:
 
-import core.sys.posix.unistd : fork;
 import soulfind.defines;
 import soulfind.server.server;
 import std.stdio : writefln;
@@ -34,8 +33,13 @@ int run(string[] args)
         }
     }
 
-    if (daemon && fork())
-        return 0;
+    version (Windows) {}
+    else {
+        import core.sys.posix.unistd : fork;
+
+        if (daemon && fork())
+            return 0;
+    }
 
     auto server = new Server(db);
     return server.listen();
