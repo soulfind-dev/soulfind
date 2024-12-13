@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [linux-x86_64, macos-x86_64, macos-arm64]
+        os: [linux-x86_64, macos-x86_64, macos-arm64, windows-x86_64]
         compiler: [ldc, dmd]
         type: [release, debug]
         include:
@@ -26,6 +26,9 @@ jobs:
           - os: macos-arm64
             image: macos-latest
             target: 11
+
+          - os: windows-x86_64
+            image: windows-latest
 
           - os: linux-x86_64
             compiler: ldc
@@ -52,8 +55,8 @@ jobs:
         if: runner.os == 'Linux'
         run: apk add ${{ matrix.compiler }} dub gcc musl-dev sqlite-static
 
-      - name: Set up D (macOS)
-        if: runner.os == 'macOS'
+      - name: Set up D (Other)
+        if: runner.os != Linux'
         uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.compiler }}

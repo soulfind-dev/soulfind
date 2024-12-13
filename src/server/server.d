@@ -65,7 +65,10 @@ class Server
     {
         auto sock = new TcpSocket();
         sock.blocking = false;
-        sock.setOption(SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
+
+        version (Posix)
+            sock.setOption(
+                SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
 
         try {
             sock.bind(new InternetAddress(port));
@@ -111,6 +114,9 @@ class Server
                     catch (SocketAcceptException) {
                         break;
                     }
+                    if (!new_sock.isAlive)
+                        break;
+
                     enable_keep_alive(new_sock);
                     new_sock.setOption(
                         SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
