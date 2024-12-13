@@ -56,7 +56,7 @@ jobs:
         run: apk add ${{ matrix.compiler }} dub gcc musl-dev sqlite-static
 
       - name: Set up D (Other)
-        if: runner.os != Linux'
+        if: runner.os != 'Linux'
         uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.compiler }}
