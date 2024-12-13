@@ -17,6 +17,15 @@ private extern(C) void handle_termination(int) {
 }
 
 @trusted
+private void set_console_code_page()
+{
+    version (Windows) {
+        import core.sys.windows.wincon : SetConsoleOutputCP;
+        SetConsoleOutputCP(6_5001);  // UTF-8
+    }
+}
+
+@trusted
 private void setup_signal_handler()
 {
     version (Posix) {
@@ -33,6 +42,8 @@ private void setup_signal_handler()
 
 private int main(string[] args)
 {
+    set_console_code_page();
     setup_signal_handler();
+
     return run(args);
 }
