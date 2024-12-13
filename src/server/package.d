@@ -46,10 +46,10 @@ int run(string[] args)
 
 private void help(string[] args)
 {
-    writefln("Usage: %s [database_file] [-d|--daemon]", args[0]);
-    writefln(
-        "\tdatabase_file: path to the sqlite3 database (default: %s)",
-        default_db_file
-    );
-    writefln("\t-d, --daemon : fork in the background");
+    auto output = "Usage: %s [database_file]";
+    version (Posix) output ~= " [-d|--daemon]";
+    output ~= "\n\tdatabase_file: path to the sqlite3 database (default: %s)";
+    version (Posix) output ~= "\n\t-d, --daemon : fork in the background";
+
+    writefln(output, args[0], default_db_file);
 }
