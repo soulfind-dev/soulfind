@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2024 Soulfind Contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up D
+        uses: dlang-community/setup-dlang@v2
+
+      - name: Lint code
+        run: dub lint

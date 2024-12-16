@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2024 Soulfind Contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-name: CI
+name: Build
 
 on: [push, pull_request]
 
 jobs:
-
   build:
     timeout-minutes: 15
     strategy:
@@ -74,26 +73,3 @@ jobs:
         with:
           name: soulfind-${{ matrix.os }}-${{ matrix.type }}
           path: bin
-
-  linting:
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up D
-        uses: dlang-community/setup-dlang@v2
-
-      - name: Linting
-        run: dub lint
-
-  reuse-compliance:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: REUSE compliance
-        uses: fsfe/reuse-action@v5
