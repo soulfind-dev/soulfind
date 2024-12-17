@@ -151,10 +151,17 @@ class Room
 
     void add_ticker(string username, string content)
     {
-        if (!content) {
-            del_ticker(username);
+        if (username !in user_list)
             return;
-        }
+
+        if (username in tickers && tickers[username] == content)
+            return;
+
+        del_ticker(username);
+
+        if (!content)
+            return;
+
         tickers[username] = content;
 
         scope msg = new SRoomTickerAdd(name, username, content);
