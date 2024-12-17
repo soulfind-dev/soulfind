@@ -34,15 +34,12 @@ class Room
         user_list[user.username] = user;
 
         scope joined_room_msg = new SUserJoinedRoom(
-            name, user.username, user.status,
-            user.speed, user.upload_number, user.something,
-            user.shared_files, user.shared_folders,
-            user.slots_full, user.country_code
+            name, user.username, user.status, user.speed, user.upload_number,
+            user.shared_files, user.shared_folders, user.country_code
         );
         scope join_room_msg = new SJoinRoom(
-            name, user_names, statuses, speeds,
-            upload_numbers, somethings, shared_files,
-            shared_folders, slots_full, country_codes
+            name, user_names, statuses, speeds, upload_numbers,
+            shared_files, shared_folders, country_codes
         );
         scope tickers_msg = new SRoomTicker(name, tickers);
 
@@ -104,15 +101,6 @@ class Room
         return upload_numbers;
     }
 
-    private uint[string] somethings()
-    {
-        uint[string] somethings;
-        foreach (user ; user_list)
-            somethings[user.username] = user.something;
-
-        return somethings;
-    }
-
     private uint[string] shared_files()
     {
         uint[string] shared_files;
@@ -129,15 +117,6 @@ class Room
             shared_folders[user.username] = user.shared_folders;
 
         return shared_folders;
-    }
-
-    private uint[string] slots_full()
-    {
-        uint[string] slots_full;
-        foreach (user ; user_list)
-            slots_full[user.username] = user.slots_full;
-
-        return slots_full;
     }
 
     private string[string] country_codes()

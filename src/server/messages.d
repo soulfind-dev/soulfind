@@ -760,8 +760,8 @@ class SGetPeerAddress : SMessage
 class SWatchUser : SMessage
 {
     this(string user, bool exists, uint status, uint speed,
-         uint upload_number, uint something, uint shared_files,
-         uint shared_folders, string country_code) scope
+         uint upload_number, uint shared_files, uint shared_folders,
+         string country_code) scope
     {
         super(WatchUser);
 
@@ -773,7 +773,7 @@ class SWatchUser : SMessage
         writei(status);
         writei(speed);
         writei(upload_number);
-        writei(something);
+        writei(0);  // unknown, obsolete
         writei(shared_files);
         writei(shared_folders);
         if (status > 0) writes(country_code);
@@ -828,8 +828,7 @@ class SJoinRoom : SMessage
 {
     this(string room, string[] usernames, uint[string] statuses,
          uint[string] speeds, uint[string] upload_numbers,
-         uint[string] somethings, uint[string] shared_files,
-         uint[string] shared_folders, uint[string] slots_full,
+         uint[string] shared_files, uint[string] shared_folders,
          string[string] country_codes) scope
     {
         super(JoinRoom);
@@ -848,13 +847,13 @@ class SJoinRoom : SMessage
         {
             writei(speeds          [username]);
             writei(upload_numbers  [username]);
-            writei(somethings      [username]);
+            writei(0);  // unknown, obsolete
             writei(shared_files    [username]);
             writei(shared_folders  [username]);
         }
 
         writei(n);
-        foreach (username ; usernames) writei(slots_full[username]);
+        foreach (username ; usernames) writei(0);  // slots_full, obsolete
 
         writei(n);
         foreach (username ; usernames) writes(country_codes[username]);
@@ -874,9 +873,8 @@ class SLeaveRoom : SMessage
 class SUserJoinedRoom : SMessage
 {
     this(string room, string username, uint status,
-         uint speed, uint upload_number, uint something,
-         uint shared_files, uint shared_folders,
-         uint slots_full, string country_code) scope
+         uint speed, uint upload_number, uint shared_files,
+         uint shared_folders, string country_code) scope
     {
         super(UserJoinedRoom);
 
@@ -885,10 +883,10 @@ class SUserJoinedRoom : SMessage
         writei(status);
         writei(speed);
         writei(upload_number);
-        writei(something);
+        writei(0);  // unknown, obsolete
         writei(shared_files);
         writei(shared_folders);
-        writei(slots_full);
+        writei(0);  // slots_full, obsolete
         writes(country_code);
     }
 }
@@ -952,15 +950,15 @@ class SFileSearch : SMessage
 
 class SGetUserStats : SMessage
 {
-    this(string username, uint speed, uint upload_number, uint something,
-            uint shared_files, uint shared_folders) scope
+    this(string username, uint speed, uint upload_number, uint shared_files,
+         uint shared_folders) scope
     {
         super(GetUserStats);
 
         writes(username);
         writei(speed);
         writei(upload_number);
-        writei(something);
+        writei(0);  // unknown, obsolete
         writei(shared_files);
         writei(shared_folders);
     }

@@ -27,10 +27,8 @@ class User
 
     uint                    speed;                // in B/s
     uint                    upload_number;
-    uint                    something;
     uint                    shared_files;
     uint                    shared_folders;
-    uint                    slots_full;
     string                  country_code;
 
     uint                    status;
@@ -102,8 +100,7 @@ class User
         }
 
         scope msg = new SGetUserStats(
-            username, speed, upload_number, something, shared_files,
-            shared_folders
+            username, speed, upload_number, shared_files, shared_folders
         );
         send_to_watching(msg);
 
@@ -518,7 +515,7 @@ class User
 
                 bool user_exists;
                 uint user_status = Status.offline;
-                uint user_speed, user_upload_number, user_something;
+                uint user_speed, user_upload_number;
                 uint user_shared_files, user_shared_folders;
                 string user_country_code;
 
@@ -532,7 +529,6 @@ class User
                     user_status = user.status;
                     user_speed = user.speed;
                     user_upload_number = user.upload_number;
-                    user_something = user.something;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                     user_country_code = user.country_code;
@@ -550,8 +546,8 @@ class User
 
                 scope response_msg = new SWatchUser(
                     msg.user, user_exists, user_status, user_speed,
-                    user_upload_number, user_something, user_shared_files,
-                    user_shared_folders, user_country_code
+                    user_upload_number, user_shared_files, user_shared_folders,
+                    user_country_code
                 );
                 send_message(response_msg);
                 break;
@@ -695,8 +691,8 @@ class User
                 set_shared_files(msg.nb_files);
 
                 scope response_msg = new SGetUserStats(
-                    username, speed, upload_number, something,
-                    shared_files, shared_folders
+                    username, speed, upload_number, shared_files,
+                    shared_folders
                 );
                 send_to_watching(response_msg);
                 break;
@@ -705,13 +701,12 @@ class User
                 scope msg = new UGetUserStats(msg_buf, username);
                 auto user = server.get_user(msg.user);
 
-                uint user_speed, user_upload_number, user_something;
+                uint user_speed, user_upload_number;
                 uint user_shared_files, user_shared_folders;
 
                 if (user) {
                     user_speed = user.speed;
                     user_upload_number = user.upload_number;
-                    user_something = user.something;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                 }
@@ -725,7 +720,7 @@ class User
 
                 scope response_msg = new SGetUserStats(
                     msg.user, user_speed, user_upload_number,
-                    user_something, user_shared_files, user_shared_folders
+                    user_shared_files, user_shared_folders
                 );
                 send_message(response_msg);
                 break;
