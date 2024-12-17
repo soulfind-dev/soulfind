@@ -9,13 +9,21 @@ module soulfind.server.room;
 import soulfind.defines;
 import soulfind.server.messages;
 import soulfind.server.user;
+import std.datetime : Clock;
+
+struct Ticker
+{
+    string  username;
+    ulong   timestamp;
+    string  content;
+}
 
 class Room
 {
     string name;
 
     private User[string]    user_list;
-    private string[string]  tickers;
+    private Ticker[string]  tickers;
 
 
     this(string name)
@@ -41,7 +49,7 @@ class Room
             name, user_names, statuses, speeds, upload_numbers,
             shared_files, shared_folders, country_codes
         );
-        scope tickers_msg = new SRoomTicker(name, tickers);
+        scope tickers_msg = new SRoomTicker(name, tickers.values);
 
         send_to_all(joined_room_msg);
         user.send_message(join_room_msg);
@@ -154,7 +162,7 @@ class Room
         if (username !in user_list)
             return;
 
-        if (username in tickers && tickers[username] == content)
+        if (username in tickers && tickers[username].content == content)
             return;
 
         del_ticker(username);
@@ -162,7 +170,11 @@ class Room
         if (!content)
             return;
 
-        tickers[username] = content;
+        tickers[username] = Ticker(
+            username,
+            Clock.currTime.toUnixTime,
+            content
+        );
 
         scope msg = new SRoomTickerAdd(name, username, content);
         send_to_all(msg);

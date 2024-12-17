@@ -7,6 +7,8 @@ module soulfind.server.messages;
 @safe:
 
 import soulfind.defines;
+import soulfind.server.room;
+import std.algorithm : sort;
 import std.bitmanip : Endian, nativeToLittleEndian, read;
 import std.stdio : writefln;
 import std.string : lastIndexOf;
@@ -1106,17 +1108,23 @@ class SItemSimilarUsers : SMessage
 
 class SRoomTicker : SMessage
 {
-    this(string room, string[string] tickers) scope
+    this(string room, Ticker[] tickers) scope
     {
         super(RoomTicker);
 
         writes(room);
         writei(cast(uint) tickers.length);
-        foreach (string user, string ticker ; tickers)
+        foreach (ticker ; sort_timestamp(tickers))
         {
-            writes(user);
-            writes(ticker);
+            writes(ticker.username);
+            writes(ticker.content);
         }
+    }
+
+    @trusted
+    private auto sort_timestamp(Ticker[] tickers) scope
+    {
+        return tickers.sort!((ref a, ref b) => a.timestamp < b.timestamp);
     }
 }
 
