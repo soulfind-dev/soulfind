@@ -920,9 +920,9 @@ class User
 
             default:
                 debug (msg) writefln!(
-                    "Unimplemented message code %d from user %s with length "
-                  ~ "%d\n%s")(
-                    red ~ code ~ norm, blue ~ username ~ norm, msg_buf.length,
+                    "Unimplemented message code %s%d%s from user %s with "
+                  ~ "length %d\n%s")(
+                    red, code, norm, blue ~ username ~ norm, msg_buf.length,
                     msg_buf
                 );
                 break;
