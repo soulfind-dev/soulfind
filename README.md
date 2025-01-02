@@ -15,10 +15,10 @@ production.
 ## Building
 
 Ensure the following dependencies are installed:
- - `dub`
- - `gcc`
- - `ldc` or `dmd`
- - `sqlite3`
+ - `ldc` or `dmd` for compiler
+ - `gcc` for linker
+ - `dub` for build system
+ - `sqlite3` for database
 
 To build Soulfind, run:
 
