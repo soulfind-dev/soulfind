@@ -10,7 +10,7 @@ import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
                        sqlite3_column_text, sqlite3_errstr, sqlite3_finalize,
                        sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
                        sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
-import soulfind.defines : default_max_users, default_port;
+import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;

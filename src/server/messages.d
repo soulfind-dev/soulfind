@@ -6,6 +6,7 @@
 module soulfind.server.messages;
 @safe:
 
+import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import std.algorithm : sort;
 import std.bitmanip : Endian, nativeToLittleEndian, read;
