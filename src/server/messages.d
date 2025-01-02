@@ -9,7 +9,7 @@ module soulfind.server.messages;
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import std.algorithm : sort;
-import std.bitmanip : Endian, nativeToLittleEndian, read;
+import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.stdio : writefln;
 import std.string : lastIndexOf;
 
@@ -81,13 +81,14 @@ const CantConnectToPeer      = 1001;
 
 class UMessage
 {
-    uint               code;
-    private ubyte[]    in_buf;
+    uint             code;
+    private ulong    offset;
+    private ubyte[]  in_buf;
 
     this(ubyte[] in_buf, string in_username = "?") scope
     {
         this.in_buf = in_buf;
-        code = readi();
+        code = read!uint();
 
         debug (msg) writefln(
             "Receive <- %s (code %d) of %d bytes <- from user %s",
@@ -102,59 +103,34 @@ class UMessage
         return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
     }
 
-    private uint readi() scope
+    private T read(T)() scope
+        if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
     {
-        uint i;
-        if (in_buf.length < uint.sizeof) {
-            writefln(
-                "message code %d, length %d not enough data "
-                ~ "trying to read an int", code, in_buf.length
-            );
-            return i;
+        T value;
+        uint size;
+
+        static if (is(T : string))
+            size = read!uint();
+        else
+            size = T.sizeof;
+
+        if (offset + size <= in_buf.length) {
+            static if (is(T : string)) {
+                value = cast(T) in_buf[offset .. offset + size].idup;
+                offset += size;
+            }
+            else {
+                value = in_buf.peek!(T, Endian.littleEndian)(&offset);
+            }
         }
-
-        i = in_buf.read!(uint, Endian.littleEndian);
-        return i;
-    }
-
-    private uint readsi() scope
-    {
-        int i;
-        if (in_buf.length < int.sizeof) {
+        else {
+            offset = in_buf.length;
             writefln(
-                "message code %d, length %d not enough data "
-                ~ "trying to read a signed int", code, in_buf.length
+                "Message code %d, length %d not enough data trying to read",
+                code, offset
             );
-            return i;
         }
-
-        i = in_buf.read!(int, Endian.littleEndian);
-        return i;
-    }
-
-    private bool readb() scope
-    {
-        bool i;
-        if (in_buf.length < bool.sizeof) {
-            writefln(
-                "message code %d, length %d not enough data "
-                ~ "trying to read a boolean", code, in_buf.length
-            );
-            return i;
-        }
-
-        i = in_buf.read!(bool, Endian.littleEndian);
-        return i;
-    }
-
-    private string reads() scope
-    {
-        uint slen = readi();
-        if (slen > in_buf.length) slen = cast(uint) in_buf.length;
-        const str = cast(string) in_buf[0 .. slen].idup;
-
-        in_buf = in_buf[slen .. $];
-        return str;
+        return value;
     }
 }
 
@@ -170,14 +146,14 @@ class ULogin : UMessage
     {
         super(in_buf);
 
-        username      = reads();
-        password      = reads();
-        major_version = readi();
+        username      = read!string();
+        password      = read!string();
+        major_version = read!uint();
 
         if (major_version >= 155) {
             // Older clients would not send these
-            hash          = reads();
-            minor_version = readi();
+            hash          = read!string();
+            minor_version = read!uint();
         }
     }
 }
@@ -190,7 +166,7 @@ class USetWaitPort : UMessage
     {
         super(in_buf, in_username);
 
-        port = readi();
+        port = read!uint();
     }
 }
 
@@ -202,7 +178,7 @@ class UGetPeerAddress : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -214,7 +190,7 @@ class UWatchUser : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -226,7 +202,7 @@ class UUnwatchUser : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -238,7 +214,7 @@ class UGetUserStatus : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -251,8 +227,8 @@ class USayChatroom : UMessage
     {
         super(in_buf, in_username);
 
-        room_name = reads();
-        message   = reads();
+        room_name = read!string();
+        message   = read!string();
     }
 }
 
@@ -264,7 +240,7 @@ class UJoinRoom : UMessage
     {
         super(in_buf, in_username);
 
-        room_name = reads();
+        room_name = read!string();
     }
 }
 
@@ -276,7 +252,7 @@ class ULeaveRoom : UMessage
     {
         super(in_buf, in_username);
 
-        room_name = reads();
+        room_name = read!string();
     }
 }
 
@@ -290,9 +266,9 @@ class UConnectToPeer : UMessage
     {
         super(in_buf, in_username);
 
-        token    = readi();
-        username = reads();
-        type     = reads();
+        token    = read!uint();
+        username = read!string();
+        type     = read!string();
     }
 }
 
@@ -305,8 +281,8 @@ class UMessageUser : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
-        message  = reads();
+        username = read!string();
+        message  = read!string();
     }
 }
 
@@ -318,7 +294,7 @@ class UMessageAcked : UMessage
     {
         super(in_buf, in_username);
 
-        id = readi();
+        id = read!uint();
     }
 }
 
@@ -331,8 +307,8 @@ class UFileSearch : UMessage
     {
         super(in_buf, in_username);
 
-        token = readi();
-        query = reads();
+        token = read!uint();
+        query = read!string();
     }
 }
 
@@ -345,8 +321,8 @@ class UWishlistSearch : UMessage
     {
         super(in_buf, in_username);
 
-        token = readi();
-        query = reads();
+        token = read!uint();
+        query = read!string();
     }
 }
 
@@ -366,7 +342,7 @@ class USetStatus : UMessage
     {
         super(in_buf, in_username);
 
-        status = readi();
+        status = read!uint();
     }
 }
 
@@ -386,7 +362,7 @@ class USendUploadSpeed : UMessage
     {
         super(in_buf, in_username);
 
-        speed = readi();
+        speed = read!uint();
     }
 }
 
@@ -399,8 +375,8 @@ class USharedFoldersFiles : UMessage
     {
         super(in_buf, in_username);
 
-        shared_folders = readi();
-        shared_files   = readi();
+        shared_folders = read!uint();
+        shared_files   = read!uint();
     }
 }
 
@@ -412,7 +388,7 @@ class UGetUserStats : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -426,9 +402,9 @@ class UUserSearch : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
-        token    = readi();
-        query    = reads();
+        username = read!string();
+        token    = read!uint();
+        query    = read!string();
     }
 }
 
@@ -440,7 +416,7 @@ class UAddThingILike : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -452,7 +428,7 @@ class URemoveThingILike : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -480,7 +456,7 @@ class UUserInterests : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -508,7 +484,7 @@ class UAddThingIHate : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -520,7 +496,7 @@ class URemoveThingIHate : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -532,7 +508,7 @@ class UItemRecommendations : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -544,7 +520,7 @@ class UItemSimilarUsers : UMessage
     {
         super(in_buf, in_username);
 
-        item = reads();
+        item = read!string();
     }
 }
 
@@ -557,8 +533,8 @@ class USetRoomTicker : UMessage
     {
         super(in_buf, in_username);
 
-        room_name = reads();
-        ticker    = reads();
+        room_name = read!string();
+        ticker    = read!string();
     }
 }
 
@@ -572,9 +548,9 @@ class URoomSearch : UMessage
     {
         super(in_buf, in_username);
 
-        room_name = reads();
-        token     = readi();
-        query     = reads();
+        room_name = read!string();
+        token     = read!uint();
+        query     = read!string();
     }
 }
 
@@ -586,7 +562,7 @@ class UUserPrivileged : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
+        username = read!string();
     }
 }
 
@@ -599,8 +575,8 @@ class UGivePrivileges : UMessage
     {
         super(in_buf, in_username);
 
-        username = reads();
-        time     = readi();
+        username = read!string();
+        time     = read!uint();
     }
 }
 
@@ -612,7 +588,7 @@ class UChangePassword : UMessage
     {
         super(in_buf, in_username);
 
-        password = reads();
+        password = read!string();
     }
 }
 
@@ -625,8 +601,8 @@ class UMessageUsers : UMessage
     {
         super(in_buf, in_username);
 
-        foreach (i ; 0 .. readi()) usernames ~= reads();
-        message = reads();
+        foreach (i ; 0 .. read!uint()) usernames ~= read!string();
+        message = read!string();
     }
 }
 
@@ -655,8 +631,8 @@ class UCantConnectToPeer : UMessage
     {
         super(in_buf, in_username);
 
-        token    = readi();
-        username = reads();
+        token    = read!uint();
+        username = read!string();
     }
 }
 
@@ -666,13 +642,13 @@ class UCantConnectToPeer : UMessage
 class SMessage
 {
     uint             code;
-    private uint     offset;
+    private ulong    offset;
     private ubyte[]  out_buf;
 
     this(uint code) scope
     {
         this.code = code;
-        writei(code);
+        write!uint(code);
     }
 
     string name() scope
@@ -694,34 +670,22 @@ class SMessage
             out_buf.length = (offset + size) * 2;
     }
 
-    private void write(scope const(ubyte)[] bytes) scope
+    private void write(T)(T value) scope
+        if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
     {
+        const(ubyte)[] bytes;
+
+        static if (is(T == string)) {
+            bytes = cast(immutable(ubyte)[]) value;
+            write!uint(cast(uint) value.length);
+        }
+        else {
+            bytes = value.nativeToLittleEndian.idup;
+        }
+
         resize_buffer(bytes.length);
         out_buf[offset .. offset + bytes.length] = bytes[];
         offset += bytes.length;
-    }
-
-    private void writeb(bool b) scope
-    {
-        resize_buffer(ubyte.sizeof);
-        out_buf[offset] = b;
-        offset += ubyte.sizeof;
-    }
-
-    private void writei(uint i) scope
-    {
-        write(i.nativeToLittleEndian);
-    }
-
-    private void writesi(int i) scope
-    {
-        write(i.nativeToLittleEndian);
-    }
-
-    private void writes(string s) scope
-    {
-        writei(cast(uint) s.length);
-        write(cast(immutable(ubyte)[]) s);
     }
 }
 
@@ -732,13 +696,13 @@ class SLogin : SMessage
     {
         super(Login);
 
-        writeb(success);
-        writes(message);
+        write!bool(success);
+        write!string(message);
 
         if (success) {
-            writei(ip_address);
-            writes(password);
-            writeb(supporter);
+            write!uint(ip_address);
+            write!string(password);
+            write!bool(supporter);
         }
     }
 }
@@ -750,11 +714,11 @@ class SGetPeerAddress : SMessage
     {
         super(GetPeerAddress);
 
-        writes(username);
-        writei(ip_address);
-        writei(port);
-        writei(unknown);
-        writei(obfuscated_port);
+        write!string(username);
+        write!uint(ip_address);
+        write!uint(port);
+        write!uint(unknown);
+        write!uint(obfuscated_port);
     }
 }
 
@@ -766,18 +730,18 @@ class SWatchUser : SMessage
     {
         super(WatchUser);
 
-        writes(username);
-        writeb(exists);
+        write!string(username);
+        write!bool(exists);
         if (!exists)
             return;
 
-        writei(status);
-        writei(speed);
-        writei(upload_number);
-        writei(0);  // unknown, obsolete
-        writei(shared_files);
-        writei(shared_folders);
-        if (status > 0) writes(country_code);
+        write!uint(status);
+        write!uint(speed);
+        write!uint(upload_number);
+        write!uint(0);  // unknown, obsolete
+        write!uint(shared_files);
+        write!uint(shared_folders);
+        if (status > 0) write!string(country_code);
     }
 }
 
@@ -787,9 +751,9 @@ class SGetUserStatus : SMessage
     {
         super(GetUserStatus);
 
-        writes(username);
-        writei(status);
-        writeb(privileged);
+        write!string(username);
+        write!uint(status);
+        write!bool(privileged);
     }
 }
 
@@ -799,9 +763,9 @@ class SSayChatroom : SMessage
     {
         super(SayChatroom);
 
-        writes(room_name);
-        writes(username);
-        writes(message);
+        write!string(room_name);
+        write!string(username);
+        write!string(message);
     }
 }
 
@@ -811,17 +775,17 @@ class SRoomList : SMessage
     {
         super(RoomList);
 
-        writei(cast(uint) rooms.length);
-        foreach (room, users ; rooms) writes(room);
+        write!uint(cast(uint) rooms.length);
+        foreach (room, users ; rooms) write!string(room);
 
-        writei(cast(uint) rooms.length);
-        foreach (room, users ; rooms) writei(cast(uint) users);
+        write!uint(cast(uint) rooms.length);
+        foreach (room, users ; rooms) write!uint(cast(uint) users);
 
-        writei(0);    // number of owned private rooms (unimplemented)
-        writei(0);    // number of owned private rooms (unimplemented)
-        writei(0);    // number of other private rooms (unimplemented)
-        writei(0);    // number of other private rooms (unimplemented)
-        writei(0);    // number of operated private rooms (unimplemented)
+        write!uint(0);    // number of owned private rooms (unimplemented)
+        write!uint(0);    // number of owned private rooms (unimplemented)
+        write!uint(0);    // number of other private rooms (unimplemented)
+        write!uint(0);    // number of other private rooms (unimplemented)
+        write!uint(0);    // number of operated private rooms (unimplemented)
     }
 }
 
@@ -834,30 +798,30 @@ class SJoinRoom : SMessage
     {
         super(JoinRoom);
 
-        writes(room_name);
+        write!string(room_name);
         const n = cast(uint) usernames.length;
 
-        writei(n);
-        foreach (username ; usernames) writes(username);
+        write!uint(n);
+        foreach (username ; usernames) write!string(username);
 
-        writei(n);
-        foreach (username ; usernames) writei(statuses[username]);
+        write!uint(n);
+        foreach (username ; usernames) write!uint(statuses[username]);
 
-        writei(n);
+        write!uint(n);
         foreach (username ; usernames)
         {
-            writei(speeds          [username]);
-            writei(upload_numbers  [username]);
-            writei(0);  // unknown, obsolete
-            writei(shared_files    [username]);
-            writei(shared_folders  [username]);
+            write!uint(speeds          [username]);
+            write!uint(upload_numbers  [username]);
+            write!uint(0);  // unknown, obsolete
+            write!uint(shared_files    [username]);
+            write!uint(shared_folders  [username]);
         }
 
-        writei(n);
-        foreach (username ; usernames) writei(0);  // slots_full, obsolete
+        write!uint(n);
+        foreach (username ; usernames) write!uint(0);  // slots_full, obsolete
 
-        writei(n);
-        foreach (username ; usernames) writes(country_codes[username]);
+        write!uint(n);
+        foreach (username ; usernames) write!string(country_codes[username]);
     }
 }
 
@@ -867,7 +831,7 @@ class SLeaveRoom : SMessage
     {
         super(LeaveRoom);
 
-        writes(room_name);
+        write!string(room_name);
     }
 }
 
@@ -879,16 +843,16 @@ class SUserJoinedRoom : SMessage
     {
         super(UserJoinedRoom);
 
-        writes(room_name);
-        writes(username);
-        writei(status);
-        writei(speed);
-        writei(upload_number);
-        writei(0);  // unknown, obsolete
-        writei(shared_files);
-        writei(shared_folders);
-        writei(0);  // slots_full, obsolete
-        writes(country_code);
+        write!string(room_name);
+        write!string(username);
+        write!uint(status);
+        write!uint(speed);
+        write!uint(upload_number);
+        write!uint(0);  // unknown, obsolete
+        write!uint(shared_files);
+        write!uint(shared_folders);
+        write!uint(0);  // slots_full, obsolete
+        write!string(country_code);
     }
 }
 
@@ -898,8 +862,8 @@ class SUserLeftRoom : SMessage
     {
         super(UserLeftRoom);
 
-        writes(room_name);
-        writes(username);
+        write!string(room_name);
+        write!string(username);
     }
 }
 
@@ -911,14 +875,14 @@ class SConnectToPeer : SMessage
     {
         super(ConnectToPeer);
 
-        writes(username);
-        writes(type);
-        writei(ip_address);
-        writei(port);
-        writei(token);
-        writeb(privileged);
-        writei(unknown);
-        writei(obfuscated_port);
+        write!string(username);
+        write!string(type);
+        write!uint(ip_address);
+        write!uint(port);
+        write!uint(token);
+        write!bool(privileged);
+        write!uint(unknown);
+        write!uint(obfuscated_port);
     }
 }
 
@@ -929,11 +893,11 @@ class SMessageUser : SMessage
     {
         super(MessageUser);
 
-        writei(id);
-        writei(cast(uint) timestamp);
-        writes(username);
-        writes(message);
-        writeb(new_message);
+        write!uint(id);
+        write!uint(cast(uint) timestamp);
+        write!string(username);
+        write!string(message);
+        write!bool(new_message);
     }
 }
 
@@ -943,9 +907,9 @@ class SFileSearch : SMessage
     {
         super(FileSearch);
 
-        writes(username);
-        writei(token);
-        writes(query);
+        write!string(username);
+        write!uint(token);
+        write!string(query);
     }
 }
 
@@ -956,12 +920,12 @@ class SGetUserStats : SMessage
     {
         super(GetUserStats);
 
-        writes(username);
-        writei(speed);
-        writei(upload_number);
-        writei(0);  // unknown, obsolete
-        writei(shared_files);
-        writei(shared_folders);
+        write!string(username);
+        write!uint(speed);
+        write!uint(upload_number);
+        write!uint(0);  // unknown, obsolete
+        write!uint(shared_files);
+        write!uint(shared_folders);
     }
 }
 
@@ -971,11 +935,11 @@ class SGetRecommendations : SMessage
     {
         super(GetRecommendations);
 
-        writei(cast(uint) recommendations.length);
+        write!uint(cast(uint) recommendations.length);
         foreach (item, level ; recommendations)
         {
-            writes(item);
-            writesi(level);
+            write!string(item);
+            write!int(level);
         }
     }
 }
@@ -986,11 +950,11 @@ class SGetGlobalRecommendations : SMessage
     {
         super(GlobalRecommendations);
 
-        writei(cast(uint) recommendations.length);
+        write!uint(cast(uint) recommendations.length);
         foreach (item, level ; recommendations)
         {
-            writes(item);
-            writesi(level);
+            write!string(item);
+            write!int(level);
         }
     }
 }
@@ -1001,13 +965,13 @@ class SUserInterests : SMessage
     {
         super(UserInterests);
 
-        writes(user);
+        write!string(user);
 
-        writei(cast(uint) likes.length);
-        foreach (item ; likes) writes(item);
+        write!uint(cast(uint) likes.length);
+        foreach (item ; likes) write!string(item);
 
-        writei(cast(uint) hates.length);
-        foreach (item ; hates) writes(item);
+        write!uint(cast(uint) hates.length);
+        foreach (item ; hates) write!string(item);
     }
 }
 
@@ -1025,9 +989,9 @@ class SUserSearch : SMessage
     {
         super(UserSearch);
 
-        writes(username);
-        writei(token);
-        writes(query);
+        write!string(username);
+        write!uint(token);
+        write!string(query);
     }
 }
 
@@ -1037,7 +1001,7 @@ class SAdminMessage : SMessage
     {
         super(AdminMessage);
 
-        writes(message);
+        write!string(message);
     }
 }
 
@@ -1047,7 +1011,7 @@ class SCheckPrivileges : SMessage
     {
         super(CheckPrivileges);
 
-        writei(cast(uint) time);
+        write!uint(cast(uint) time);
     }
 }
 
@@ -1057,7 +1021,7 @@ class SWishlistInterval : SMessage
     {
         super(WishlistInterval);
 
-        writei(interval);
+        write!uint(interval);
     }
 }
 
@@ -1067,11 +1031,11 @@ class SSimilarUsers : SMessage
     {
         super(SimilarUsers);
 
-        writei(cast(uint) usernames.length);
+        write!uint(cast(uint) usernames.length);
         foreach (username, weight ; usernames)
         {
-            writes(username);
-            writei(weight);
+            write!string(username);
+            write!uint(weight);
         }
     }
 }
@@ -1082,13 +1046,13 @@ class SItemRecommendations : SMessage
     {
         super(ItemRecommendations);
 
-        writes(item);
-        writei(cast(uint) recommendations.length);
+        write!string(item);
+        write!uint(cast(uint) recommendations.length);
 
         foreach (recommendation, weight ; recommendations)
         {
-            writes (recommendation);
-            writesi(weight);
+            write!string (recommendation);
+            write!int(weight);
         }
     }
 }
@@ -1099,9 +1063,9 @@ class SItemSimilarUsers : SMessage
     {
         super(ItemSimilarUsers);
 
-        writes(item);
-        writei(cast(uint) usernames.length);
-        foreach (username ; usernames) writes(username);
+        write!string(item);
+        write!uint(cast(uint) usernames.length);
+        foreach (username ; usernames) write!string(username);
     }
 }
 
@@ -1111,12 +1075,12 @@ class SRoomTicker : SMessage
     {
         super(RoomTicker);
 
-        writes(room_name);
-        writei(cast(uint) tickers.length);
+        write!string(room_name);
+        write!uint(cast(uint) tickers.length);
         foreach (ticker ; sort_timestamp(tickers))
         {
-            writes(ticker.username);
-            writes(ticker.content);
+            write!string(ticker.username);
+            write!string(ticker.content);
         }
     }
 
@@ -1133,9 +1097,9 @@ class SRoomTickerAdd : SMessage
     {
         super(RoomTickerAdd);
 
-        writes(room_name);
-        writes(username);
-        writes(ticker);
+        write!string(room_name);
+        write!string(username);
+        write!string(ticker);
     }
 }
 
@@ -1145,8 +1109,8 @@ class SRoomTickerRemove : SMessage
     {
         super(RoomTickerRemove);
 
-        writes(room_name);
-        writes(username);
+        write!string(room_name);
+        write!string(username);
     }
 }
 
@@ -1156,9 +1120,9 @@ class SRoomSearch : SMessage
     {
         super(RoomSearch);
 
-        writes(username);
-        writei(token);
-        writes(query);
+        write!string(username);
+        write!uint(token);
+        write!string(query);
     }
 }
 
@@ -1168,8 +1132,8 @@ class SUserPrivileged : SMessage
     {
         super(UserPrivileged);
 
-        writes(username);
-        writeb(privileged);
+        write!string(username);
+        write!bool(privileged);
     }
 }
 
@@ -1179,7 +1143,7 @@ class SChangePassword : SMessage
     {
         super(ChangePassword);
 
-        writes(password);
+        write!string(password);
     }
 }
 
@@ -1189,9 +1153,9 @@ class SGlobalRoomMessage : SMessage
     {
         super(GlobalRoomMessage);
 
-        writes(room_name);
-        writes(username);
-        writes(message);
+        write!string(room_name);
+        write!string(username);
+        write!string(message);
     }
 }
 
@@ -1201,6 +1165,6 @@ class SCantConnectToPeer : SMessage
     {
         super(CantConnectToPeer);
 
-        writei(token);
+        write!uint(token);
     }
 }
