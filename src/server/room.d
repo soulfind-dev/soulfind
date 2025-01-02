@@ -71,7 +71,7 @@ class Room
         return (username in user_list) ? true : false;
     }
 
-    ulong nb_users()
+    ulong num_users()
     {
         return user_list.length;
     }

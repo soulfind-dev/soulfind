@@ -9,7 +9,7 @@ module soulfind.server.server;
 import core.time : Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_max_users, default_port, norm,
-                          red, server_user, VERSION;
+                          red, server_username, VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -45,10 +45,10 @@ class Server
     private User[string]  user_list;
 
 
-    this(string db_file)
+    this(string db_filename)
     {
         started_at = MonoTime.currTime;
-        db = new Sdb(db_file);
+        db = new Sdb(db_filename);
         global_room = new GlobalRoom();
 
         port = db.get_config_value("port").to!ushort.ifThrown(
@@ -253,24 +253,25 @@ class Server
 
     // File Searches
 
-    void do_FileSearch(uint token, string query, string username)
+    void search_files(uint token, string query, string username)
     {
         scope msg = new SFileSearch(username, token, query);
         send_to_all(msg);
     }
 
-    void do_UserSearch(uint token, string query, string username, string to)
+    void search_user_files(uint token, string query, string from_username,
+                           string to_username)
     {
-        auto user = get_user(to);
+        auto user = get_user(to_username);
         if (!user)
             return;
 
-        scope msg = new SFileSearch(username, token, query);
+        scope msg = new SFileSearch(from_username, token, query);
         user.send_message(msg);
     }
 
-    void do_RoomSearch(uint token, string query, string username,
-                        string room_name)
+    void search_room_files(uint token, string query, string username,
+                           string room_name)
     {
         auto room = get_room(room_name);
         if (!room)
@@ -283,14 +284,14 @@ class Server
 
     // Private Messages
 
-    PM add_pm(string content, string from, string to)
+    PM add_pm(string message, string from_username, string to_username)
     {
         auto pm = PM(
             new_pm_id,
             Clock.currTime.toUnixTime,
-            from,
-            to,
-            content
+            from_username,
+            to_username,
+            message
         );
 
         pm_list[pm.id] = pm;
@@ -303,10 +304,10 @@ class Server
             pm_list.remove(id);
     }
 
-    PM[] get_pms_for(string user)
+    PM[] get_pms_for(string username)
     {
         PM[] pms;
-        foreach (pm ; pm_list) if (pm.to == user) pms ~= pm;
+        foreach (pm ; pm_list) if (pm.to_username == username) pms ~= pm;
         return pms;
     }
 
@@ -349,7 +350,7 @@ class Server
     ulong[string] room_stats()
     {
         ulong[string] stats;
-        foreach (room ; room_list.values) stats[room.name] = room.nb_users;
+        foreach (room ; room_list.values) stats[room.name] = room.num_users;
         return stats;
     }
 
@@ -525,7 +526,7 @@ class Server
             case "rooms":
                 string list;
                 foreach (room ; room_list.values)
-                    list ~= "%s:%d ".format(room.name, room.nb_users);
+                    list ~= "%s:%d ".format(room.name, room.num_users);
                 admin_pm(admin, list);
                 break;
 
@@ -554,7 +555,7 @@ class Server
 
     private void admin_pm(User admin, string message)
     {
-        const pm = add_pm(message, server_user, admin.username);
+        const pm = add_pm(message, server_username, admin.username);
         const new_message = true;
         admin.send_pm(pm, new_message);
     }
@@ -664,7 +665,7 @@ class Server
             return false;
         }
 
-        const string[] forbidden_names = [server_user, ""];
+        const string[] forbidden_names = [server_username, ""];
         const string[] forbidden_words = ["  ", "sqlite3_"];
 
         foreach (name ; forbidden_names) if (name == text) {

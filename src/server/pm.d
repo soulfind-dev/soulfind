@@ -10,7 +10,7 @@ struct PM
 {
     uint    id;
     ulong   timestamp;
-    string  from;
-    string  to;
-    string  content;
+    string  from_username;
+    string  to_username;
+    string  message;
 }

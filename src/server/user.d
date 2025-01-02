@@ -7,7 +7,7 @@ module soulfind.server.user;
 @safe:
 
 import core.time : seconds;
-import soulfind.defines : blue, max_msg_size, norm, red, server_user;
+import soulfind.defines : blue, max_msg_size, norm, red, server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -42,8 +42,8 @@ class User
     private ushort          port;
     private long            priv_expiration;
 
-    private string[string]  liked_things;
-    private string[string]  hated_things;
+    private string[string]  liked_items;
+    private string[string]  hated_items;
 
     private Room[string]    joined_rooms;
 
@@ -179,7 +179,7 @@ class User
 
     private void watch(string peer_username)
     {
-        if (peer_username != server_user)
+        if (peer_username != server_username)
             watch_list[peer_username] = peer_username;
     }
 
@@ -218,43 +218,43 @@ class User
 
     // Interests
 
-    private void add_thing_he_likes(string thing)
+    private void add_liked_item(string item)
     {
-        if (!likes(thing)) liked_things[thing] = thing;
+        if (!likes(item)) liked_items[item] = item;
     }
 
-    private void del_thing_he_likes(string thing)
+    private void del_liked_item(string item)
     {
-        if (likes(thing)) liked_things.remove(thing);
+        if (likes(item)) liked_items.remove(item);
     }
 
-    private void add_thing_he_hates(string thing)
+    private void add_hated_item(string item)
     {
-        if (!hates(thing)) hated_things[thing] = thing;
+        if (!hates(item)) hated_items[item] = item;
     }
 
-    private void del_thing_he_hates(string thing)
+    private void del_hated_item(string item)
     {
-        if (hates(thing)) hated_things.remove(thing);
+        if (hates(item)) hated_items.remove(item);
     }
 
-    private bool likes(string thing)
+    private bool likes(string item)
     {
-        return thing in liked_things ? true : false;
+        return item in liked_items ? true : false;
     }
 
-    private bool hates(string thing)
+    private bool hates(string item)
     {
-        return thing in hated_things ? true : false;
+        return item in hated_items ? true : false;
     }
 
     private uint[string] global_recommendations()
     {
-        uint[string] list;
+        uint[string] recommendations;
         foreach (user ; server.users)
-            foreach (thing ; user.liked_things) list[thing]++;
+            foreach (item ; user.liked_items) recommendations[item]++;
 
-        return list;
+        return recommendations;
     }
 
     private uint[string] recommendations()
@@ -265,44 +265,44 @@ class User
                 continue;
 
             int weight;
-            foreach (thing ; liked_things) {
-                if (user.likes(thing)) weight++;
-                if (user.hates(thing) && weight > 0) weight--;
+            foreach (item ; liked_items) {
+                if (user.likes(item)) weight++;
+                if (user.hates(item) && weight > 0) weight--;
             }
-            foreach (thing ; hated_things) {
-                if (user.hates(thing)) weight++;
-                if (user.likes(thing) && weight > 0) weight--;
+            foreach (item ; hated_items) {
+                if (user.hates(item)) weight++;
+                if (user.likes(item) && weight > 0) weight--;
             }
-            if (weight > 0) foreach (thing ; user.liked_things)
-                recommendations[thing] += weight;
+            if (weight > 0) foreach (item ; user.liked_items)
+                recommendations[item] += weight;
         }
         return recommendations;
     }
 
     private uint[string] similar_users()
     {
-        uint[string] users;
+        uint[string] usernames;
         foreach (user ; server.users) {
             if (user is this)
                 continue;
 
             int weight;
-            foreach (thing ; liked_things) {
-                if (user.likes(thing)) weight++;
-                if (user.hates(thing) && weight > 0) weight--;
+            foreach (item ; liked_items) {
+                if (user.likes(item)) weight++;
+                if (user.hates(item) && weight > 0) weight--;
             }
-            foreach (thing ; hated_things) {
-                if (user.hates(thing)) weight++;
-                if (user.likes(thing) && weight > 0) weight--;
+            foreach (item ; hated_items) {
+                if (user.hates(item)) weight++;
+                if (user.likes(item) && weight > 0) weight--;
             }
-            if (weight > 0) users[user.username] = weight;
+            if (weight > 0) usernames[user.username] = weight;
         }
-        return users;
+        return usernames;
     }
 
-    private uint[string] get_item_recommendations(string item)
+    private uint[string] item_recommendations(string item)
     {
-        uint[string] list;
+        uint[string] recommendations;
         foreach (user ; server.users) {
             if (user is this)
                 continue;
@@ -310,21 +310,21 @@ class User
             int weight;
             if (user.likes(item)) weight++;
             if (user.hates(item) && weight > 0) weight--;
-            if (weight > 0) foreach (thing ; user.liked_things)
-                list[thing] += weight;
+            if (weight > 0) foreach (recommendation ; user.liked_items)
+                recommendations[recommendation] += weight;
         }
-        return list;
+        return recommendations;
     }
 
-    private string[] get_item_similar_users(string item)
+    private string[] item_similar_users(string item)
     {
-        string[] list;
+        string[] usernames;
         foreach (user ; server.users) {
             if (user is this)
                 continue;
-            if (user.likes(item)) list ~= user.username;
+            if (user.likes(item)) usernames ~= user.username;
         }
-        return list;
+        return usernames;
     }
 
 
@@ -333,7 +333,7 @@ class User
     void send_pm(PM pm, bool new_message)
     {
         scope msg = new SMessageUser(
-            pm.id, pm.timestamp, pm.from, pm.content,
+            pm.id, pm.timestamp, pm.from_username, pm.message,
             new_message
         );
         send_message(msg);
@@ -361,7 +361,7 @@ class User
         room.remove_user(username);
         joined_rooms.remove(name);
 
-        if (room.nb_users == 0)
+        if (room.num_users == 0)
             server.del_room(name);
 
         return true;
@@ -494,7 +494,7 @@ class User
 
             case GetPeerAddress:
                 scope msg = new UGetPeerAddress(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 uint user_address;
                 uint user_port;
 
@@ -504,14 +504,14 @@ class User
                 }
 
                 scope response_msg = new SGetPeerAddress(
-                    msg.user, user_address, user_port
+                    msg.username, user_address, user_port
                 );
                 send_message(response_msg);
                 break;
 
             case WatchUser:
                 scope msg = new UWatchUser(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
 
                 bool user_exists;
                 uint user_status = Status.offline;
@@ -519,7 +519,7 @@ class User
                 uint user_shared_files, user_shared_folders;
                 string user_country_code;
 
-                if (msg.user == server_user) {
+                if (msg.username == server_username) {
                     user_exists = true;
                     user_status = Status.online;
                 }
@@ -534,7 +534,7 @@ class User
                     user_country_code = user.country_code;
                 }
                 else {
-                    const user_stats = server.db.get_user_stats(msg.user);
+                    const user_stats = server.db.get_user_stats(msg.username);
                     user_exists = user_stats.exists;
                     user_speed = user_stats.speed;
                     user_upload_number = user_stats.upload_number;
@@ -542,10 +542,10 @@ class User
                     user_shared_folders = user_stats.shared_folders;
                 }
 
-                watch(msg.user);
+                watch(msg.username);
 
                 scope response_msg = new SWatchUser(
-                    msg.user, user_exists, user_status, user_speed,
+                    msg.username, user_exists, user_status, user_speed,
                     user_upload_number, user_shared_files, user_shared_folders,
                     user_country_code
                 );
@@ -554,85 +554,86 @@ class User
 
             case UnwatchUser:
                 scope msg = new UUnwatchUser(msg_buf, username);
-                unwatch(msg.user);
+                unwatch(msg.username);
                 break;
 
             case GetUserStatus:
                 scope msg = new UGetUserStatus(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 uint user_status = Status.offline;
                 bool user_privileged;
 
-                if (msg.user == server_user) {
+                if (msg.username == server_username) {
                     debug (user) writefln(
                         "Telling user %s that host %s is online",
-                        blue ~ username ~ norm, blue ~ server_user ~ norm
+                        blue ~ username ~ norm, blue ~ server_username ~ norm
                     );
                     user_status = Status.online;
                 }
                 else if (user) {
                     debug (user) writefln(
                         "Telling user %s that user %s is online",
-                        blue ~ username ~ norm, blue ~ msg.user ~ norm
+                        blue ~ username ~ norm, blue ~ msg.username ~ norm
                     );
                     user_status = user.status;
                     user_privileged = user.privileged;
                 }
-                else if (server.db.user_exists(msg.user)) {
+                else if (server.db.user_exists(msg.username)) {
                     debug (user) writefln(
                         "Telling user %s that user %s is offline",
-                        blue ~ username ~ norm, red ~ msg.user ~ norm
+                        blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
-                    user_privileged = server.db.get_user_privileges(msg.user)
-                        > Clock.currTime.toUnixTime;
+                    user_privileged = server.db.get_user_privileges(
+                        msg.username) > Clock.currTime.toUnixTime;
                 }
                 else {
                     debug (user) writefln(
                         "Telling user %s that non-existant user %s is offline",
-                        blue ~ username ~ norm, red ~ msg.user ~ norm
+                        blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
                 }
 
                 scope response_msg = new SGetUserStatus(
-                    msg.user, user_status, user_privileged
+                    msg.username, user_status, user_privileged
                 );
                 send_message(response_msg);
                 break;
 
             case SayChatroom:
                 scope msg = new USayChatroom(msg_buf, username);
-                auto room = server.get_room(msg.room);
+                auto room = server.get_room(msg.room_name);
                 if (!room)
                     break;
 
                 room.say(username, msg.message);
-                server.global_room.say(msg.room, username, msg.message);
+                server.global_room.say(msg.room_name, username, msg.message);
                 break;
 
             case JoinRoom:
                 scope msg = new UJoinRoom(msg_buf, username);
-                if (server.check_name(msg.room))
-                    join_room(msg.room);
+                if (server.check_name(msg.room_name))
+                    join_room(msg.room_name);
                 break;
 
             case LeaveRoom:
                 scope msg = new ULeaveRoom(msg_buf, username);
-                if (!leave_room(msg.room))
+                if (!leave_room(msg.room_name))
                     break;
 
-                scope response_msg = new SLeaveRoom(msg.room);
+                scope response_msg = new SLeaveRoom(msg.room_name);
                 send_message(response_msg);
                 break;
 
             case ConnectToPeer:
                 scope msg = new UConnectToPeer(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 if (!user)
                     break;
 
                 debug (user) writefln(
                     "User %s trying to connect indirectly to peer %s @ %s",
-                    blue ~ username ~ norm, blue ~ msg.user ~ norm, h_address
+                    blue ~ username ~ norm, blue ~ msg.username ~ norm,
+                    h_address
                 );
 
                 scope response_msg = new SConnectToPeer(
@@ -644,21 +645,23 @@ class User
 
             case MessageUser:
                 scope msg = new UMessageUser(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
 
-                if (msg.user == server_user) {
+                if (msg.username == server_username) {
                     server.admin_message(this, msg.message);
                 }
                 else if (user) {
                     // user is connected
-                    const pm = server.add_pm(msg.message, username, msg.user);
+                    const pm = server.add_pm(
+                        msg.message, username, msg.username
+                    );
                     const new_message = true;
 
                     user.send_pm(pm, new_message);
                 }
-                else if (server.db.user_exists(msg.user)) {
+                else if (server.db.user_exists(msg.username)) {
                     // user exists but not connected
-                    server.add_pm(msg.message, username, msg.user);
+                    server.add_pm(msg.message, username, msg.username);
                 }
                 break;
 
@@ -669,7 +672,7 @@ class User
 
             case FileSearch:
                 scope msg = new UFileSearch(msg_buf, username);
-                server.do_FileSearch(msg.token, msg.query, username);
+                server.search_files(msg.token, msg.query, username);
                 break;
 
             case SetStatus:
@@ -685,10 +688,11 @@ class User
                 scope msg = new USharedFoldersFiles(msg_buf, username);
                 debug (user) writefln(
                     "User %s reports sharing %d files in %d folders",
-                    blue ~ username ~ norm, msg.nb_files, msg.nb_folders
+                    blue ~ username ~ norm, msg.shared_files,
+                    msg.shared_folders
                 );
-                set_shared_folders(msg.nb_folders);
-                set_shared_files(msg.nb_files);
+                set_shared_folders(msg.shared_folders);
+                set_shared_files(msg.shared_files);
 
                 scope response_msg = new SGetUserStats(
                     username, speed, upload_number, shared_files,
@@ -699,7 +703,7 @@ class User
 
             case GetUserStats:
                 scope msg = new UGetUserStats(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
 
                 uint user_speed, user_upload_number;
                 uint user_shared_files, user_shared_folders;
@@ -711,7 +715,7 @@ class User
                     user_shared_folders = user.shared_folders;
                 }
                 else {
-                    const user_stats = server.db.get_user_stats(msg.user);
+                    const user_stats = server.db.get_user_stats(msg.username);
                     user_speed = user_stats.speed;
                     user_upload_number = user_stats.upload_number;
                     user_shared_files = user_stats.shared_files;
@@ -719,7 +723,7 @@ class User
                 }
 
                 scope response_msg = new SGetUserStats(
-                    msg.user, user_speed, user_upload_number,
+                    msg.username, user_speed, user_upload_number,
                     user_shared_files, user_shared_folders
                 );
                 send_message(response_msg);
@@ -727,27 +731,29 @@ class User
 
             case UserSearch:
                 scope msg = new UUserSearch(msg_buf, username);
-                server.do_UserSearch(msg.token, msg.query, username, msg.user);
+                server.search_user_files(
+                    msg.token, msg.query, username, msg.username
+                );
                 break;
 
             case AddThingILike:
                 scope msg = new UAddThingILike(msg_buf, username);
-                add_thing_he_likes(msg.thing);
+                add_liked_item(msg.item);
                 break;
 
             case RemoveThingILike:
                 scope msg = new URemoveThingILike(msg_buf, username);
-                del_thing_he_likes(msg.thing);
+                del_liked_item(msg.item);
                 break;
 
             case AddThingIHate:
                 scope msg = new UAddThingIHate(msg_buf, username);
-                add_thing_he_hates(msg.thing);
+                add_hated_item(msg.item);
                 break;
 
             case RemoveThingIHate:
                 scope msg = new URemoveThingIHate(msg_buf, username);
-                del_thing_he_hates(msg.thing);
+                del_hated_item(msg.item);
                 break;
 
             case GetRecommendations:
@@ -772,12 +778,12 @@ class User
 
             case UserInterests:
                 scope msg = new UUserInterests(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 if (!user)
                     break;
 
                 scope response_msg = new SUserInterests(
-                    user.username, user.liked_things, user.hated_things
+                    user.username, user.liked_items, user.hated_items
                 );
                 send_message(response_msg);
                 break;
@@ -796,13 +802,13 @@ class User
 
             case WishlistSearch:
                 scope msg = new UWishlistSearch(msg_buf, username);
-                server.do_FileSearch(msg.token, msg.query, username);
+                server.search_files(msg.token, msg.query, username);
                 break;
 
             case ItemRecommendations:
                 scope msg = new UItemRecommendations(msg_buf, username);
                 scope response_msg = new SItemRecommendations(
-                    msg.item, get_item_recommendations(msg.item)
+                    msg.item, item_recommendations(msg.item)
                 );
                 send_message(response_msg);
                 break;
@@ -810,20 +816,22 @@ class User
             case ItemSimilarUsers:
                 scope msg = new UItemSimilarUsers(msg_buf, username);
                 scope response_msg = new SItemSimilarUsers(
-                    msg.item, get_item_similar_users(msg.item)
+                    msg.item, item_similar_users(msg.item)
                 );
                 send_message(response_msg);
                 break;
 
             case SetRoomTicker:
                 scope msg = new USetRoomTicker(msg_buf, username);
-                auto room = server.get_room(msg.room);
-                if (room) room.add_ticker(username, msg.tick);
+                auto room = server.get_room(msg.room_name);
+                if (room) room.add_ticker(username, msg.ticker);
                 break;
 
             case RoomSearch:
                 scope msg = new URoomSearch(msg_buf, username);
-                server.do_RoomSearch(msg.token, msg.query, username, msg.room);
+                server.search_room_files(
+                    msg.token, msg.query, username, msg.room_name
+                );
                 break;
 
             case SendUploadSpeed:
@@ -841,7 +849,7 @@ class User
 
             case UserPrivileged:
                 scope msg = new UUserPrivileged(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 if (!user)
                     break;
 
@@ -853,8 +861,8 @@ class User
 
             case GivePrivileges:
                 scope msg = new UGivePrivileges(msg_buf, username);
-                auto user = server.get_user(msg.user);
-                const admin = server.db.is_admin(msg.user);
+                auto user = server.get_user(msg.username);
+                const admin = server.db.is_admin(msg.username);
                 if (!user)
                     break;
                 if (msg.time > privileges && !admin)
@@ -879,7 +887,7 @@ class User
                 scope msg = new UMessageUsers(msg_buf, username);
                 bool new_message = true;
 
-                foreach (target_username ; msg.users) {
+                foreach (target_username ; msg.usernames) {
                     auto user = server.get_user(target_username);
                     if (!user)
                         continue;
@@ -903,7 +911,7 @@ class User
 
             case CantConnectToPeer:
                 scope msg = new UCantConnectToPeer(msg_buf, username);
-                auto user = server.get_user(msg.user);
+                auto user = server.get_user(msg.username);
                 if (!user)
                     return;
 
@@ -956,7 +964,7 @@ class User
             const new_message = false;
             debug (user) writefln(
                 "Sending offline PM (id %d) from %s to %s",
-                pm.id, pm.from, blue ~ username ~ norm
+                pm.id, pm.from_username, blue ~ username ~ norm
             );
             send_pm(pm, new_message);
         }

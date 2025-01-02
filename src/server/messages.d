@@ -195,117 +195,117 @@ class USetWaitPort : UMessage
 
 class UGetPeerAddress : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class UWatchUser : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class UUnwatchUser : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class UGetUserStatus : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class USayChatroom : UMessage
 {
-    string  room;
+    string  room_name;
     string  message;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        room    = reads();
-        message = reads();
+        room_name = reads();
+        message   = reads();
     }
 }
 
 class UJoinRoom : UMessage
 {
-    string room;
+    string room_name;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        room = reads();
+        room_name = reads();
     }
 }
 
 class ULeaveRoom : UMessage
 {
-    string room;
+    string room_name;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        room = reads();
+        room_name = reads();
     }
 }
 
 class UConnectToPeer : UMessage
 {
     uint    token;
-    string  user;
+    string  username;
     string  type;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        token = readi();
-        user  = reads();
-        type  = reads();
+        token    = readi();
+        username = reads();
+        type     = reads();
     }
 }
 
 class UMessageUser : UMessage
 {
-    string  user;
+    string  username;
     string  message;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user    = reads();
-        message = reads();
+        username = reads();
+        message  = reads();
     }
 }
 
@@ -391,33 +391,33 @@ class USendUploadSpeed : UMessage
 
 class USharedFoldersFiles : UMessage
 {
-    uint  nb_folders;
-    uint  nb_files;
+    uint  shared_folders;
+    uint  shared_files;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        nb_folders = readi();
-        nb_files   = readi();
+        shared_folders = readi();
+        shared_files   = readi();
     }
 }
 
 class UGetUserStats : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class UUserSearch : UMessage
 {
-    string  user;
+    string  username;
     uint    token;
     string  query;
 
@@ -425,33 +425,33 @@ class UUserSearch : UMessage
     {
         super(in_buf, in_username);
 
-        user  = reads();
-        token = readi();
-        query = reads();
+        username = reads();
+        token    = readi();
+        query    = reads();
     }
 }
 
 class UAddThingILike : UMessage
 {
-    string thing;
+    string item;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        thing = reads();
+        item = reads();
     }
 }
 
 class URemoveThingILike : UMessage
 {
-    string thing;
+    string item;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        thing = reads();
+        item = reads();
     }
 }
 
@@ -473,13 +473,13 @@ class UGlobalRecommendations : UMessage
 
 class UUserInterests : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
@@ -501,25 +501,25 @@ class UCheckPrivileges : UMessage
 
 class UAddThingIHate : UMessage
 {
-    string thing;
+    string item;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        thing = reads();
+        item = reads();
     }
 }
 
 class URemoveThingIHate : UMessage
 {
-    string thing;
+    string item;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        thing = reads();
+        item = reads();
     }
 }
 
@@ -549,21 +549,21 @@ class UItemSimilarUsers : UMessage
 
 class USetRoomTicker : UMessage
 {
-    string  room;
-    string  tick;
+    string  room_name;
+    string  ticker;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        room = reads();
-        tick = reads();
+        room_name = reads();
+        ticker    = reads();
     }
 }
 
 class URoomSearch : UMessage
 {
-    string  room;
+    string  room_name;
     uint    token;
     string  query;
 
@@ -571,35 +571,35 @@ class URoomSearch : UMessage
     {
         super(in_buf, in_username);
 
-        room  = reads();
-        token = readi();
-        query = reads();
+        room_name = reads();
+        token     = readi();
+        query     = reads();
     }
 }
 
 class UUserPrivileged : UMessage
 {
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
+        username = reads();
     }
 }
 
 class UGivePrivileges : UMessage
 {
-    string  user;
+    string  username;
     uint    time;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        user = reads();
-        time = readi();
+        username = reads();
+        time     = readi();
     }
 }
 
@@ -617,14 +617,14 @@ class UChangePassword : UMessage
 
 class UMessageUsers : UMessage
 {
-    string[]  users;
+    string[]  usernames;
     string    message;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        foreach (i ; 0 .. readi()) users ~= reads();
+        foreach (i ; 0 .. readi()) usernames ~= reads();
         message = reads();
     }
 }
@@ -648,14 +648,14 @@ class ULeaveGlobalRoom : UMessage
 class UCantConnectToPeer : UMessage
 {
     uint token;
-    string user;
+    string username;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        token = readi();
-        user  = reads();
+        token    = readi();
+        username = reads();
     }
 }
 
@@ -726,16 +726,15 @@ class SMessage
 
 class SLogin : SMessage
 {
-    this(bool success, string mesg, uint ip_address = 0,
+    this(bool success, string message, uint ip_address = 0,
          string password = null, bool supporter = false) scope
     {
         super(Login);
 
         writeb(success);
-        writes(mesg);
+        writes(message);
 
-        if (success)
-        {
+        if (success) {
             writei(ip_address);
             writes(password);
             writeb(supporter);
@@ -746,7 +745,7 @@ class SLogin : SMessage
 class SGetPeerAddress : SMessage
 {
     this(string username, uint ip_address, uint port, uint unknown = 0,
-            uint obfuscated_port = 0) scope
+         uint obfuscated_port = 0) scope
     {
         super(GetPeerAddress);
 
@@ -760,13 +759,13 @@ class SGetPeerAddress : SMessage
 
 class SWatchUser : SMessage
 {
-    this(string user, bool exists, uint status, uint speed,
+    this(string username, bool exists, uint status, uint speed,
          uint upload_number, uint shared_files, uint shared_folders,
          string country_code) scope
     {
         super(WatchUser);
 
-        writes(user);
+        writes(username);
         writeb(exists);
         if (!exists)
             return;
@@ -795,13 +794,13 @@ class SGetUserStatus : SMessage
 
 class SSayChatroom : SMessage
 {
-    this(string room, string user, string mesg) scope
+    this(string room_name, string username, string message) scope
     {
         super(SayChatroom);
 
-        writes(room);
-        writes(user);
-        writes(mesg);
+        writes(room_name);
+        writes(username);
+        writes(message);
     }
 }
 
@@ -817,24 +816,24 @@ class SRoomList : SMessage
         writei(cast(uint) rooms.length);
         foreach (room, users ; rooms) writei(cast(uint) users);
 
-        writei(0);    // number of owned private rooms(unimplemented)
-        writei(0);    // number of owned private rooms(unimplemented)
-        writei(0);    // number of other private rooms(unimplemented)
-        writei(0);    // number of other private rooms(unimplemented)
-        writei(0);    // number of operated private rooms(unimplemented)
+        writei(0);    // number of owned private rooms (unimplemented)
+        writei(0);    // number of owned private rooms (unimplemented)
+        writei(0);    // number of other private rooms (unimplemented)
+        writei(0);    // number of other private rooms (unimplemented)
+        writei(0);    // number of operated private rooms (unimplemented)
     }
 }
 
 class SJoinRoom : SMessage
 {
-    this(string room, string[] usernames, uint[string] statuses,
+    this(string room_name, string[] usernames, uint[string] statuses,
          uint[string] speeds, uint[string] upload_numbers,
          uint[string] shared_files, uint[string] shared_folders,
          string[string] country_codes) scope
     {
         super(JoinRoom);
 
-        writes(room);
+        writes(room_name);
         const n = cast(uint) usernames.length;
 
         writei(n);
@@ -863,23 +862,23 @@ class SJoinRoom : SMessage
 
 class SLeaveRoom : SMessage
 {
-    this(string room) scope
+    this(string room_name) scope
     {
         super(LeaveRoom);
 
-        writes(room);
+        writes(room_name);
     }
 }
 
 class SUserJoinedRoom : SMessage
 {
-    this(string room, string username, uint status,
+    this(string room_name, string username, uint status,
          uint speed, uint upload_number, uint shared_files,
          uint shared_folders, string country_code) scope
     {
         super(UserJoinedRoom);
 
-        writes(room);
+        writes(room_name);
         writes(username);
         writei(status);
         writei(speed);
@@ -894,11 +893,11 @@ class SUserJoinedRoom : SMessage
 
 class SUserLeftRoom : SMessage
 {
-    this(string username, string room) scope
+    this(string username, string room_name) scope
     {
         super(UserLeftRoom);
 
-        writes(room);
+        writes(room_name);
         writes(username);
     }
 }
@@ -906,8 +905,8 @@ class SUserLeftRoom : SMessage
 class SConnectToPeer : SMessage
 {
     this(string username, string type, uint ip_address, uint port,
-            uint token, bool privileged, uint unknown = 0,
-            uint obfuscated_port = 0) scope
+         uint token, bool privileged, uint unknown = 0,
+         uint obfuscated_port = 0) scope
     {
         super(ConnectToPeer);
 
@@ -924,28 +923,28 @@ class SConnectToPeer : SMessage
 
 class SMessageUser : SMessage
 {
-    this(uint id, ulong timestamp, string from, string content,
-            bool new_message) scope
+    this(uint id, ulong timestamp, string username, string message,
+         bool new_message) scope
     {
         super(MessageUser);
 
         writei(id);
         writei(cast(uint) timestamp);
-        writes(from);
-        writes(content);
+        writes(username);
+        writes(message);
         writeb(new_message);
     }
 }
 
 class SFileSearch : SMessage
 {
-    this(string username, uint token, string text) scope
+    this(string username, uint token, string query) scope
     {
         super(FileSearch);
 
         writes(username);
         writei(token);
-        writes(text);
+        writes(query);
     }
 }
 
@@ -967,14 +966,14 @@ class SGetUserStats : SMessage
 
 class SGetRecommendations : SMessage
 {
-    this(uint[string] list) scope
+    this(uint[string] recommendations) scope
     {
         super(GetRecommendations);
 
-        writei(cast(uint) list.length);
-        foreach (artist, level ; list)
+        writei(cast(uint) recommendations.length);
+        foreach (item, level ; recommendations)
         {
-            writes(artist);
+            writes(item);
             writesi(level);
         }
     }
@@ -982,14 +981,14 @@ class SGetRecommendations : SMessage
 
 class SGetGlobalRecommendations : SMessage
 {
-    this(uint[string] list) scope
+    this(uint[string] recommendations) scope
     {
         super(GlobalRecommendations);
 
-        writei(cast(uint) list.length);
-        foreach (artist, level ; list)
+        writei(cast(uint) recommendations.length);
+        foreach (item, level ; recommendations)
         {
-            writes(artist);
+            writes(item);
             writesi(level);
         }
     }
@@ -1004,10 +1003,10 @@ class SUserInterests : SMessage
         writes(user);
 
         writei(cast(uint) likes.length);
-        foreach (thing ; likes) writes(thing);
+        foreach (item ; likes) writes(item);
 
         writei(cast(uint) hates.length);
-        foreach (thing ; hates) writes(thing);
+        foreach (item ; hates) writes(item);
     }
 }
 
@@ -1021,11 +1020,11 @@ class SRelogged : SMessage
 
 class SUserSearch : SMessage
 {
-    this(string user, uint token, string query) scope
+    this(string username, uint token, string query) scope
     {
         super(UserSearch);
 
-        writes(user);
+        writes(username);
         writei(token);
         writes(query);
     }
@@ -1063,14 +1062,14 @@ class SWishlistInterval : SMessage
 
 class SSimilarUsers : SMessage
 {
-    this(uint[string] list) scope
+    this(uint[string] usernames) scope
     {
         super(SimilarUsers);
 
-        writei(cast(uint) list.length);
-        foreach (user, weight ; list)
+        writei(cast(uint) usernames.length);
+        foreach (username, weight ; usernames)
         {
-            writes(user);
+            writes(username);
             writei(weight);
         }
     }
@@ -1078,14 +1077,14 @@ class SSimilarUsers : SMessage
 
 class SItemRecommendations : SMessage
 {
-    this(string item, uint[string] list) scope
+    this(string item, uint[string] recommendations) scope
     {
         super(ItemRecommendations);
 
         writes(item);
-        writei(cast(uint) list.length);
+        writei(cast(uint) recommendations.length);
 
-        foreach (recommendation, weight ; list)
+        foreach (recommendation, weight ; recommendations)
         {
             writes (recommendation);
             writesi(weight);
@@ -1095,23 +1094,23 @@ class SItemRecommendations : SMessage
 
 class SItemSimilarUsers : SMessage
 {
-    this(string item, string[] list) scope
+    this(string item, string[] usernames) scope
     {
         super(ItemSimilarUsers);
 
         writes(item);
-        writei(cast(uint) list.length);
-        foreach (user ; list) writes(user);
+        writei(cast(uint) usernames.length);
+        foreach (username ; usernames) writes(username);
     }
 }
 
 class SRoomTicker : SMessage
 {
-    this(string room, Ticker[] tickers) scope
+    this(string room_name, Ticker[] tickers) scope
     {
         super(RoomTicker);
 
-        writes(room);
+        writes(room_name);
         writei(cast(uint) tickers.length);
         foreach (ticker ; sort_timestamp(tickers))
         {
@@ -1129,34 +1128,34 @@ class SRoomTicker : SMessage
 
 class SRoomTickerAdd : SMessage
 {
-    this(string room, string user, string ticker) scope
+    this(string room_name, string username, string ticker) scope
     {
         super(RoomTickerAdd);
 
-        writes(room);
-        writes(user);
+        writes(room_name);
+        writes(username);
         writes(ticker);
     }
 }
 
 class SRoomTickerRemove : SMessage
 {
-    this(string room, string user) scope
+    this(string room_name, string username) scope
     {
         super(RoomTickerRemove);
 
-        writes(room);
-        writes(user);
+        writes(room_name);
+        writes(username);
     }
 }
 
 class SRoomSearch : SMessage
 {
-    this(string user, uint token, string query) scope
+    this(string username, uint token, string query) scope
     {
         super(RoomSearch);
 
-        writes(user);
+        writes(username);
         writei(token);
         writes(query);
     }
@@ -1185,13 +1184,13 @@ class SChangePassword : SMessage
 
 class SGlobalRoomMessage : SMessage
 {
-    this(string room, string user, string mesg) scope
+    this(string room_name, string username, string message) scope
     {
         super(GlobalRoomMessage);
 
-        writes(room);
-        writes(user);
-        writes(mesg);
+        writes(room_name);
+        writes(username);
+        writes(message);
     }
 }
 

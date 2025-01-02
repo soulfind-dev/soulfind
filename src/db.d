@@ -37,12 +37,13 @@ class Sdb
     const config_table  = "config";
 
 
-    this(string file, bool update = false)
+    this(string filename)
     {
-        open_db(file);
+        open_db(filename);
 
-        if (!exists(file) || !isFile(file))
-            throw new Exception("Cannot create database file %s".format(file));
+        if (!exists(filename) || !isFile(filename))
+            throw new Exception(
+                "Cannot create database file %s".format(filename));
 
         query(
             "CREATE TABLE IF NOT EXISTS %s(
@@ -66,9 +67,9 @@ class Sdb
     }
 
     @trusted
-    private void open_db(string file)
+    private void open_db(string filename)
     {
-        sqlite3_open(file.toStringz(), &db);
+        sqlite3_open(filename.toStringz(), &db);
     }
 
     private void init_config()

@@ -6,14 +6,14 @@
 module soulfind.server;
 @safe:
 
-import soulfind.defines : default_db_file;
+import soulfind.defines : default_db_filename;
 import soulfind.server.server : Server;
 import std.stdio : writefln;
 
 int run(string[] args)
 {
     bool daemon;
-    string db = default_db_file;
+    string db_filename = default_db_filename;
 
     if (args.length > 3) help(args);
 
@@ -28,7 +28,7 @@ int run(string[] args)
                 daemon = true;
                 break;
             default:
-                db = arg;
+                db_filename = arg;
                 break;
         }
     }
@@ -40,7 +40,7 @@ int run(string[] args)
             return 0;
     }
 
-    auto server = new Server(db);
+    auto server = new Server(db_filename);
     return server.listen();
 }
 
@@ -51,5 +51,5 @@ private void help(string[] args)
     output ~= "\n\tdatabase_file: path to the sqlite3 database (default: %s)";
     version (Posix) output ~= "\n\t-d, --daemon : fork in the background";
 
-    writefln(output, args[0], default_db_file);
+    writefln(output, args[0], default_db_filename);
 }
