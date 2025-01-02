@@ -13,7 +13,7 @@ version (Have_soulfind_server) import soulfind.server : run;
 version (Have_soulfind_setup)  import soulfind.setup : run;
 
 private extern(C) void handle_termination(int) {
-    writefln("\n" ~ exit_message);
+    writefln!("\n%s")(exit_message);
 }
 
 @trusted

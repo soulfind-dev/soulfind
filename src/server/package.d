@@ -8,7 +8,8 @@ module soulfind.server;
 
 import soulfind.defines : default_db_filename;
 import soulfind.server.server : Server;
-import std.stdio : writefln;
+import std.stdio : writefln, writeln;
+import std.string : format;
 
 int run(string[] args)
 {
@@ -46,10 +47,12 @@ int run(string[] args)
 
 private void help(string[] args)
 {
-    auto output = "Usage: %s [database_file]";
-    version (Posix) output ~= " [-d|--daemon]";
-    output ~= "\n\tdatabase_file: path to the sqlite3 database (default: %s)";
-    version (Posix) output ~= "\n\t-d, --daemon : fork in the background";
+    auto usage = format!("Usage: %s [database_file]")(args[0]);
+    version (Posix) usage ~= " [-d|--daemon]";
 
-    writefln(output, args[0], default_db_filename);
+    writeln(usage);
+    writefln!("\tdatabase_file: path to the sqlite3 database (default: %s)")(
+        default_db_filename
+    );
+    version (Posix) writeln("\t-d, --daemon : fork in the background");
 }

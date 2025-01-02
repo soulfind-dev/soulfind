@@ -90,8 +90,8 @@ class UMessage
         this.in_buf = in_buf;
         code = read!uint();
 
-        debug (msg) writefln(
-            "Receive <- %s (code %d) of %d bytes <- from user %s",
+        debug (msg) writefln!(
+            "Receive <- %s (code %d) of %d bytes <- from user %s")(
             blue ~ this.name ~ norm, code, in_buf.length,
             blue ~ in_username ~ norm
         );
@@ -125,8 +125,8 @@ class UMessage
         }
         else {
             offset = in_buf.length;
-            writefln(
-                "Message code %d, length %d not enough data trying to read",
+            writefln!(
+                "Message code %d, length %d not enough data trying to read")(
                 code, offset
             );
         }

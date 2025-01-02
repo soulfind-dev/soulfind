@@ -43,9 +43,9 @@ class Sdb
 
         if (!exists(filename) || !isFile(filename))
             throw new Exception(
-                "Cannot create database file %s".format(filename));
+                format!("Cannot create database file %s")(filename));
 
-        query(
+        const users_sql = format!(
             "CREATE TABLE IF NOT EXISTS %s(
                 username TEXT PRIMARY KEY,
                 password TEXT,
@@ -55,14 +55,20 @@ class Sdb
                 folders INTEGER,
                 banned INTEGER,
                 privileges INTEGER
-            ) WITHOUT ROWID;".format(users_table)
+            ) WITHOUT ROWID;")(
+            users_table
         );
-        query(
+
+        const admins_sql = format!(
             "CREATE TABLE IF NOT EXISTS %s(
                 username TEXT PRIMARY KEY,
                 level INTEGER
-            ) WITHOUT ROWID;".format(admins_table)
+            ) WITHOUT ROWID;")(
+            admins_table
         );
+
+        query(users_sql);
+        query(admins_sql);
         init_config();
     }
 
@@ -74,12 +80,14 @@ class Sdb
 
     private void init_config()
     {
-        query(
+        const sql = format!(
             "CREATE TABLE IF NOT EXISTS %s(
                 option TEXT PRIMARY KEY,
                 value
-            ) WITHOUT ROWID;".format(config_table)
+            ) WITHOUT ROWID;")(
+            config_table
         );
+        query(sql);
 
         init_config_option("port", default_port);
         init_config_option("max_users", default_max_users);
@@ -88,132 +96,145 @@ class Sdb
 
     private void init_config_option(string option, string value)
     {
-        query(
-            "INSERT OR IGNORE INTO %s(option, value)
-             VALUES('%s', '%s');".format(
+        const sql = format!(
+            "INSERT OR IGNORE INTO %s(option, value) VALUES('%s', '%s');")(
             config_table, option, escape(value)
-        ));
+        );
+        query(sql);
     }
 
     private void init_config_option(string option, uint value)
     {
-        query(
-            "INSERT OR IGNORE INTO %s(option, value) VALUES('%s', %d);".format(
+        const sql = format!(
+            "INSERT OR IGNORE INTO %s(option, value) VALUES('%s', %d);")(
             config_table, option, value
-        ));
+        );
+        query(sql);
     }
 
     void set_config_value(string option, string value)
     {
-        query(
-            "REPLACE INTO %s(option, value) VALUES('%s', '%s');".format(
+        const sql = format!(
+            "REPLACE INTO %s(option, value) VALUES('%s', '%s');")(
             config_table, option, escape(value)
-        ));
+        );
+        query(sql);
     }
 
     void set_config_value(string option, uint value)
     {
-        query(
-            "REPLACE INTO %s(option, value) VALUES('%s', %d);".format(
+        const sql = format!(
+            "REPLACE INTO %s(option, value) VALUES('%s', %d);")(
             config_table, option, value
-        ));
+        );
+        query(sql);
     }
 
     string get_config_value(string option)
     {
-        return query(
-            "SELECT value FROM %s WHERE option = '%s';".format(
-            config_table, option)
-        )[0][0];
+        const sql = format!("SELECT value FROM %s WHERE option = '%s';")(
+            config_table, option
+        );
+        return query(sql)[0][0];
     }
 
     void add_admin(string username, uint level = 0)
     {
-        query(
-            "REPLACE INTO %s(username, level) VALUES('%s', %d);".format(
+        const sql = format!(
+            "REPLACE INTO %s(username, level) VALUES('%s', %d);")(
             admins_table, escape(username), level
-        ));
+        );
+        query(sql);
     }
 
     void del_admin(string username)
     {
-        query(
-            "DELETE FROM %s WHERE username = '%s';".format(
+        const sql = format!("DELETE FROM %s WHERE username = '%s';")(
             admins_table, escape(username)
-        ));
+        );
+        query(sql);
     }
 
     string[] admins()
     {
-        string[] ret;
-        foreach (record ; query("SELECT username FROM %s;".format(
-                 admins_table)))
-            ret ~= record[0];
-        return ret;
+        const sql = format!("SELECT username FROM %s;")(
+            admins_table
+        );
+        string[] admins;
+        foreach (record ; query(sql)) admins ~= record[0];
+        return admins;
     }
 
     bool is_admin(string username)
     {
-        return query(
-            "SELECT username FROM %s WHERE username = '%s';".format(
+        const sql = format!(
+            "SELECT username FROM %s WHERE username = '%s';")(
             admins_table, escape(username)
-        )).length > 0;
+        );
+        return query(sql).length > 0;
     }
 
     void add_user(string username, string password)
     {
-        query(
-            "INSERT INTO %s(username, password) VALUES('%s', '%s');".format(
+        const sql = format!(
+            "INSERT INTO %s(username, password) VALUES('%s', '%s');")(
             users_table, escape(username), escape(password)
-        ));
+        );
+        query(sql);
     }
 
     bool user_exists(string username)
     {
-        return query(
-            "SELECT username FROM %s WHERE username = '%s';".format(
+        const sql = format!(
+            "SELECT username FROM %s WHERE username = '%s';")(
             users_table, escape(username)
-        )).length > 0;
+        );
+        return query(sql).length > 0;
     }
 
     void user_update_field(string username, string field, string value)
     {
-        query(
-            "UPDATE %s SET %s = '%s' WHERE username = '%s';".format(
+        const sql = format!(
+            "UPDATE %s SET %s = '%s' WHERE username = '%s';")(
             users_table, field, escape(value), escape(username)
-        ));
+        );
+        query(sql);
     }
 
     void user_update_field(string username, string field, ulong value)
     {
-        query(
-            "UPDATE %s SET %s = %d WHERE username = '%s';".format(
+        const sql = format!(
+            "UPDATE %s SET %s = %d WHERE username = '%s';")(
             users_table, field, value, escape(username)
-        ));
+        );
+        query(sql);
     }
 
     string get_pass(string username)
     {
-        return query(
-            "SELECT password FROM %s WHERE username = '%s';".format(
+        const sql = format!(
+            "SELECT password FROM %s WHERE username = '%s';")(
             users_table, escape(username)
-        ))[0][0];
+        );
+        return query(sql)[0][0];
     }
 
     long get_user_privileges(string username)
     {
-        return query(
-            "SELECT privileges FROM %s WHERE username = '%s';".format(
+        const sql = format!(
+            "SELECT privileges FROM %s WHERE username = '%s';")(
             users_table, escape(username)
-        ))[0][0].to!long.ifThrown(0);
+        );
+        return query(sql)[0][0].to!long.ifThrown(0);
     }
 
     bool is_banned(string username)
     {
-        const res = query(
-            "SELECT banned FROM %s WHERE username = '%s';".format(
+        const sql = format!(
+            "SELECT banned FROM %s WHERE username = '%s';")(
             users_table, escape(username)
-        ));
+        );
+        const res = query(sql);
 
         if (res.length > 0)
             return res[0][0].to!uint.ifThrown(0) > 0;
@@ -223,23 +244,25 @@ class Sdb
 
     SdbUserStats get_user_stats(string username)
     {
-        debug(db) writefln(
-            "DB: Requested %s's info...", blue ~ username ~ norm);
-        const res = query(
+        debug(db) writefln!("DB: Requested %s's info...")(
+            blue ~ username ~ norm
+        );
+        const sql = format!(
             "SELECT speed,ulnum,files,folders
              FROM %s
-             WHERE username = '%s';".format(
+             WHERE username = '%s';")(
             users_table, escape(username)
-        ));
+        );
+        const res = query(sql);
         auto user_stats = SdbUserStats();
 
         if (res.length > 0) {
-            const user                 = res[0];
+            const record               = res[0];
             user_stats.exists          = true;
-            user_stats.speed           = user[0].to!uint.ifThrown(0);
-            user_stats.upload_number   = user[1].to!uint.ifThrown(0);
-            user_stats.shared_files    = user[2].to!uint.ifThrown(0);
-            user_stats.shared_folders  = user[3].to!uint.ifThrown(0);
+            user_stats.speed           = record[0].to!uint.ifThrown(0);
+            user_stats.upload_number   = record[1].to!uint.ifThrown(0);
+            user_stats.shared_files    = record[2].to!uint.ifThrown(0);
+            user_stats.shared_folders  = record[3].to!uint.ifThrown(0);
         }
         return user_stats;
     }
@@ -247,23 +270,23 @@ class Sdb
     string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
     {
         string[] ret;
-        string query_str = "SELECT username FROM %s".format(users_table);
-        if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
+        auto sql = format!("SELECT username FROM %s")(users_table);
+        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
             escape(filter_field), min, max
         );
-        query_str ~= ";";
-        foreach (record ; query(query_str)) ret ~= record[0];
+        sql ~= ";";
+        foreach (record ; query(sql)) ret ~= record[0];
         return ret;
     }
 
     uint num_users(string filter_field = null, uint min = 1, uint max = -1)
     {
-        string query_str = "SELECT COUNT(1) FROM %s".format(users_table);
-        if (filter_field) query_str ~= " WHERE %s BETWEEN %d AND %d".format(
+        auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
+        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
             escape(filter_field), min, max
         );
-        query_str ~= ";";
-        return query(query_str)[0][0].to!uint.ifThrown(0);
+        sql ~= ";";
+        return query(sql)[0][0].to!uint.ifThrown(0);
     }
 
     @trusted
@@ -274,7 +297,7 @@ class Sdb
         uint res;
         uint fin;
 
-        debug(db) writefln("DB: Query [%s]", query);
+        debug(db) writefln!("DB: Query [%s]")(query);
         sqlite3_prepare_v2(
             db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
@@ -295,10 +318,12 @@ class Sdb
 
         if (res != SQLITE_DONE || fin != SQLITE_OK) {
             // https://sqlite.org/rescode.html#extrc
-            debug(db) writefln(
-                "DB: Result Code %d (%s)", res, sqlite3_errstr(res).to!string);
-            debug(db) writefln(
-                "    >Final Code %d (%s)", fin, sqlite3_errstr(fin).to!string);
+            debug(db) writefln!("DB: Result Code %d (%s)")(
+                res, sqlite3_errstr(res).to!string
+            );
+            debug(db) writefln!("    >Final Code %d (%s)")(
+                fin, sqlite3_errstr(fin).to!string
+            );
             throw new Exception(sqlite3_errstr(fin).to!string);
         }
         return ret;

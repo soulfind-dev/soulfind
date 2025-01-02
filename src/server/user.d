@@ -67,12 +67,14 @@ class User
 
     string h_client_version()
     {
-        return "%d.%d".format(major_version, minor_version);
+        return format!("%d.%d")(major_version, minor_version);
     }
 
     string h_address()
     {
-        return "%s:%d".format(InternetAddress.addrToString(ip_address), port);
+        return format!("%s:%d")(
+            InternetAddress.addrToString(ip_address), port
+        );
     }
 
 
@@ -131,8 +133,8 @@ class User
         scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
 
-        debug (user) writefln(
-            "Given %d secs of privileges to user %s who now has %d secs",
+        debug (user) writefln!(
+            "Given %d secs of privileges to user %s who now has %d secs")(
             seconds, blue ~ username ~ norm, privileges
         );
     }
@@ -146,8 +148,8 @@ class User
         scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
 
-        debug (user) writefln(
-            "Taken %d secs of privileges from user %s who now has %d secs",
+        debug (user) writefln!(
+            "Taken %d secs of privileges from user %s who now has %d secs")(
             seconds, blue ~ username ~ norm, privileges
         );
     }
@@ -207,8 +209,8 @@ class User
 
     private void send_to_watching(scope SMessage msg)
     {
-        debug (msg) writefln(
-            "Transmit=> %s (code %d) to users watching user %s...",
+        debug (msg) writefln!(
+            "Transmit=> %s (code %d) to users watching user %s...")(
             blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
         foreach (user ; server.users)
@@ -400,8 +402,8 @@ class User
         out_buf[offset .. offset + uint.sizeof] = msg_len.nativeToLittleEndian;
         out_buf[offset + uint.sizeof .. $] = msg_buf;
 
-        debug (msg) writefln(
-            "Sending -> %s (code %d) of %d bytes -> to user %s",
+        debug (msg) writefln!(
+            "Sending -> %s (code %d) of %d bytes -> to user %s")(
             blue ~ msg.name ~ norm, msg.code, msg_len, blue ~ username ~ norm
         );
     }
@@ -458,8 +460,7 @@ class User
                 if (error) {
                     username = msg.username;
                     should_quit = true;
-                    writefln(
-                        "User %s denied (%s)",
+                    writefln!("User %s denied (%s)")(
                         red ~ username ~ norm, red ~ error ~ norm
                     );
                     scope response_msg = new SLogin(false, error);
@@ -470,17 +471,14 @@ class User
                 auto user = server.get_user(msg.username);
 
                 if (user && user.status != Status.offline) {
-                    writefln(
-                        "User %s already logged in with version %d.%d",
-                        red ~ msg.username ~ norm,
-                        user.major_version, user.minor_version
+                    writefln!("User %s already logged in with version %s")(
+                        red ~ msg.username ~ norm, user.h_client_version
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
                     user.quit();
                 }
-                writefln(
-                    "User %s logging in with version %d.%d",
+                writefln!("User %s logging in with version %d.%d")(
                     blue ~ msg.username ~ norm,
                     msg.major_version, msg.minor_version
                 );
@@ -564,31 +562,32 @@ class User
                 bool user_privileged;
 
                 if (msg.username == server_username) {
-                    debug (user) writefln(
-                        "Telling user %s that host %s is online",
+                    debug (user) writefln!(
+                        "Telling user %s that host %s is online")(
                         blue ~ username ~ norm, blue ~ server_username ~ norm
                     );
                     user_status = Status.online;
                 }
                 else if (user) {
-                    debug (user) writefln(
-                        "Telling user %s that user %s is online",
+                    debug (user) writefln!(
+                        "Telling user %s that user %s is online")(
                         blue ~ username ~ norm, blue ~ msg.username ~ norm
                     );
                     user_status = user.status;
                     user_privileged = user.privileged;
                 }
                 else if (server.db.user_exists(msg.username)) {
-                    debug (user) writefln(
-                        "Telling user %s that user %s is offline",
+                    debug (user) writefln!(
+                        "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
                     user_privileged = server.db.get_user_privileges(
                         msg.username) > Clock.currTime.toUnixTime;
                 }
                 else {
-                    debug (user) writefln(
-                        "Telling user %s that non-existant user %s is offline",
+                    debug (user) writefln!(
+                        "Telling user %s that non-existent user %s is "
+                      ~ "offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
                 }
@@ -630,8 +629,8 @@ class User
                 if (!user)
                     break;
 
-                debug (user) writefln(
-                    "User %s trying to connect indirectly to peer %s @ %s",
+                debug (user) writefln!(
+                    "User %s trying to connect indirectly to peer %s @ %s")(
                     blue ~ username ~ norm, blue ~ msg.username ~ norm,
                     h_address
                 );
@@ -686,8 +685,8 @@ class User
 
             case SharedFoldersFiles:
                 scope msg = new USharedFoldersFiles(msg_buf, username);
-                debug (user) writefln(
-                    "User %s reports sharing %d files in %d folders",
+                debug (user) writefln!(
+                    "User %s reports sharing %d files in %d folders")(
                     blue ~ username ~ norm, msg.shared_files,
                     msg.shared_folders
                 );
@@ -841,8 +840,8 @@ class User
                     break;
 
                 user.calc_speed(msg.speed);
-                debug (user) writefln(
-                    "User %s reports speed of %d B/s (~ %d B/s)",
+                debug (user) writefln!(
+                    "User %s reports speed of %d B/s (~ %d B/s)")(
                     blue ~ username ~ norm, msg.speed, user.speed
                 );
                 break;
@@ -920,10 +919,11 @@ class User
                 break;
 
             default:
-                debug (msg) writefln(
-                    red ~ "Unimplemented message code %d" ~ norm
-                    ~ " from user %s with length %d\n%s",
-                    code, blue ~ username ~ norm, msg_buf.length, msg_buf
+                debug (msg) writefln!(
+                    "Unimplemented message code %d from user %s with length "
+                  ~ "%d\n%s")(
+                    red ~ code ~ norm, blue ~ username ~ norm, msg_buf.length,
+                    msg_buf
                 );
                 break;
         }
@@ -942,7 +942,9 @@ class User
         shared_files = user_stats.shared_files;
         shared_folders = user_stats.shared_folders;
 
-        if (server.db.is_admin(username)) writefln("%s is an admin", username);
+        if (server.db.is_admin(username))
+            writefln!("%s is an admin")(username);
+
         server.add_user(this);
         watch(username);
 
@@ -962,8 +964,8 @@ class User
 
         foreach (pm ; server.get_pms_for(username)) {
             const new_message = false;
-            debug (user) writefln(
-                "Sending offline PM (id %d) from %s to %s",
+            debug (user) writefln!(
+                "Sending offline PM (id %d) from %s to %s")(
                 pm.id, pm.from_username, blue ~ username ~ norm
             );
             send_pm(pm, new_message);
@@ -979,6 +981,6 @@ class User
         server.global_room.remove_user(username);
 
         set_status(Status.offline);
-        writefln("User %s has quit", red ~ username ~ norm);
+        writefln!("User %s has quit")(red ~ username ~ norm);
     }
 }

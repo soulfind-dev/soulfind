@@ -76,16 +76,17 @@ class Server
             sock.listen(10);
         }
         catch (SocketOSException e) {
-            writefln("Unable to bind socket to port %d", port);
-            if (port < 1024) writefln(
-                "Are you trying to use a port less than "
-                ~ "1024 while running as a user ?"
+            const min_port = 1024;
+            writefln!("Unable to bind socket to port %d")(port);
+            if (port < min_port) writefln!(
+                "Are you trying to use a port less than %d while running as "
+              ~ "a user?")(
+                 min_port
             );
             return 1789;
         }
 
-        writefln(
-            "%s %s %s process %d listening on port %d",
+        writefln!("%s %s %s process %d listening on port %d")(
             red ~ "♥" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
             thisProcessID, port
         );
@@ -124,8 +125,8 @@ class Server
                     );
                     new_sock.blocking = false;
 
-                    debug (user) writefln(
-                        "Connection accepted from %s", new_sock.remoteAddress
+                    debug (user) writefln!("Connection accepted from %s")(
+                        new_sock.remoteAddress
                     );
                     user_socks[new_sock] = new User(
                         this, new_sock,
@@ -390,8 +391,7 @@ class Server
 
     private void send_to_all(scope SMessage msg)
     {
-        debug (msg) writefln(
-            "Transmit=> %s (code %d) to all users...",
+        debug (msg) writefln!("Transmit=> %s (code %d) to all users...")(
             blue ~ msg.name ~ norm, msg.code
         );
         foreach (user ; users) user.send_message(msg);
@@ -408,21 +408,19 @@ class Server
             case "help":
                 admin_pm(
                     admin,
-                    "Available commands :\n\n"
-                  ~ "users\n\tList connected users\n\n"
-                  ~ "info <user>\n\tInfo about user <user>\n\n"
-                  ~ "kickall\n\tDisconnect all users\n\n"
-                  ~ "kick <user>\n\tDisconnect <user>\n\n"
-                  ~ "[un]ban <user>\n\tUnban or ban and disconnect"
-                  ~ " user <user>\n\n"
-                  ~ "admins\n\tList admins\n\n"
-                  ~ "rooms\n\tList rooms and number of"
-                  ~ " occupiants\n\n"
-                  ~ "addprivileges <days> <user>\n\tAdd <days>"
-                  ~ " days of privileges to user <user>\n\n"
-                  ~ "message <message>\n\tSend global message"
-                  ~ " <message>\n\n"
-                  ~ "uptime\n\tShow server uptime\n\n"
+                    "Available commands :"
+                  ~ "\n\nusers\n\tList connected users"
+                  ~ "\n\ninfo <user>\n\tInfo about user <user>"
+                  ~ "\n\nkickall\n\tDisconnect all users"
+                  ~ "\n\nkick <user>\n\tDisconnect <user>"
+                  ~ "\n\n[un]ban <user>\n\tBan/unban and disconnect user"
+                  ~ " <user>"
+                  ~ "\n\nadmins\n\tList admins"
+                  ~ "\n\nrooms\n\tList rooms and number of occupiants"
+                  ~ "\n\naddprivileges <days> <user>\n\tAdd <days> days of"
+                  ~ " privileges to user <user>"
+                  ~ "\n\nmessage <message>\n\tSend global message <message>"
+                  ~ "\n\nuptime\n\tShow server uptime"
                 );
                 break;
 
@@ -445,7 +443,7 @@ class Server
                 auto user = get_user(username);
                 if (!user) {
                     admin_pm(
-                        admin, "User %s does not exist.".format(username)
+                        admin, format!("User %s does not exist.")(username)
                     );
                     break;
                 }
@@ -454,7 +452,7 @@ class Server
                 break;
 
             case "users":
-                const list = "%d connected users.\n\t%s".format(
+                const list = format!("%d connected users.\n\t%s")(
                     user_list.length,
                     user_list.keys.join("\n\t")
                 );
@@ -472,8 +470,8 @@ class Server
                 break;
 
             case "kickall":
-                debug (user) writefln(
-                    "Admin %s kicks ALL users...", blue ~ admin.username ~ norm
+                debug (user) writefln!("Admin %s kicks ALL users...")(
+                    blue ~ admin.username ~ norm
                 );
                 kick_all_users();
                 break;
@@ -486,7 +484,7 @@ class Server
                 const username = command[1 .. $].join(" ");
                 kick_user(username);
                 admin_pm(
-                    admin, "User %s kicked from the server".format(username)
+                    admin, format!("User %s kicked from the server")(username)
                 );
                 break;
 
@@ -498,7 +496,7 @@ class Server
                 const username = command[1 .. $].join(" ");
                 ban_user(username);
                 admin_pm(
-                    admin, "User %s banned from the server".format(username)
+                    admin, format!("User %s banned from the server")(username)
                 );
                 break;
 
@@ -510,13 +508,13 @@ class Server
                 const username = command[1 .. $].join(" ");
                 unban_user(username);
                 admin_pm(
-                    admin, "User %s not banned anymore".format(username)
+                    admin, format!("User %s not banned anymore")(username)
                 );
                 break;
 
             case "admins":
                 const names = db.admins;
-                const list = "%d registered admins.\n\t%s".format(
+                const list = format!("%d registered admins.\n\t%s")(
                     names.length,
                     names.join("\n\t")
                 );
@@ -526,7 +524,7 @@ class Server
             case "rooms":
                 string list;
                 foreach (room ; room_list.values)
-                    list ~= "%s:%d ".format(room.name, room.num_users);
+                    list ~= format!("%s:%d ")(room.name, room.num_users);
                 admin_pm(admin, list);
                 break;
 
@@ -574,26 +572,26 @@ class Server
         if (!user)
             return "";
 
-        return format(
+        return format!(
             "%s: connected at %s"
-            ~ "\n\tclient version: %s"
-            ~ "\n\taddress: %s"
-            ~ "\n\tadmin: %s"
-            ~ "\n\tfiles: %s"
-            ~ "\n\tdirs: %s"
-            ~ "\n\tstatus: %s"
-            ~ "\n\tprivileges: %s"
-            ~ "\n\tjoined rooms: %s",
-                username,
-                user.connected_at,
-                user.h_client_version,
-                user.h_address,
-                db.is_admin(username),
-                user.shared_files,
-                user.shared_folders,
-                user.status,
-                user.h_privileges,
-                user.h_joined_rooms
+          ~ "\n\tclient version: %s"
+          ~ "\n\taddress: %s"
+          ~ "\n\tadmin: %s"
+          ~ "\n\tfiles: %s"
+          ~ "\n\tdirs: %s"
+          ~ "\n\tstatus: %s"
+          ~ "\n\tprivileges: %s"
+          ~ "\n\tjoined rooms: %s")(
+            username,
+            user.connected_at,
+            user.h_client_version,
+            user.h_address,
+            db.is_admin(username),
+            user.shared_files,
+            user.shared_folders,
+            user.status,
+            user.h_privileges,
+            user.h_joined_rooms
         );
     }
 
@@ -683,13 +681,15 @@ class Server
             return "INVALIDUSERNAME";
 
         if (!db.user_exists(username)) {
-            debug (user) writefln(
-                "New user %s registering", blue ~ username ~ norm
+            debug (user) writefln!("New user %s registering")(
+                blue ~ username ~ norm
             );
             db.add_user(username, encode_password(password));
             return null;
         }
-        debug (user) writefln("User %s is registered", blue ~ username ~ norm);
+        debug (user) writefln!("User %s is registered")(
+            blue ~ username ~ norm
+        );
 
         if (db.is_banned(username))
             return "BANNED";
