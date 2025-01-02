@@ -22,8 +22,7 @@ import std.stdio : writefln;
 class User
 {
     string                  username;
-    uint                    major_version;
-    uint                    minor_version;
+    Socket                  sock;
 
     uint                    speed;                // in B/s
     uint                    upload_number;
@@ -33,11 +32,12 @@ class User
 
     uint                    status;
     SysTime                 connected_at;
-    bool                    should_quit;
+    bool                    login_denied;
 
-    Socket                  sock;
-    Server                  server;
+    private Server          server;
 
+    private uint            major_version;
+    private uint            minor_version;
     private uint            ip_address;
     private ushort          port;
     private long            priv_expiration;
@@ -80,7 +80,7 @@ class User
 
     // Status
 
-    private void set_status(uint new_status)
+    void set_status(uint new_status)
     {
         status = new_status;
         scope msg = new SGetUserStatus(username, new_status, privileged);
@@ -369,6 +369,11 @@ class User
         return true;
     }
 
+    void leave_joined_rooms()
+    {
+        foreach (name, room ; joined_rooms)leave_room(name);
+    }
+
     string h_joined_rooms()
     {
         return joined_rooms.keys.join(", ");
@@ -459,7 +464,7 @@ class User
 
                 if (error) {
                     username = msg.username;
-                    should_quit = true;
+                    login_denied = true;
                     writefln!("User %s denied (%s)")(
                         red ~ username ~ norm, red ~ error ~ norm
                     );
@@ -476,13 +481,45 @@ class User
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
-                    user.quit();
+                    server.del_user(user);
                 }
-                writefln!("User %s logging in with version %d.%d")(
-                    blue ~ msg.username ~ norm,
-                    msg.major_version, msg.minor_version
+
+                username = msg.username;
+                major_version = msg.major_version;
+                minor_version = msg.minor_version;
+                priv_expiration = server.db.get_user_privileges(username);
+
+                const user_stats = server.db.get_user_stats(username);
+                speed = user_stats.speed;
+                upload_number = user_stats.upload_number;
+                shared_files = user_stats.shared_files;
+                shared_folders = user_stats.shared_folders;
+
+                server.add_user(this);
+                watch(username);
+
+                scope response_msg = new SLogin(
+                    true, server.get_motd(this), ip_address,
+                    server.encode_password(msg.password), supporter
                 );
-                login(msg);
+                scope room_list_msg = new SRoomList(server.room_stats);
+                scope wish_interval_msg = new SWishlistInterval(
+                    privileged ? 120 : 720  // in seconds
+                );
+                send_message(response_msg);
+                send_message(room_list_msg);
+                send_message(wish_interval_msg);
+
+                set_status(Status.online);
+
+                foreach (pm ; server.get_pms_for(username)) {
+                    const new_message = false;
+                    debug (user) writefln!(
+                        "Sending offline PM (id %d) from %s to %s")(
+                        pm.id, pm.from_username, blue ~ username ~ norm
+                    );
+                    send_pm(pm, new_message);
+                }
                 break;
 
             case SetWaitPort:
@@ -927,60 +964,5 @@ class User
                 );
                 break;
         }
-    }
-
-    private void login(scope ULogin msg)
-    {
-        username = msg.username;
-        major_version = msg.major_version;
-        minor_version = msg.minor_version;
-        priv_expiration = server.db.get_user_privileges(username);
-
-        const user_stats = server.db.get_user_stats(username);
-        speed = user_stats.speed;
-        upload_number = user_stats.upload_number;
-        shared_files = user_stats.shared_files;
-        shared_folders = user_stats.shared_folders;
-
-        if (server.db.is_admin(username))
-            writefln!("%s is an admin")(username);
-
-        server.add_user(this);
-        watch(username);
-
-        scope response_msg = new SLogin(
-            true, server.get_motd(this), ip_address,
-            server.encode_password(msg.password), supporter
-        );
-        scope room_list_msg = new SRoomList(server.room_stats);
-        scope wish_interval_msg = new SWishlistInterval(
-            privileged ? 120 : 720  // in seconds
-        );
-        send_message(response_msg);
-        send_message(room_list_msg);
-        send_message(wish_interval_msg);
-
-        set_status(Status.online);
-
-        foreach (pm ; server.get_pms_for(username)) {
-            const new_message = false;
-            debug (user) writefln!(
-                "Sending offline PM (id %d) from %s to %s")(
-                pm.id, pm.from_username, blue ~ username ~ norm
-            );
-            send_pm(pm, new_message);
-        }
-    }
-
-    void quit()
-    {
-        if (status == Status.offline)
-            return;
-
-        foreach (name, room ; joined_rooms) leave_room(name);
-        server.global_room.remove_user(username);
-
-        set_status(Status.offline);
-        writefln!("User %s has quit")(red ~ username ~ norm);
     }
 }

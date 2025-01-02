@@ -40,6 +40,9 @@ class Server
     private uint          max_users;
 
     private User[Socket]  user_socks;
+    private SocketSet     read_socks;
+    private SocketSet     write_socks;
+
     private PM[uint]      pm_list;
     private Room[string]  room_list;
     private User[string]  user_list;
@@ -91,20 +94,13 @@ class Server
             thisProcessID, port
         );
 
-        auto read_socks = new SocketSet(max_users + 1);
-        auto write_socks = new SocketSet(max_users + 1);
+        read_socks = new SocketSet(max_users + 1);
+        write_socks = new SocketSet(max_users + 1);
 
         while (true) {
-            read_socks.reset();
-            write_socks.reset();
             read_socks.add(sock);
 
-            foreach (user_sock, user ; user_socks) {
-                read_socks.add(user_sock);
-                if (user.is_sending) write_socks.add(user_sock);
-            }
-
-            int nb = Socket.select(read_socks, write_socks, null);
+            const nb = Socket.select(read_socks, write_socks, null);
             const terminating = (nb == -1);
 
             if (read_socks.isSet(sock)) {
@@ -117,7 +113,7 @@ class Server
                         break;
                     }
                     if (!new_sock.isAlive)
-                        break;
+                        continue;
 
                     enable_keep_alive(new_sock);
                     new_sock.setOption(
@@ -133,38 +129,41 @@ class Server
                         (cast(InternetAddress) new_sock.remoteAddress).addr
                     );
                 }
-                nb--;
-                read_socks.remove(sock);
             }
 
             foreach (user_sock, user ; user_socks) {
-                if (nb == 0)
-                    break;
-
+                const recv_ready = read_socks.isSet(user_sock);
+                const send_ready = write_socks.isSet(user_sock);
                 bool recv_success = true;
                 bool send_success = true;
-                bool changed;
 
-                if (read_socks.isSet(user_sock)) {
+                if (recv_ready) {
                     recv_success = user.recv_buffer();
-                    changed = true;
+
+                    if (!user.sock)
+                        // User was kicked
+                        continue;
                 }
-                if (write_socks.isSet(user_sock)) {
+                else {
+                    read_socks.add(user_sock);
+                }
+
+                if (send_ready)
                     send_success = user.send_buffer();
-                    changed = true;
+
+                if (!user.is_sending) {
+                    if (send_ready)
+                        write_socks.remove(user_sock);
+
+                    if (user.login_denied)
+                        recv_success = send_success = false;
+                }
+                else if (!send_ready) {
+                    write_socks.add(user_sock);
                 }
 
-                if (user.should_quit && !user.is_sending) {
-                    send_success = false;
-                }
-
-                if (changed) nb--;
-                if (!terminating && recv_success && send_success)
-                    continue;
-
-                read_socks.remove(user_sock);
-                write_socks.remove(user_sock);
-                del_user(user);
+                if (terminating || !recv_success || !send_success)
+                    del_user(user);
             }
 
             if (terminating)
@@ -360,7 +359,13 @@ class Server
 
     void add_user(User user)
     {
-        user_list[user.username] = user;
+        const username = user.username;
+
+        writefln!("User %s logging in with version %s")(
+            blue ~ username ~ norm, user.h_client_version
+        );
+        if (db.is_admin(username)) writefln!("%s is an admin")(username);
+        user_list[username] = user;
     }
 
     User get_user(string username)
@@ -371,22 +376,38 @@ class Server
         return null;
     }
 
+    void del_user(User user)
+    {
+        const username = user.username;
+        auto sock = user.sock;
+
+        if (sock in user_socks) {
+            read_socks.remove(sock);
+            write_socks.remove(sock);
+            user_socks.remove(sock);
+
+            sock.shutdown(SocketShutdown.BOTH);
+            sock.close();
+
+            user.sock = null;
+        }
+
+        if (username in user_list)
+            user_list.remove(username);
+
+        if (user.status == Status.offline)
+            return;
+
+        user.leave_joined_rooms();
+        global_room.remove_user(username);
+
+        user.set_status(Status.offline);
+        writefln!("User %s has quit")(red ~ username ~ norm);
+    }
+
     User[] users()
     {
         return user_list.values;
-    }
-
-    private void del_user(User user)
-    {
-        if (user.sock in user_socks) {
-            user.sock.shutdown(SocketShutdown.BOTH);
-            user.sock.close();
-            user_socks.remove(user.sock);
-        }
-        if (user.username in user_list) {
-            user.quit();
-            user_list.remove(user.username);
-        }
     }
 
     private void send_to_all(scope SMessage msg)
@@ -597,13 +618,13 @@ class Server
 
     private void kick_all_users()
     {
-        foreach (user ; user_list) user.quit();
+        foreach (user ; user_list) del_user(user);
     }
 
     private void kick_user(string username)
     {
         auto user = get_user(username);
-        if (user) user.quit();
+        if (user) del_user(user);
     }
 
     private void ban_user(string username)
