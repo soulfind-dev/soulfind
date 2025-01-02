@@ -6,7 +6,7 @@
 module soulfind.main;
 @safe:
 
-import soulfind.defines;
+import soulfind.defines : exit_message;
 import std.stdio : writefln;
 
 version (Have_soulfind_server) import soulfind.server : run;

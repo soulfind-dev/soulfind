@@ -7,11 +7,11 @@ module soulfind.server.user;
 @safe:
 
 import core.time : seconds;
-import soulfind.defines;
+import soulfind.defines : blue, max_msg_size, norm, red, server_user;
 import soulfind.server.messages;
-import soulfind.server.pm;
-import soulfind.server.room;
-import soulfind.server.server;
+import soulfind.server.pm : PM;
+import soulfind.server.room : Room;
+import soulfind.server.server : Server;
 import std.array : join;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : Clock, SysTime;

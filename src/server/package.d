@@ -6,8 +6,8 @@
 module soulfind.server;
 @safe:
 
-import soulfind.defines;
-import soulfind.server.server;
+import soulfind.defines : default_db_file;
+import soulfind.server.server : Server;
 import std.stdio : writefln;
 
 int run(string[] args)

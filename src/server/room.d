@@ -6,9 +6,8 @@
 module soulfind.server.room;
 @safe:
 
-import soulfind.defines;
 import soulfind.server.messages;
-import soulfind.server.user;
+import soulfind.server.user : User;
 import std.datetime : Clock;
 
 struct Ticker

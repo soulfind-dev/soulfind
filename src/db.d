@@ -6,8 +6,11 @@
 module soulfind.db;
 @safe:
 
-import etc.c.sqlite3;
-import soulfind.defines;
+import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
+                       sqlite3_column_text, sqlite3_errstr, sqlite3_finalize,
+                       sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
+                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
+import soulfind.defines : default_max_users, default_port;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
@@ -85,7 +88,7 @@ class Sdb
     private void init_config_option(string option, string value)
     {
         query(
-            "INSERT OR IGNORE INTO %s(option, value) 
+            "INSERT OR IGNORE INTO %s(option, value)
              VALUES('%s', '%s');".format(
             config_table, option, escape(value)
         ));
@@ -222,8 +225,8 @@ class Sdb
         debug(db) writefln(
             "DB: Requested %s's info...", blue ~ username ~ norm);
         const res = query(
-            "SELECT speed,ulnum,files,folders 
-             FROM %s 
+            "SELECT speed,ulnum,files,folders
+             FROM %s
              WHERE username = '%s';".format(
             users_table, escape(username)
         ));

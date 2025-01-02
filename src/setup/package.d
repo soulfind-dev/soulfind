@@ -6,8 +6,9 @@
 module soulfind.setup;
 @safe:
 
-import soulfind.db;
-import soulfind.defines;
+import soulfind.db : Sdb;
+import soulfind.defines : default_db_file, default_max_users, default_port,
+                          exit_message, VERSION;
 import std.conv : ConvException, to;
 import std.exception : ifThrown;
 import std.format : format;
