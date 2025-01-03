@@ -46,24 +46,24 @@ class Sdb
                 format!("Cannot create database file %s")(filename));
 
         const users_sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s(
-                username TEXT PRIMARY KEY,
-                password TEXT,
-                speed INTEGER,
-                ulnum INTEGER,
-                files INTEGER,
-                folders INTEGER,
-                banned INTEGER,
-                privileges INTEGER
-            ) WITHOUT ROWID;")(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " username TEXT PRIMARY KEY,"
+          ~ " password TEXT,"
+          ~ " speed INTEGER,"
+          ~ " ulnum INTEGER,"
+          ~ " files INTEGER,"
+          ~ " folders INTEGER,"
+          ~ " banned INTEGER,"
+          ~ " privileges INTEGER"
+          ~ ") WITHOUT ROWID;")(
             users_table
         );
 
         const admins_sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s(
-                username TEXT PRIMARY KEY,
-                level INTEGER
-            ) WITHOUT ROWID;")(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " username TEXT PRIMARY KEY,"
+          ~ " level INTEGER"
+          ~ ") WITHOUT ROWID;")(
             admins_table
         );
 
@@ -81,10 +81,10 @@ class Sdb
     private void init_config()
     {
         const sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s(
-                option TEXT PRIMARY KEY,
-                value
-            ) WITHOUT ROWID;")(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " option TEXT PRIMARY KEY,"
+          ~ " value"
+          ~ ") WITHOUT ROWID;")(
             config_table
         );
         query(sql);
@@ -248,9 +248,9 @@ class Sdb
             blue ~ username ~ norm
         );
         const sql = format!(
-            "SELECT speed,ulnum,files,folders
-             FROM %s
-             WHERE username = '%s';")(
+            "SELECT speed,ulnum,files,folders"
+          ~ " FROM %s"
+          ~ " WHERE username = '%s';")(
             users_table, escape(username)
         );
         const res = query(sql);
