@@ -1,5 +1,5 @@
 <!--
-  SPDX-FileCopyrightText: 2024 Soulfind Contributors
+  SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors
   SPDX-FileCopyrightText: 2005 SeeSchloss <seeschloss@seeschloss.org>
   SPDX-License-Identifier: GPL-3.0-or-later
 -->
@@ -80,4 +80,4 @@ People who have contributed to Soulfind:
  - mathiascode
  - slook
 
-© 2005–2024 Soulfind Contributors
+© 2005–2025 Soulfind Contributors
