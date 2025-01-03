@@ -14,7 +14,7 @@ import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
-import std.stdio : writefln;
+import std.stdio : writefln, writeln;
 import std.string : format, replace, toStringz;
 
 struct SdbUserStats
@@ -39,6 +39,7 @@ class Sdb
 
     this(string filename)
     {
+        debug(db) writefln!("DB: Using database: %s")(filename);
         open_db(filename);
 
         if (!exists(filename) || !isFile(filename))
@@ -72,10 +73,22 @@ class Sdb
         init_config();
     }
 
+    ~this()
+    {
+        debug(db) writeln("DB: Shutting down...");
+        close_db();
+    }
+
     @trusted
     private void open_db(string filename)
     {
         sqlite3_open(filename.toStringz(), &db);
+    }
+
+    @trusted
+    private void close_db()
+    {
+        sqlite3_close(db);
     }
 
     private void init_config()

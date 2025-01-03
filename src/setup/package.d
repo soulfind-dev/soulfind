@@ -35,6 +35,7 @@ int run(string[] args)
 
     sdb = new Sdb(db_filename);
     try { main_menu(); } catch (StdioException) {}
+    sdb = null;
     return 0;
 }
 
