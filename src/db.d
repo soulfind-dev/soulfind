@@ -86,7 +86,7 @@ class Sdb
     }
 
     @trusted
-    private void close_db()
+    private void close_db() scope
     {
         sqlite3_close(db);
     }
