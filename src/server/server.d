@@ -34,6 +34,7 @@ class Server
 {
     Sdb                   db;
     GlobalRoom            global_room;
+    User[string]          users;
 
     private MonoTime      started_at;
     private ushort        port;
@@ -43,9 +44,8 @@ class Server
     private SocketSet     read_socks;
     private SocketSet     write_socks;
 
-    private PM[uint]      pm_list;
-    private Room[string]  room_list;
-    private User[string]  user_list;
+    private PM[uint]      pms;
+    private Room[string]  rooms;
 
 
     this(string db_filename)
@@ -294,31 +294,31 @@ class Server
             message
         );
 
-        pm_list[pm.id] = pm;
+        pms[pm.id] = pm;
         return pm;
     }
 
     void del_pm(uint id)
     {
         if (find_pm(id))
-            pm_list.remove(id);
+            pms.remove(id);
     }
 
     PM[] get_pms_for(string username)
     {
-        PM[] pms;
-        foreach (pm ; pm_list) if (pm.to_username == username) pms ~= pm;
-        return pms;
+        PM[] user_pms;
+        foreach (pm ; pms) if (pm.to_username == username) user_pms ~= pm;
+        return user_pms;
     }
 
     private bool find_pm(uint id)
     {
-        return(id in pm_list) ? true : false;
+        return(id in pms) ? true : false;
     }
 
     private uint new_pm_id()
     {
-        uint id = cast(uint) pm_list.length;
+        uint id = cast(uint) pms.length;
         while (find_pm(id)) id++;
         return id;
     }
@@ -329,28 +329,28 @@ class Server
     Room add_room(string name)
     {
         auto room = new Room(name);
-        room_list[name] = room;
+        rooms[name] = room;
         return room;
     }
 
     void del_room(string name)
     {
-        if (name in room_list)
-            room_list.remove(name);
+        if (name in rooms)
+            rooms.remove(name);
     }
 
     Room get_room(string name)
     {
-        if (name !in room_list)
+        if (name !in rooms)
             return null;
 
-        return room_list[name];
+        return rooms[name];
     }
 
     ulong[string] room_stats()
     {
         ulong[string] stats;
-        foreach (room ; room_list) stats[room.name] = room.num_users;
+        foreach (room ; rooms) stats[room.name] = room.num_users;
         return stats;
     }
 
@@ -365,13 +365,13 @@ class Server
             blue ~ username ~ norm, user.h_client_version
         );
         if (db.is_admin(username)) writefln!("%s is an admin")(username);
-        user_list[username] = user;
+        users[username] = user;
     }
 
     User get_user(string username)
     {
-        if (username in user_list)
-            return user_list[username];
+        if (username in users)
+            return users[username];
 
         return null;
     }
@@ -392,8 +392,8 @@ class Server
             user.sock = null;
         }
 
-        if (username in user_list)
-            user_list.remove(username);
+        if (username in users)
+            users.remove(username);
 
         if (user.status == Status.offline)
             return;
@@ -403,11 +403,6 @@ class Server
 
         user.set_status(Status.offline);
         writefln!("User %s has quit")(red ~ username ~ norm);
-    }
-
-    User[] users()
-    {
-        return user_list.values;
     }
 
     private void send_to_all(scope SMessage msg)
@@ -474,8 +469,8 @@ class Server
 
             case "users":
                 const list = format!("%d connected users.\n\t%s")(
-                    user_list.length,
-                    user_list.keys.join("\n\t")
+                    users.length,
+                    users.byKey.join("\n\t")
                 );
                 admin_pm(admin, list);
                 break;
@@ -544,7 +539,7 @@ class Server
 
             case "rooms":
                 string list;
-                foreach (room ; room_list)
+                foreach (room ; rooms)
                     list ~= format!("%s:%d ")(room.name, room.num_users);
                 admin_pm(admin, list);
                 break;
@@ -582,7 +577,7 @@ class Server
     private void global_message(string message)
     {
         scope msg = new SAdminMessage(message);
-        foreach (user ; user_list) {
+        foreach (user ; users) {
             user.send_message(msg);
         }
     }
@@ -619,7 +614,7 @@ class Server
     private void kick_all_users()
     {
         // Deleting users while iterating, create a copy of array with .values
-        foreach (user ; user_list.values) del_user(user);
+        foreach (user ; users.values) del_user(user);
     }
 
     private void kick_user(string username)
@@ -647,7 +642,7 @@ class Server
     {
         return db.get_config_value("motd")
             .replace("%sversion%", VERSION)
-            .replace("%users%", user_list.length.to!string)
+            .replace("%users%", users.length.to!string)
             .replace("%username%", user.username)
             .replace("%version%", user.h_client_version);
     }

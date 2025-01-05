@@ -47,7 +47,7 @@ class User
 
     private Room[string]    joined_rooms;
 
-    private string[string]  watch_list;
+    private string[string]  watched_users;
 
     private ubyte[]         in_buf;
     private long            in_msg_size = -1;
@@ -182,7 +182,7 @@ class User
     private void watch(string peer_username)
     {
         if (peer_username != server_username)
-            watch_list[peer_username] = peer_username;
+            watched_users[peer_username] = peer_username;
     }
 
     private void unwatch(string peer_username)
@@ -191,13 +191,13 @@ class User
             // Always watch our own username for updates
             return;
 
-        if (peer_username in watch_list)
-            watch_list.remove(peer_username);
+        if (peer_username in watched_users)
+            watched_users.remove(peer_username);
     }
 
     private bool is_watching(string peer_username)
     {
-        if (peer_username in watch_list)
+        if (peer_username in watched_users)
             return true;
 
         foreach (room ; joined_rooms)
