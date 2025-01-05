@@ -131,6 +131,8 @@ class Server
                 }
             }
 
+            User[] users_to_remove;
+
             foreach (user_sock, user ; user_socks) {
                 const recv_ready = read_socks.isSet(user_sock);
                 const send_ready = write_socks.isSet(user_sock);
@@ -163,8 +165,11 @@ class Server
                 }
 
                 if (terminating || !recv_success || !send_success)
-                    del_user(user);
+                    users_to_remove ~= user;
             }
+
+            foreach (user ; users_to_remove)
+                del_user(user);
 
             if (terminating)
                 break;
@@ -613,7 +618,8 @@ class Server
 
     private void kick_all_users()
     {
-        foreach (user ; user_list) del_user(user);
+        // Deleting users while iterating, create a copy of array with .values
+        foreach (user ; user_list.values) del_user(user);
     }
 
     private void kick_user(string username)
