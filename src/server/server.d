@@ -350,7 +350,7 @@ class Server
     ulong[string] room_stats()
     {
         ulong[string] stats;
-        foreach (room ; room_list.values) stats[room.name] = room.num_users;
+        foreach (room ; room_list) stats[room.name] = room.num_users;
         return stats;
     }
 
@@ -544,7 +544,7 @@ class Server
 
             case "rooms":
                 string list;
-                foreach (room ; room_list.values)
+                foreach (room ; room_list)
                     list ~= format!("%s:%d ")(room.name, room.num_users);
                 admin_pm(admin, list);
                 break;

@@ -8,6 +8,7 @@ module soulfind.server.messages;
 
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
+import soulfind.server.user : User;
 import std.algorithm : sort;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.stdio : writefln;
@@ -791,37 +792,34 @@ class SRoomList : SMessage
 
 class SJoinRoom : SMessage
 {
-    this(string room_name, string[] usernames, uint[string] statuses,
-         uint[string] speeds, uint[string] upload_numbers,
-         uint[string] shared_files, uint[string] shared_folders,
-         string[string] country_codes) scope
+    this(string room_name, User[string] users) scope
     {
         super(JoinRoom);
 
         write!string(room_name);
-        const n = cast(uint) usernames.length;
+        const n = cast(uint) users.length;
 
         write!uint(n);
-        foreach (username ; usernames) write!string(username);
+        foreach (username, user ; users) write!string(username);
 
         write!uint(n);
-        foreach (username ; usernames) write!uint(statuses[username]);
+        foreach (user ; users) write!uint(user.status);
 
         write!uint(n);
-        foreach (username ; usernames)
+        foreach (user ; users)
         {
-            write!uint(speeds          [username]);
-            write!uint(upload_numbers  [username]);
+            write!uint(user.speed);
+            write!uint(user.upload_number);
             write!uint(0);  // unknown, obsolete
-            write!uint(shared_files    [username]);
-            write!uint(shared_folders  [username]);
+            write!uint(user.shared_files);
+            write!uint(user.shared_folders);
         }
 
         write!uint(n);
-        foreach (username ; usernames) write!uint(0);  // slots_full, obsolete
+        foreach (user ; users) write!uint(0);  // slots_full, obsolete
 
         write!uint(n);
-        foreach (username ; usernames) write!string(country_codes[username]);
+        foreach (user ; users) write!string(user.country_code);
     }
 }
 
@@ -1071,13 +1069,13 @@ class SItemSimilarUsers : SMessage
 
 class SRoomTicker : SMessage
 {
-    this(string room_name, Ticker[] tickers) scope
+    this(string room_name, Ticker[string] tickers) scope
     {
         super(RoomTicker);
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ticker ; sort_timestamp(tickers))
+        foreach (ticker ; sort_timestamp(tickers.values))
         {
             write!string(ticker.username);
             write!string(ticker.content);

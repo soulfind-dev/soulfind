@@ -371,12 +371,12 @@ class User
 
     void leave_joined_rooms()
     {
-        foreach (name, room ; joined_rooms)leave_room(name);
+        foreach (name, room ; joined_rooms) leave_room(name);
     }
 
     string h_joined_rooms()
     {
-        return joined_rooms.keys.join(", ");
+        return joined_rooms.byKey.join(", ");
     }
 
 
