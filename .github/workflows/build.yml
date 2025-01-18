@@ -10,12 +10,16 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [linux-x86_64, macos-x86_64, macos-arm64, windows-x86_64]
+        os: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64, windows-x86_64]
         compiler: [ldc, dmd]
         type: [release, debug]
         include:
           - os: linux-x86_64
             image: ubuntu-latest
+            container: alpine:edge
+
+          - os: linux-arm64
+            image: ubuntu-24.04-arm
             container: alpine:edge
 
           - os: macos-x86_64
@@ -31,22 +35,39 @@ jobs:
 
           - os: linux-x86_64
             compiler: ldc
-            dflags: -static -preview=all
+            dflags: -static
+
+          - os: linux-arm64
+            compiler: ldc
+            dflags: -static
 
           - type: debug
             flags: --debug=db --debug=msg --debug=user
 
           - compiler: ldc
-            dflags: -preview=all
+            dflags-preview: -preview all
+
         exclude:
+          - os: linux-arm64
+            compiler: dmd
+
           - os: macos-arm64
             compiler: dmd
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
     env:
-      DFLAGS: ${{ matrix.dflags }}
+      DFLAGS: ${{ matrix.dflags }} ${{ matrix.dflags-preview }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
+      # Workaround from https://github.com/actions/runner/issues/801#issuecomment-2394392502
+      - name: Patch native Alpine NodeJS into Runner environment
+        if: matrix.os == 'linux-arm64'
+        run: |
+          apk add docker nodejs
+          sed -i "s:ID=alpine:ID=NotpineForGHA:" /etc/os-release
+          docker run --rm -v /:/host alpine sh -c 'cd /host/home/runner/runners/*/externals/ && rm -rf node20/* && mkdir node20/bin && ln -s /usr/bin/node node20/bin/node'
+        shell: sh
+
       - name: Checkout code
         uses: actions/checkout@v4
 
