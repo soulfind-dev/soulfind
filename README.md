@@ -65,6 +65,7 @@ chat with the server user (`help` to see all commands).
 
 ## Missing Features
 
+ - Anti-spam measures
  - Private rooms
  - Distributed search network
 
