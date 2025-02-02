@@ -10,6 +10,7 @@ import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
                           exit_message, VERSION;
 import std.conv : ConvException, to;
+import std.datetime : Clock;
 import std.exception : ifThrown;
 import std.format : format;
 import std.stdio : readf, readln, StdioException, write, writefln, writeln;
@@ -208,14 +209,15 @@ private void set_motd()
 private void info()
 {
     scope menu = new Menu(
-        format!("Soulsetup for Soulfind %s (compiled on %s)")(
-                VERSION, __DATE__)
+        format!("Soulfind %s (compiled on %s)")(VERSION, __DATE__)
     );
     menu.info = format!(
         "\t%d registered users
          \n\t%d privileged users
          \n\t%d banned users")(
-        sdb.num_users, sdb.num_users("privileges"), sdb.num_users("banned")
+        sdb.num_users,
+        sdb.num_users("privileges", Clock.currTime.toUnixTime),
+        sdb.num_users("banned")
     );
 
     menu.add("1", "Recount", &info);
