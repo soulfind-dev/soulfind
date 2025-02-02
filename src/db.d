@@ -280,7 +280,7 @@ class Sdb
         return user_stats;
     }
 
-    string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
+    string[] usernames(string filter_field=null, ulong min=1, ulong max=-1)
     {
         string[] ret;
         auto sql = format!("SELECT username FROM %s")(users_table);
@@ -292,7 +292,7 @@ class Sdb
         return ret;
     }
 
-    uint num_users(string filter_field = null, uint min = 1, uint max = -1)
+    uint num_users(string filter_field=null, ulong min=1, ulong max=-1)
     {
         auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
         if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
