@@ -7,7 +7,7 @@ module soulfind.server.user;
 @safe:
 
 import core.time : seconds;
-import soulfind.defines : blue, max_msg_size, norm, red, server_username;
+import soulfind.defines : blue, bold, max_msg_size, norm, red, server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -32,7 +32,7 @@ class User
 
     uint                    status;
     SysTime                 connected_at;
-    bool                    login_denied;
+    string                  login_error;
 
     private Server          server;
 
@@ -70,11 +70,14 @@ class User
         return format!("%d.%d")(major_version, minor_version);
     }
 
+    string h_ip_address()
+    {
+        return InternetAddress.addrToString(ip_address);
+    }
+
     string h_address()
     {
-        return format!("%s:%d")(
-            InternetAddress.addrToString(ip_address), port
-        );
+        return format!("%s:%d")(h_ip_address, port);
     }
 
 
@@ -460,31 +463,29 @@ class User
                 if (status != Status.offline)
                     break;
 
-                const error = server.check_login(msg.username, msg.password);
+                username = msg.username;
+                login_error = server.check_login(username, msg.password);
 
-                if (error) {
-                    username = msg.username;
-                    login_denied = true;
-                    writefln!("User %s denied (%s)")(
-                        red ~ username ~ norm, red ~ error ~ norm
-                    );
-                    scope response_msg = new SLogin(false, error);
+                if (login_error) {
+                    scope response_msg = new SLogin(false, login_error);
                     send_message(response_msg);
                     break;
                 }
 
-                auto user = server.get_user(msg.username);
+                auto user = server.get_user(username);
 
                 if (user && user.status != Status.offline) {
-                    writefln!("User %s already logged in with version %s")(
-                        red ~ msg.username ~ norm, user.h_client_version
+                    writefln!(
+                        "User %s @ %s already logged in with version %s")(
+                        red ~ username ~ norm,
+                        bold ~ user.h_address ~ norm,
+                        user.h_client_version
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
                     server.del_user(user);
                 }
 
-                username = msg.username;
                 major_version = msg.major_version;
                 minor_version = msg.minor_version;
                 priv_expiration = server.db.get_user_privileges(username);
@@ -525,6 +526,14 @@ class User
             case SetWaitPort:
                 scope msg = new USetWaitPort(msg_buf, username);
                 port = cast(ushort) msg.port;
+
+                writefln!(
+                    "%s %s @ %s logged in with version %s")(
+                    server.db.is_admin(username) ? "Admin" : "User",
+                    blue ~ username ~ norm,
+                    bold ~ h_address ~ norm,
+                    h_client_version
+                );
                 break;
 
             case GetPeerAddress:
@@ -667,9 +676,9 @@ class User
                     break;
 
                 debug (user) writefln!(
-                    "User %s trying to connect indirectly to peer %s @ %s")(
-                    blue ~ username ~ norm, blue ~ msg.username ~ norm,
-                    h_address
+                    "User %s @ %s connecting indirectly to peer %s @ %s")(
+                    blue ~ username ~ norm, bold ~ h_address ~ norm,
+                    blue ~ msg.username ~ norm, bold ~ user.h_address ~ norm
                 );
 
                 scope response_msg = new SConnectToPeer(
