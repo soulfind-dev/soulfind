@@ -6,15 +6,19 @@
 module soulfind.db;
 @safe:
 
+debug(db) import core.time : MonoTime, usecs;  // only used for query() timing
 import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
-                       sqlite3_column_text, sqlite3_errstr, sqlite3_finalize,
-                       sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
-                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
+                       sqlite3_column_text, sqlite3_errmsg, sqlite3_errstr,
+                       sqlite3_extended_errcode, sqlite3_finalize,
+                       sqlite3_initialize, sqlite3_memory_highwater,
+                       sqlite3_open, sqlite3_prepare_v2, sqlite3_shutdown,
+                       sqlite3_step, sqlite3_stmt, sqlite3_total_changes,
+                       SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
-import std.stdio : writefln, writeln;
+import std.stdio : writefln;
 import std.string : format, replace, toStringz;
 
 struct SdbUserStats
@@ -68,27 +72,94 @@ class Sdb
             admins_table
         );
 
+        query("PRAGMA cell_size_check=1;");
         query(users_sql);
         query(admins_sql);
         init_config();
+
+        bool ok;
+        foreach (problem ; query("PRAGMA integrity_check;")) {
+            debug(db) writefln!("DB: Check [%s]")(problem[0]);
+            ok = (problem[0] == "ok");
+        }
+        if (!ok || query(format!("PRAGMA table_info(%s);")(
+                                  users_table)).length != 8)  // column count
+            throw new Exception(format!("Incorrect database schema"));
+
+        query("PRAGMA reverse_unordered_selects=1;");  // Prefer recent users
+        query("PRAGMA optimize=0x10002;");  // Optimize and analyze all tables
+        query("PRAGMA cell_size_check=0;");
     }
 
     ~this()
     {
-        debug(db) writeln("DB: Shutting down...");
         close_db();
     }
 
     @trusted
     private void open_db(string filename)
     {
+        // https://www.sqlite.org/c3ref/initialize.html
+        // "Future releases of SQLite may require this"
+        if (sqlite3_initialize() != SQLITE_OK)
+            throw new Exception("Cannot start SQLite");
+
         sqlite3_open(filename.toStringz(), &db);
+
+        // https://www.sqlite.org/c3ref/c_dbconfig_defensive.html
+        with (imported!"etc.c.sqlite3 : sqlite3_db_config,
+                        SQLITE_DBCONFIG_DEFENSIVE,
+                        SQLITE_DBCONFIG_ENABLE_TRIGGER,
+                        SQLITE_DBCONFIG_ENABLE_VIEW,
+                        SQLITE_DBCONFIG_TRUSTED_SCHEMA")
+        {
+            sqlite3_db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1, null);
+            sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, 0, null);
+            sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0, null);
+            sqlite3_db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, null);
+            //sqlite3_db_config(db, SQLITE_DBCONFIG_REVERSE_SCANORDER, 1, null);
+        }
+
+        // https://www.sqlite.org/c3ref/c_limit_attached.html
+        with (imported!"etc.c.sqlite3 : sqlite3_limit,
+                        SQLITE_LIMIT_LENGTH, SQLITE_LIMIT_SQL_LENGTH,
+                        SQLITE_LIMIT_COLUMN, SQLITE_LIMIT_EXPR_DEPTH,
+                        SQLITE_LIMIT_COMPOUND_SELECT, SQLITE_LIMIT_VDBE_OP,
+                        SQLITE_LIMIT_FUNCTION_ARG, SQLITE_LIMIT_ATTACHED,
+                        SQLITE_LIMIT_LIKE_PATTERN_LENGTH,
+                        SQLITE_LIMIT_VARIABLE_NUMBER,
+                        SQLITE_LIMIT_TRIGGER_DEPTH")
+        {
+            sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 32768);              // 0
+            sqlite3_limit(db, SQLITE_LIMIT_SQL_LENGTH, 512);            // 1
+            sqlite3_limit(db, SQLITE_LIMIT_COLUMN, 8);                  // 2
+            sqlite3_limit(db, SQLITE_LIMIT_EXPR_DEPTH, 10);             // 3
+            sqlite3_limit(db, SQLITE_LIMIT_COMPOUND_SELECT, 2);         // 4
+            sqlite3_limit(db, SQLITE_LIMIT_VDBE_OP, 25000);             // 5
+            sqlite3_limit(db, SQLITE_LIMIT_FUNCTION_ARG, 10);           // 6
+            sqlite3_limit(db, SQLITE_LIMIT_ATTACHED, 0);                // 7
+            sqlite3_limit(db, SQLITE_LIMIT_LIKE_PATTERN_LENGTH, 30);    // 8
+            sqlite3_limit(db, SQLITE_LIMIT_VARIABLE_NUMBER, 9);         // 9
+            sqlite3_limit(db, SQLITE_LIMIT_TRIGGER_DEPTH, 1);           // 10
+        }
     }
 
     @trusted
     private void close_db() scope
     {
+        debug(db) {
+            writefln!(
+                "DB: Shutting down...\n"
+              ~ "DB: %d Bytes memory was in use\n"
+              ~ "DB: %d total changes\n"
+              ~ "DB: SQLITE Error %d")(
+                sqlite3_memory_highwater(1),
+                sqlite3_total_changes(db),
+                sqlite3_extended_errcode(db)
+            );
+        }
         sqlite3_close(db);
+        sqlite3_shutdown();  // deallocates resources in Termux
     }
 
     private void init_config()
@@ -165,6 +236,7 @@ class Sdb
         const sql = format!("DELETE FROM %s WHERE username = '%s';")(
             admins_table, escape(username)
         );
+        query("PRAGMA secure_delete=1;");
         query(sql);
     }
 
@@ -194,6 +266,7 @@ class Sdb
             users_table, escape(username), escape(password)
         );
         query(sql);
+        query("PRAGMA optimize;");  // only runs if rows increase 10-fold
     }
 
     bool user_exists(string username)
@@ -307,14 +380,11 @@ class Sdb
     {
         string[][] ret;
         char* tail;
-        uint res;
-        uint fin;
 
-        debug(db) writefln!("DB: Query [%s]")(query);
         sqlite3_prepare_v2(
             db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
-        res = sqlite3_step(stmt);
+        uint res = sqlite3_step(stmt);
 
         while (res == SQLITE_ROW) {
             string[] record;
@@ -327,17 +397,18 @@ class Sdb
             res = sqlite3_step(stmt);
         }
 
-        fin = sqlite3_finalize(stmt);
+        uint fin = sqlite3_finalize(stmt);
+        uint err = sqlite3_extended_errcode(db);
 
-        if (res != SQLITE_DONE || fin != SQLITE_OK) {
+        if (res != SQLITE_DONE || fin != SQLITE_OK || err) {
             // https://sqlite.org/rescode.html#extrc
-            debug(db) writefln!("DB: Result Code %d (%s)")(
-                res, sqlite3_errstr(res).to!string
+            writefln!(
+                "DB: Query [%s]\nDB: Result Code %d, Final Code %d.\n\n%s\n")(
+                query, res, fin, sqlite3_errmsg(db).to!string
             );
-            debug(db) writefln!("    >Final Code %d (%s)")(
-                fin, sqlite3_errstr(fin).to!string
+            throw new Exception(
+                format!("Error %d (%s)")(err, sqlite3_errstr(err).to!string)
             );
-            throw new Exception(sqlite3_errstr(fin).to!string);
         }
         return ret;
     }

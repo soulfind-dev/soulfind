@@ -681,7 +681,7 @@ class Server
         }
 
         const string[] forbidden_names = [server_username, ""];
-        const string[] forbidden_words = ["  ", "sqlite3_"];
+        const string[] forbidden_words = ["  ", "sqlite3_", "PRAGMA "];
 
         foreach (name ; forbidden_names) if (name == text) {
             return false;
