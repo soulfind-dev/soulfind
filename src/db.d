@@ -280,23 +280,23 @@ class Sdb
         return user_stats;
     }
 
-    string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
+    string[] usernames(string field = null, ulong min = 1, ulong max = -1)
     {
         string[] ret;
         auto sql = format!("SELECT username FROM %s")(users_table);
-        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(filter_field), min, max
+        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
+            escape(field), min, max
         );
         sql ~= ";";
         foreach (record ; query(sql)) ret ~= record[0];
         return ret;
     }
 
-    uint num_users(string filter_field = null, uint min = 1, uint max = -1)
+    uint num_users(string field = null, ulong min = 1, ulong max = -1)
     {
         auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
-        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(filter_field), min, max
+        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
+            escape(field), min, max
         );
         sql ~= ";";
         return query(sql)[0][0].to!uint.ifThrown(0);
