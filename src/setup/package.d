@@ -124,7 +124,7 @@ private void set_listen_port()
     const value = input.strip;
     const port = value.to!uint.ifThrown(0);
     if (port <= 0 || port > ushort.max) {
-        writefln!("Please enter a port in the range %d-%d")(1, 6_5535);
+        writefln!("Please enter a port in the range %d-%d")(1, 65535);
         set_listen_port();
         return;
     }
