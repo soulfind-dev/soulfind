@@ -241,18 +241,13 @@ class Sdb
         return query(sql)[0][0].to!long.ifThrown(0);
     }
 
-    bool is_banned(string username)
+    long get_ban_expiration(string username)
     {
         const sql = format!(
             "SELECT banned FROM %s WHERE username = '%s';")(
             users_table, escape(username)
         );
-        const res = query(sql);
-
-        if (res.length > 0)
-            return res[0][0].to!uint.ifThrown(0) > 0;
-
-        return false;
+        return query(sql)[0][0].to!long.ifThrown(0);
     }
 
     SdbUserStats get_user_stats(string username)

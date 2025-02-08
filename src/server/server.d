@@ -18,7 +18,7 @@ import std.algorithm : canFind;
 import std.array : join, replace, split;
 import std.ascii : isPrintable, isPunctuation;
 import std.conv : ConvException, to;
-import std.datetime : Clock;
+import std.datetime : Clock, ClockType, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.exception : ifThrown;
@@ -429,8 +429,8 @@ class Server
                   ~ "\n\ninfo <user>\n\tInfo about user <user>"
                   ~ "\n\nkickall\n\tDisconnect all users"
                   ~ "\n\nkick <user>\n\tDisconnect <user>"
-                  ~ "\n\n[un]ban <user>\n\tBan/unban and disconnect user"
-                  ~ " <user>"
+                  ~ "\n\nban [minutes] <user>\n\tBan <user> for [10] minutes"
+                  ~ "\n\nunban <user>\n\tUnban <user>"
                   ~ "\n\nadmins\n\tList admins"
                   ~ "\n\nrooms\n\tList rooms and number of occupiants"
                   ~ "\n\naddprivileges <days> <user>\n\tAdd <days> days of"
@@ -506,13 +506,34 @@ class Server
 
             case "ban":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : ban <user>");
+                    admin_pm(admin, "Syntax is : ban [minutes] <user>");
                     break;
                 }
-                const username = command[1 .. $].join(" ");
-                ban_user(username);
+
+                Duration duration;
+                string username;
+                try {
+                    duration = minutes(command[1].to!uint);
+                    username = command[2 .. $].join(" ");
+                }
+                catch (ConvException e) {
+                    duration = minutes(10);
+                    username = command[1 .. $].join(" ");
+                }
+
+                if (!db.user_exists(username)) {
+                    admin_pm(
+                        admin, format!("User %s does not exist.")(username)
+                    );
+                    break;
+                }
+
+                SysTime expiration = ban_user(username, duration);
+
                 admin_pm(
-                    admin, format!("User %s banned from the server")(username)
+                    admin, format!("User %s banned for %s; until %s")(
+                        username, duration.toString, expiration.toString
+                    )
                 );
                 break;
 
@@ -623,13 +644,14 @@ class Server
         if (user) del_user(user);
     }
 
-    private void ban_user(string username)
+    private SysTime ban_user(string username, Duration duration)
     {
-        if (!db.user_exists(username))
-            return;
+        SysTime expiration = Clock.currTime!(ClockType.second) + duration;
 
-        db.user_update_field(username, "banned", 1);
+        db.user_update_field(username, "banned", expiration.toUnixTime);
         kick_user(username);
+
+        return expiration;
     }
 
     private void unban_user(string username)
@@ -708,7 +730,7 @@ class Server
             blue ~ username ~ norm
         );
 
-        if (db.is_banned(username))
+        if (db.get_ban_expiration(username) > Clock.currTime.toUnixTime)
             return "BANNED";
 
         if (!secureEqual(db.get_pass(username), encode_password(password)))
