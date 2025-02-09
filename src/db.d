@@ -68,6 +68,10 @@ class Sdb
             admins_table
         );
 
+        foreach (problem ; query("PRAGMA integrity_check;"))
+            debug(db) writefln!("DB: Check [%s]")(problem[0]);
+
+        query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(admins_sql);
         init_config();
@@ -194,6 +198,7 @@ class Sdb
             users_table, escape(username), escape(password)
         );
         query(sql);
+        query("PRAGMA optimize;");
     }
 
     bool user_exists(string username)
