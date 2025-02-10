@@ -570,14 +570,14 @@ class UUserPrivileged : UMessage
 class UGivePrivileges : UMessage
 {
     string  username;
-    uint    time;
+    uint    days;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         username = read!string();
-        time     = read!uint();
+        days     = read!uint();
     }
 }
 
