@@ -29,8 +29,7 @@ struct SdbUserStats
 
 class Sdb
 {
-    sqlite3*       db;
-    sqlite3_stmt*  stmt;
+    sqlite3* db;
 
     const users_table   = "users";
     const admins_table  = "admins";
@@ -68,6 +67,10 @@ class Sdb
             admins_table
         );
 
+        foreach (problem ; query("PRAGMA integrity_check;"))
+            debug(db) writefln!("DB: Check [%s]")(problem[0]);
+
+        query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(admins_sql);
         init_config();
@@ -194,6 +197,7 @@ class Sdb
             users_table, escape(username), escape(password)
         );
         query(sql);
+        query("PRAGMA optimize;");
     }
 
     bool user_exists(string username)
@@ -280,23 +284,23 @@ class Sdb
         return user_stats;
     }
 
-    string[] usernames(string filter_field = null, uint min = 1, uint max = -1)
+    string[] usernames(string field = null, ulong min = 1, ulong max = -1)
     {
         string[] ret;
         auto sql = format!("SELECT username FROM %s")(users_table);
-        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(filter_field), min, max
+        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
+            escape(field), min, max
         );
         sql ~= ";";
         foreach (record ; query(sql)) ret ~= record[0];
         return ret;
     }
 
-    uint num_users(string filter_field = null, uint min = 1, uint max = -1)
+    uint num_users(string field = null, ulong min = 1, ulong max = -1)
     {
         auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
-        if (filter_field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(filter_field), min, max
+        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
+            escape(field), min, max
         );
         sql ~= ";";
         return query(sql)[0][0].to!uint.ifThrown(0);
@@ -306,6 +310,7 @@ class Sdb
     private string[][] query(string query)
     {
         string[][] ret;
+        sqlite3_stmt* stmt;
         char* tail;
         uint res;
         uint fin;

@@ -6,7 +6,7 @@
 module soulfind.server.user;
 @safe:
 
-import core.time : seconds;
+import core.time : days, seconds;
 import soulfind.defines : blue, bold, max_msg_size, norm, red, server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -157,7 +157,7 @@ class User
         );
     }
 
-    long privileges()
+    private long privileges()
     {
         long privileges = priv_expiration - Clock.currTime.toUnixTime;
         if (privileges <= 0) privileges = 0;
@@ -910,11 +910,11 @@ class User
                 const admin = server.db.is_admin(msg.username);
                 if (!user)
                     break;
-                if (msg.time > privileges && !admin)
+                if (days(msg.days) > seconds(privileges) && !admin)
                     break;
 
-                user.add_privileges(msg.time * 3600 * 24);
-                if (!admin) remove_privileges(msg.time * 3600 * 24);
+                user.add_privileges(msg.days * 3600 * 24);
+                if (!admin) remove_privileges(msg.days * 3600 * 24);
                 break;
 
             case ChangePassword:
