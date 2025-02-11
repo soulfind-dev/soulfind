@@ -29,8 +29,7 @@ struct SdbUserStats
 
 class Sdb
 {
-    sqlite3*       db;
-    sqlite3_stmt*  stmt;
+    sqlite3* db;
 
     const users_table   = "users";
     const admins_table  = "admins";
@@ -306,6 +305,7 @@ class Sdb
     private string[][] query(string query)
     {
         string[][] ret;
+        sqlite3_stmt* stmt;
         char* tail;
         uint res;
         uint fin;
