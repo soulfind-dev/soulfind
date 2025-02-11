@@ -6,10 +6,10 @@
 module soulfind.server.server;
 @safe:
 
-import core.time : Duration, minutes, MonoTime, seconds;
+import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, default_max_users, default_port, norm,
-                          red, server_username, VERSION;
+import soulfind.defines : blue, bold, default_max_users, default_port,
+                          kick_minutes, norm, red, server_username, VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -24,6 +24,7 @@ import std.digest.md : MD5;
 import std.exception : ifThrown;
 import std.format : format;
 import std.process : thisProcessID;
+import std.random : uniform;
 import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketSet, SocketShutdown, TcpSocket;
@@ -427,9 +428,11 @@ class Server
                     "Available commands :"
                   ~ "\n\nusers\n\tList connected users"
                   ~ "\n\ninfo <user>\n\tInfo about user <user>"
-                  ~ "\n\nkickall\n\tDisconnect all users"
-                  ~ "\n\nkick <user>\n\tDisconnect <user>"
-                  ~ "\n\nban [minutes] <user>\n\tBan <user> for [10] minutes"
+                  ~ format!("\n\nkickall [minutes]\n\tDisconnect active users"
+                            ~ " for [%d] minutes")(kick_minutes)
+                  ~ format!("\n\nkick [minutes] <user>\n\tDisconnect <user>"
+                            ~ " for [%d] minutes")(kick_minutes)
+                  ~ "\n\nban [days] <user>\n\tBan <user> for [365] days"
                   ~ "\n\nunban <user>\n\tUnban <user>"
                   ~ "\n\nadmins\n\tList admins"
                   ~ "\n\nrooms\n\tList rooms and number of occupiants"
@@ -486,27 +489,37 @@ class Server
                 break;
 
             case "kickall":
-                debug (user) writefln!("Admin %s kicks ALL users...")(
-                    blue ~ admin.username ~ norm
+                Duration duration = minutes(kick_minutes);
+                if (command.length > 1) {
+                    try {
+                        duration = minutes(command[1].to!uint);
+                    }
+                    catch (ConvException e) {
+                        admin_pm(admin, "Syntax is : kickall [minutes]");
+                        break;
+                    }
+                }
+                uint num_kicks;
+                foreach (user ; users.values) {
+                    if (user.username == admin.username)
+                        continue;
+
+                    ban_user(
+                        user.username, duration + seconds(uniform(-50, 50))
+                    );
+                    num_kicks += 1;
+                }
+                debug (user) writefln!("Admin %s kicked ALL %d users for %s!")(
+                    blue ~ admin.username ~ norm, num_kicks, duration.toString
                 );
-                kick_all_users();
+                admin_pm(admin, format!("All %d users kicked for %s (+/-50s)")(
+                    num_kicks, duration.toString)
+                );
                 break;
 
             case "kick":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : kick <user>");
-                    break;
-                }
-                const username = command[1 .. $].join(" ");
-                kick_user(username);
-                admin_pm(
-                    admin, format!("User %s kicked from the server")(username)
-                );
-                break;
-
-            case "ban":
-                if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : ban [minutes] <user>");
+                    admin_pm(admin, "Syntax is : kick [minutes] <user>");
                     break;
                 }
 
@@ -517,23 +530,48 @@ class Server
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException e) {
-                    duration = minutes(10);
+                    duration = minutes(kick_minutes);
                     username = command[1 .. $].join(" ");
                 }
 
                 if (!db.user_exists(username)) {
-                    admin_pm(
-                        admin, format!("User %s does not exist.")(username)
-                    );
+                    admin_pm(admin, format!("User %s non-existant")(username));
                     break;
                 }
 
                 SysTime expiration = ban_user(username, duration);
 
-                admin_pm(
-                    admin, format!("User %s banned for %s; until %s")(
-                        username, duration.toString, expiration.toString
-                    )
+                admin_pm(admin, format!("User %s kicked for %s; until %s")(
+                    username, duration.toString, expiration.toString)
+                );
+                break;
+
+            case "ban":
+                if (command.length < 2) {
+                    admin_pm(admin, "Syntax is : ban [days] <user>");
+                    break;
+                }
+
+                Duration duration;
+                string username;
+                try {
+                    duration = days(command[1].to!uint);
+                    username = command[2 .. $].join(" ");
+                }
+                catch (ConvException e) {
+                    duration = days(365);
+                    username = command[1 .. $].join(" ");
+                }
+
+                if (!db.user_exists(username)) {
+                    admin_pm(admin, format!("User %s non-existant")(username));
+                    break;
+                }
+
+                SysTime expiration = ban_user(username, duration);
+
+                admin_pm(admin, format!("User %s banned for %s; until %s")(
+                    username, duration.toString, expiration.toString)
                 );
                 break;
 
@@ -632,13 +670,7 @@ class Server
         );
     }
 
-    private void kick_all_users()
-    {
-        // Deleting users while iterating, create a copy of array with .values
-        foreach (user ; users.values) del_user(user);
-    }
-
-    private void kick_user(string username)
+    private void disconnect_user(string username)
     {
         auto user = get_user(username);
         if (user) del_user(user);
@@ -649,7 +681,7 @@ class Server
         SysTime expiration = Clock.currTime!(ClockType.second) + duration;
 
         db.user_update_field(username, "banned", expiration.toUnixTime);
-        kick_user(username);
+        disconnect_user(username);
 
         return expiration;
     }
