@@ -217,7 +217,7 @@ private void info()
          \n\t%d banned users")(
         sdb.num_users,
         sdb.num_users("privileges", Clock.currTime.toUnixTime),
-        sdb.num_users("banned")
+        sdb.num_users("banned", Clock.currTime.toUnixTime)
     );
 
     menu.add("1", "Recount", &info);
@@ -229,10 +229,12 @@ private void info()
 private void banned_users()
 {
     scope menu = new Menu(
-        format!("Banned users (%d)")(sdb.num_users("banned"))
+        format!("Banned users (%d)")(
+            sdb.num_users("banned", Clock.currTime.toUnixTime)
+        )
     );
 
-    menu.add("1", "Ban user",          &ban_user);
+    menu.add("1", "Ban user forever",  &ban_user);
     menu.add("2", "Unban user",        &unban_user);
     menu.add("3", "List banned users", &list_banned);
     menu.add("q", "Return",            &main_menu);
@@ -243,7 +245,7 @@ private void banned_users()
 private void ban_user()
 {
     write("User to ban : ");
-    sdb.user_update_field(input.strip, "banned", 1);
+    sdb.user_update_field(input.strip, "banned", -1);
     banned_users();
 }
 
@@ -256,7 +258,7 @@ private void unban_user()
 
 private void list_banned()
 {
-    const users = sdb.usernames("banned");
+    const users = sdb.usernames("banned", Clock.currTime.toUnixTime);
 
     writefln!("\nBanned users (%d)...")(users.length);
     foreach (user ; users) writefln!("\t%s")(user);
