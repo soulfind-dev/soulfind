@@ -7,9 +7,10 @@ module soulfind.db;
 @safe:
 
 import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
-                       sqlite3_column_text, sqlite3_errstr, sqlite3_finalize,
+                       sqlite3_column_text, sqlite3_errmsg, sqlite3_errstr,
+                       sqlite3_extended_errcode, sqlite3_finalize,
                        sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
-                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
+                       sqlite3_stmt, SQLITE_ROW;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -29,8 +30,7 @@ struct SdbUserStats
 
 class Sdb
 {
-    sqlite3*       db;
-    sqlite3_stmt*  stmt;
+    sqlite3* db;
 
     const users_table   = "users";
     const admins_table  = "admins";
@@ -68,6 +68,10 @@ class Sdb
             admins_table
         );
 
+        foreach (problem ; query("PRAGMA integrity_check;"))
+            debug(db) writefln!("DB: Check [%s]")(problem[0]);
+
+        query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(admins_sql);
         init_config();
@@ -194,6 +198,7 @@ class Sdb
             users_table, escape(username), escape(password)
         );
         query(sql);
+        query("PRAGMA optimize;");
     }
 
     bool user_exists(string username)
@@ -301,15 +306,13 @@ class Sdb
     private string[][] query(string query)
     {
         string[][] ret;
+        sqlite3_stmt* stmt;
         char* tail;
-        uint res;
-        uint fin;
 
-        debug(db) writefln!("DB: Query [%s]")(query);
         sqlite3_prepare_v2(
             db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
 
-        res = sqlite3_step(stmt);
+        uint res = sqlite3_step(stmt);
 
         while (res == SQLITE_ROW) {
             string[] record;
@@ -322,17 +325,17 @@ class Sdb
             res = sqlite3_step(stmt);
         }
 
-        fin = sqlite3_finalize(stmt);
+        uint fin = sqlite3_finalize(stmt);
+        uint err = sqlite3_extended_errcode(db);
 
-        if (res != SQLITE_DONE || fin != SQLITE_OK) {
-            // https://sqlite.org/rescode.html#extrc
-            debug(db) writefln!("DB: Result Code %d (%s)")(
-                res, sqlite3_errstr(res).to!string
+        if (err) {
+            writefln!(
+                "DB: Query [%s]\nDB: Result Code %d, Final Code %d.\n\n%s\n")(
+                query, res, fin, sqlite3_errmsg(db).to!string
             );
-            debug(db) writefln!("    >Final Code %d (%s)")(
-                fin, sqlite3_errstr(fin).to!string
+            throw new Exception(
+                format!("Error %d (%s)")(err, sqlite3_errstr(err).to!string)
             );
-            throw new Exception(sqlite3_errstr(fin).to!string);
         }
         return ret;
     }
