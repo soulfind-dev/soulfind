@@ -21,7 +21,7 @@ private void set_console_code_page()
 {
     version (Windows) {
         import core.sys.windows.wincon : SetConsoleOutputCP;
-        SetConsoleOutputCP(6_5001);  // UTF-8
+        SetConsoleOutputCP(65001);  // UTF-8
     }
 }
 
