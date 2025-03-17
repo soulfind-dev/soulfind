@@ -359,6 +359,12 @@ class Server
 
     void add_user(User user)
     {
+        writefln!(
+            "User %s @ %s logging in with version %s")(
+            blue ~ user.username ~ norm,
+            bold ~ user.h_ip_address ~ norm,
+            bold ~ user.h_client_version ~ norm
+        );
         users[user.username] = user;
     }
 

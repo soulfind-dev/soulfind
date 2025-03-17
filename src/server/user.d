@@ -479,7 +479,7 @@ class User
                         "User %s @ %s already logged in with version %s")(
                         red ~ username ~ norm,
                         bold ~ user.h_address ~ norm,
-                        user.h_client_version
+                        bold ~ user.h_client_version ~ norm
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
@@ -528,11 +528,10 @@ class User
                 port = cast(ushort) msg.port;
 
                 writefln!(
-                    "%s %s @ %s logged in with version %s")(
+                    "%s %s @ %s logged in and listening")(
                     server.db.is_admin(username) ? "Admin" : "User",
                     blue ~ username ~ norm,
                     bold ~ h_address ~ norm,
-                    h_client_version
                 );
                 break;
 
@@ -693,6 +692,9 @@ class User
                 auto user = server.get_user(msg.username);
 
                 if (msg.username == server_username) {
+                    if (!port)
+                        break;
+
                     server.admin_message(this, msg.message);
                 }
                 else if (user) {
