@@ -157,7 +157,7 @@ class Server
                     if (send_ready)
                         write_socks.remove(user_sock);
 
-                    if (user.login_denied)
+                    if (user.login_error)
                         recv_success = send_success = false;
                 }
                 else if (!send_ready) {
@@ -359,13 +359,13 @@ class Server
 
     void add_user(User user)
     {
-        const username = user.username;
-
-        writefln!("User %s logging in with version %s")(
-            blue ~ username ~ norm, user.h_client_version
+        writefln!(
+            "User %s @ %s logging in with version %s")(
+            blue ~ user.username ~ norm,
+            bold ~ user.h_ip_address ~ norm,
+            bold ~ user.h_client_version ~ norm
         );
-        if (db.is_admin(username)) writefln!("%s is an admin")(username);
-        users[username] = user;
+        users[user.username] = user;
     }
 
     User get_user(string username)
@@ -395,14 +395,25 @@ class Server
         if (username in users)
             users.remove(username);
 
-        if (user.status == Status.offline)
+        if (user.status == Status.offline) {
+            writefln!(
+                "User %s @ %s denied (%s)")(
+                red ~ username ~ norm,
+                bold ~ user.h_ip_address ~ norm,
+                red ~ user.login_error ~ norm
+            );
             return;
+        }
 
         user.leave_joined_rooms();
         global_room.remove_user(username);
 
         user.set_status(Status.offline);
-        writefln!("User %s has quit")(red ~ username ~ norm);
+        writefln!(
+            "User %s @ %s quit")(
+            red ~ username ~ norm,
+            bold ~ user.h_address ~ norm
+        );
     }
 
     private void send_to_all(scope SMessage msg)
