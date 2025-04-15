@@ -10,27 +10,36 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64, windows-x86_64]
+        os: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64, windows-x86_64, windows-arm64]
         compiler: [ldc, dmd]
         type: [release, debug]
         include:
           - os: linux-x86_64
+            arch: x86_64
             image: ubuntu-latest
             container: alpine:edge
 
           - os: linux-arm64
+            arch: aarch64
             image: ubuntu-24.04-arm
             container: alpine:edge
 
           - os: macos-x86_64
+            arch: x86_64
             image: macos-13
             target: 10.12
 
           - os: macos-arm64
+            arch: arm64-apple-macos
             image: macos-latest
             target: 11
 
           - os: windows-x86_64
+            arch: x86_64
+            image: windows-latest
+
+          - os: windows-arm64
+            arch: aarch64-windows-msvc
             image: windows-latest
 
           - os: linux-x86_64
@@ -52,6 +61,9 @@ jobs:
             compiler: dmd
 
           - os: macos-arm64
+            compiler: dmd
+
+          - os: windows-arm64
             compiler: dmd
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
@@ -81,8 +93,15 @@ jobs:
         with:
           compiler: ${{ matrix.compiler }}
 
-      - name: Build
-        run: dub build -v --build=${{ matrix.type }} ${{ matrix.flags }}
+      - name: Build (Windows arm64)
+        if: matrix.os == 'windows-arm64'
+        run: |
+          $vsPath = vswhere -property installationPath
+          cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=x64 && dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} ${{ matrix.flags }}"
+
+      - name: Build (Other)
+        if: matrix.os != 'windows-arm64'
+        run: dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} ${{ matrix.flags }}
 
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'
