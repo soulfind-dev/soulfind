@@ -6,17 +6,19 @@
 module soulfind.db;
 @safe:
 
-import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
-                       sqlite3_column_text, sqlite3_errmsg, sqlite3_errstr,
+import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
+                       sqlite3_column_count, sqlite3_column_text,
+                       sqlite3_errmsg, sqlite3_errstr,
                        sqlite3_extended_errcode, sqlite3_finalize,
                        sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
-                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
+                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW,
+                       SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
-import std.string : format, replace, toStringz;
+import std.string : format, join, replace, toStringz;
 
 struct SdbUserStats
 {
@@ -114,62 +116,62 @@ class Sdb
     private void init_config_option(string option, string value)
     {
         const sql = format!(
-            "INSERT OR IGNORE INTO %s(option, value) VALUES('%s', '%s');")(
-            config_table, option, escape(value)
+            "INSERT OR IGNORE INTO %s(option, value) VALUES(?, ?);")(
+            config_table
         );
-        query(sql);
+        query(sql, [option, value]);
     }
 
     private void init_config_option(string option, uint value)
     {
         const sql = format!(
-            "INSERT OR IGNORE INTO %s(option, value) VALUES('%s', %d);")(
-            config_table, option, value
+            "INSERT OR IGNORE INTO %s(option, value) VALUES(?, ?);")(
+            config_table
         );
-        query(sql);
+        query(sql, [option, value.to!string]);
     }
 
     void set_config_value(string option, string value)
     {
         const sql = format!(
-            "REPLACE INTO %s(option, value) VALUES('%s', '%s');")(
-            config_table, option, escape(value)
+            "REPLACE INTO %s(option, value) VALUES(?, ?);")(
+            config_table
         );
-        query(sql);
+        query(sql, [option, value]);
     }
 
     void set_config_value(string option, uint value)
     {
         const sql = format!(
-            "REPLACE INTO %s(option, value) VALUES('%s', %d);")(
-            config_table, option, value
+            "REPLACE INTO %s(option, value) VALUES(?, ?);")(
+            config_table
         );
-        query(sql);
+        query(sql, [option, value.to!string]);
     }
 
     string get_config_value(string option)
     {
-        const sql = format!("SELECT value FROM %s WHERE option = '%s';")(
-            config_table, option
+        const sql = format!("SELECT value FROM %s WHERE option = ?;")(
+            config_table
         );
-        return query(sql)[0][0];
+        return query(sql, [option])[0][0];
     }
 
     void add_admin(string username, uint level = 0)
     {
         const sql = format!(
-            "REPLACE INTO %s(username, level) VALUES('%s', %d);")(
-            admins_table, escape(username), level
+            "REPLACE INTO %s(username, level) VALUES(?, ?);")(
+            admins_table
         );
-        query(sql);
+        query(sql, [username, level.to!string]);
     }
 
     void del_admin(string username)
     {
-        const sql = format!("DELETE FROM %s WHERE username = '%s';")(
-            admins_table, escape(username)
+        const sql = format!("DELETE FROM %s WHERE username = ?;")(
+            admins_table
         );
-        query(sql);
+        query(sql, [username]);
     }
 
     string[] admins()
@@ -185,74 +187,74 @@ class Sdb
     bool is_admin(string username)
     {
         const sql = format!(
-            "SELECT username FROM %s WHERE username = '%s';")(
-            admins_table, escape(username)
+            "SELECT username FROM %s WHERE username = ?;")(
+            admins_table
         );
-        return query(sql).length > 0;
+        return query(sql, [username]).length > 0;
     }
 
     void add_user(string username, string password)
     {
         const sql = format!(
-            "INSERT INTO %s(username, password) VALUES('%s', '%s');")(
-            users_table, escape(username), escape(password)
+            "INSERT INTO %s(username, password) VALUES(?, ?);")(
+            users_table
         );
-        query(sql);
+        query(sql, [username, password]);
         query("PRAGMA optimize;");
     }
 
     bool user_exists(string username)
     {
         const sql = format!(
-            "SELECT username FROM %s WHERE username = '%s';")(
-            users_table, escape(username)
+            "SELECT username FROM %s WHERE username = ?;")(
+            users_table
         );
-        return query(sql).length > 0;
+        return query(sql, [username]).length > 0;
     }
 
     void user_update_field(string username, string field, string value)
     {
         const sql = format!(
-            "UPDATE %s SET %s = '%s' WHERE username = '%s';")(
-            users_table, field, escape(value), escape(username)
+            "UPDATE %s SET %s = ? WHERE username = ?;")(
+            users_table, field
         );
-        query(sql);
+        query(sql, [value, username]);
     }
 
     void user_update_field(string username, string field, ulong value)
     {
         const sql = format!(
-            "UPDATE %s SET %s = %d WHERE username = '%s';")(
-            users_table, field, value, escape(username)
+            "UPDATE %s SET %s = ? WHERE username = ?;")(
+            users_table, field
         );
-        query(sql);
+        query(sql, [value.to!string, username]);
     }
 
     string get_pass(string username)
     {
         const sql = format!(
-            "SELECT password FROM %s WHERE username = '%s';")(
-            users_table, escape(username)
+            "SELECT password FROM %s WHERE username = ?;")(
+            users_table
         );
-        return query(sql)[0][0];
+        return query(sql, [username])[0][0];
     }
 
     long get_user_privileges(string username)
     {
         const sql = format!(
-            "SELECT privileges FROM %s WHERE username = '%s';")(
-            users_table, escape(username)
+            "SELECT privileges FROM %s WHERE username = ?;")(
+            users_table
         );
-        return query(sql)[0][0].to!long.ifThrown(0);
+        return query(sql, [username])[0][0].to!long.ifThrown(0);
     }
 
     long get_ban_expiration(string username)
     {
         const sql = format!(
-            "SELECT banned FROM %s WHERE username = '%s';")(
-            users_table, escape(username)
+            "SELECT banned FROM %s WHERE username = ?;")(
+            users_table
         );
-        return query(sql)[0][0].to!long.ifThrown(0);
+        return query(sql, [username])[0][0].to!long.ifThrown(0);
     }
 
     SdbUserStats get_user_stats(string username)
@@ -263,10 +265,10 @@ class Sdb
         const sql = format!(
             "SELECT speed,ulnum,files,folders"
           ~ " FROM %s"
-          ~ " WHERE username = '%s';")(
-            users_table, escape(username)
+          ~ " WHERE username = ?;")(
+            users_table
         );
-        const res = query(sql);
+        const res = query(sql, [username]);
         auto user_stats = SdbUserStats();
 
         if (res.length > 0) {
@@ -280,35 +282,44 @@ class Sdb
         return user_stats;
     }
 
-    string[] usernames(string field = null, ulong min = 1, ulong max = -1)
+    string[] usernames(string field = null, ulong min = 1,
+                       ulong max = ulong.max)
     {
         string[] ret;
         auto sql = format!("SELECT username FROM %s")(users_table);
-        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(field), min, max
-        );
+        string[] parameters;
+
+        if (field) {
+            sql ~= format!(" WHERE %s BETWEEN ? AND ?")(field);
+            parameters = [min.to!string, max.to!string];
+        }
         sql ~= ";";
-        foreach (record ; query(sql)) ret ~= record[0];
+        foreach (record ; query(sql, parameters)) ret ~= record[0];
         return ret;
     }
 
-    uint num_users(string field = null, ulong min = 1, ulong max = -1)
+    uint num_users(string field = null, ulong min = 1, ulong max = ulong.max)
     {
         auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
-        if (field) sql ~= format!(" WHERE %s BETWEEN %d AND %d")(
-            escape(field), min, max
-        );
+        string[] parameters;
+
+        if (field) {
+            sql ~= format!(" WHERE %s BETWEEN ? AND ?")(field);
+            parameters = [min.to!string, max.to!string];
+        }
         sql ~= ";";
-        return query(sql)[0][0].to!uint.ifThrown(0);
+        return query(sql, parameters)[0][0].to!uint.ifThrown(0);
     }
 
     @trusted
-    private void raise_sql_error(string query, int res)
+    private void raise_sql_error(string query, const string[] parameters,
+                                 int res)
     {
         const err_code = sqlite3_extended_errcode(db);
         const err_desc = sqlite3_errstr(err_code).to!string;
 
         writefln!("DB: Query [%s]")(query);
+        writefln!("DB: Parameters [%s]")(parameters.join(", "));
         writefln!("DB: Result code %d.\n\n%s\n")(
             res, sqlite3_errmsg(db).to!string
         );
@@ -318,7 +329,7 @@ class Sdb
     }
 
     @trusted
-    private string[][] query(string query)
+    private string[][] query(string query, const string[] parameters = [])
     {
         string[][] ret;
         sqlite3_stmt* stmt;
@@ -328,8 +339,20 @@ class Sdb
             db, query.toStringz(), cast(int)query.length, &stmt, &tail
         );
         if (res != SQLITE_OK) {
-            raise_sql_error(query, res);
+            raise_sql_error(query, parameters, res);
             return ret;
+        }
+
+        foreach (i, parameter ; parameters) {
+            res = sqlite3_bind_text(
+                stmt, cast(int)i + 1, parameter.toStringz(),
+                cast(int)parameter.length, SQLITE_TRANSIENT
+            );
+            if (res != SQLITE_OK) {
+                sqlite3_finalize(stmt);
+                raise_sql_error(query, parameters, res);
+                return ret;
+            }
         }
 
         res = sqlite3_step(stmt);
@@ -348,13 +371,8 @@ class Sdb
         sqlite3_finalize(stmt);
 
         if (res != SQLITE_DONE)
-            raise_sql_error(query, res);
+            raise_sql_error(query, parameters, res);
 
         return ret;
-    }
-
-    private string escape(string str)
-    {
-        return replace(str, "'", "''");
     }
 }
