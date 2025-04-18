@@ -10,7 +10,7 @@ import etc.c.sqlite3 : sqlite3, sqlite3_close, sqlite3_column_count,
                        sqlite3_column_text, sqlite3_errmsg, sqlite3_errstr,
                        sqlite3_extended_errcode, sqlite3_finalize,
                        sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
-                       sqlite3_stmt, SQLITE_ROW;
+                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -303,40 +303,53 @@ class Sdb
     }
 
     @trusted
+    private void raise_sql_error(string query, int res)
+    {
+        const err_code = sqlite3_extended_errcode(db);
+        const err_desc = sqlite3_errstr(err_code).to!string;
+
+        writefln!("DB: Query [%s]")(query);
+        writefln!("DB: Result code %d.\n\n%s\n")(
+            res, sqlite3_errmsg(db).to!string
+        );
+        throw new Exception(
+            format!("SQLite error %d (%s)")(err_code, err_desc)
+        );
+    }
+
+    @trusted
     private string[][] query(string query)
     {
         string[][] ret;
         sqlite3_stmt* stmt;
         char* tail;
 
-        sqlite3_prepare_v2(
-            db, query.toStringz(), cast(uint)query.length, &stmt, &tail);
+        int res = sqlite3_prepare_v2(
+            db, query.toStringz(), cast(int)query.length, &stmt, &tail
+        );
+        if (res != SQLITE_OK) {
+            raise_sql_error(query, res);
+            return ret;
+        }
 
-        uint res = sqlite3_step(stmt);
+        res = sqlite3_step(stmt);
 
         while (res == SQLITE_ROW) {
             string[] record;
             const n = sqlite3_column_count(stmt);
 
-            for (uint i ; i < n ; i++)
+            for (int i ; i < n ; i++)
                 record ~= sqlite3_column_text(stmt, i).to!string;
 
             ret ~= record;
             res = sqlite3_step(stmt);
         }
 
-        uint fin = sqlite3_finalize(stmt);
-        uint err = sqlite3_extended_errcode(db);
+        sqlite3_finalize(stmt);
 
-        if (err) {
-            writefln!(
-                "DB: Query [%s]\nDB: Result Code %d, Final Code %d.\n\n%s\n")(
-                query, res, fin, sqlite3_errmsg(db).to!string
-            );
-            throw new Exception(
-                format!("Error %d (%s)")(err, sqlite3_errstr(err).to!string)
-            );
-        }
+        if (res != SQLITE_DONE)
+            raise_sql_error(query, res);
+
         return ret;
     }
 
