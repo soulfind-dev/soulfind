@@ -245,7 +245,7 @@ private void banned_users()
 private void ban_user()
 {
     write("User to ban : ");
-    sdb.user_update_field(input.strip, "banned", -1);
+    sdb.user_update_field(input.strip, "banned", ulong.max);
     banned_users();
 }
 
