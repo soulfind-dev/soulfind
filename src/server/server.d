@@ -114,7 +114,7 @@ class Server
                         break;
                     }
                     if (!new_sock.isAlive)
-                        continue;
+                        break;
 
                     enable_keep_alive(new_sock);
                     new_sock.setOption(
