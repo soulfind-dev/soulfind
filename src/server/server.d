@@ -10,6 +10,7 @@ import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_max_users, default_port,
                           kick_minutes, norm, red, server_username, VERSION;
+import soulfind.main : running;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -95,14 +96,14 @@ class Server
             thisProcessID, port
         );
 
+        const timeout = 1.seconds;
         read_socks = new SocketSet(max_users + 1);
         write_socks = new SocketSet(max_users + 1);
 
-        while (true) {
+        while (running) {
             read_socks.add(sock);
 
-            const nb = Socket.select(read_socks, write_socks, null);
-            const terminating = (nb == -1);
+            Socket.select(read_socks, write_socks, null, timeout);
 
             if (read_socks.isSet(sock)) {
                 while (true) {
@@ -165,15 +166,12 @@ class Server
                     write_socks.add(user_sock);
                 }
 
-                if (terminating || !recv_success || !send_success)
+                if (!running || !recv_success || !send_success)
                     users_to_remove ~= user;
             }
 
             foreach (user ; users_to_remove)
                 del_user(user);
-
-            if (terminating)
-                break;
         }
 
         sock.close();

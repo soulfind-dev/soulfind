@@ -8,7 +8,7 @@ module soulfind.setup;
 
 import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
-                          exit_message, VERSION;
+                          VERSION;
 import std.conv : ConvException, to;
 import std.datetime : Clock;
 import std.exception : ifThrown;
@@ -62,9 +62,7 @@ private void main_menu()
     menu.show();
 }
 
-private void exit() {
-    writefln!("\n%s")(exit_message);
-}
+private void exit() {}
 
 private void admins()
 {

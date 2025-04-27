@@ -6,14 +6,22 @@
 module soulfind.main;
 @safe:
 
+import core.atomic : atomicStore;
 import soulfind.defines : exit_message;
 import std.stdio : writefln;
 
 version (Have_soulfind_server) import soulfind.server : run;
 version (Have_soulfind_setup)  import soulfind.setup : run;
 
+shared bool running = true;
+
 private extern(C) void handle_termination(int) {
-    writefln!("\n%s")(exit_message);
+    atomicStore(running, false);
+}
+
+private extern(Windows) int handle_ctrl(uint) nothrow {
+    atomicStore(running, false);
+    return true;
 }
 
 @trusted
@@ -38,6 +46,10 @@ private void setup_signal_handler()
         sigaction(SIGINT, &act, null);
         sigaction(SIGTERM, &act, null);
     }
+    version (Windows) {
+        import core.sys.windows.windows : SetConsoleCtrlHandler;
+        SetConsoleCtrlHandler(&handle_ctrl, true);
+    }
 }
 
 private int main(string[] args)
@@ -45,5 +57,7 @@ private int main(string[] args)
     set_console_code_page();
     setup_signal_handler();
 
-    return run(args);
+    const exit_code = run(args);
+    writefln!("\n%s")(exit_message);
+    return exit_code;
 }
