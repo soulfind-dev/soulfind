@@ -1,7 +1,7 @@
 {
     "name": "soulfind",
     "description": "Soulseek server implementation in D",
-    "copyright": "Copyright © 2005-2024, Soulfind Contributors",
+    "copyright": "Copyright © 2005-2025, Soulfind Contributors",
     "license": "GPL-3.0-or-later",
     "toolchainRequirements": {
         "ldc": ">=1.28.0",
