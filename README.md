@@ -15,7 +15,7 @@ production.
 ## Building
 
 Ensure the following dependencies are installed:
- - `ldc` or `dmd` for compiler
+ - `ldc`, `dmd` or `gdc` for compiler
  - `gcc` for linker
  - `dub` for build system
  - `sqlite3` for database

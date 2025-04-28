@@ -6,7 +6,7 @@
     "toolchainRequirements": {
         "ldc": ">=1.28.0",
         "dmd": ">=2.98.0",
-        "gdc": "no"
+        "gdc": ">=15.0.0"
     },
     "dependencies": {
         "soulfind:server": "*",
