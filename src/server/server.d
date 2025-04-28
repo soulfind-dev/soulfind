@@ -9,7 +9,8 @@ module soulfind.server.server;
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_max_users, default_port,
-                          kick_minutes, norm, red, server_username, VERSION;
+                          kick_minutes, max_username_length, norm, red,
+                          server_username, VERSION;
 import soulfind.main : running;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -725,7 +726,7 @@ class Server
         return digest!MD5(pass).toHexString!(LetterCase.lower).to!string;
     }
 
-    bool check_name(string text, uint max_length = 24)
+    bool check_name(string text, uint max_length)
     {
         if (!text || text.length > max_length) {
             return false;
@@ -757,7 +758,7 @@ class Server
 
     string check_login(string username, string password)
     {
-        if (!check_name(username, 30))
+        if (!check_name(username, max_username_length))
             return "INVALIDUSERNAME";
 
         if (!db.user_exists(username)) {

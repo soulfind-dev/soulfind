@@ -14,6 +14,8 @@ const default_port         = 2242;
 const default_max_users    = 65535;
 const kick_minutes         = 10;
 const max_msg_size         = 16384;
+const max_room_name_length = 24;
+const max_username_length  = 30;
 const server_username      = "server";
 const exit_message         = "A la prochaine...";
 

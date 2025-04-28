@@ -7,7 +7,8 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, seconds;
-import soulfind.defines : blue, bold, max_msg_size, norm, red, server_username;
+import soulfind.defines : blue, bold, max_msg_size, max_room_name_length, norm,
+                          red, server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -655,7 +656,7 @@ class User
 
             case JoinRoom:
                 scope msg = new UJoinRoom(msg_buf, username);
-                if (server.check_name(msg.room_name))
+                if (server.check_name(msg.room_name, max_room_name_length))
                     join_room(msg.room_name);
                 break;
 
