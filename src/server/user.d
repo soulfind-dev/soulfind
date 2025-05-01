@@ -7,7 +7,8 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, seconds;
-import soulfind.defines : blue, bold, max_chat_message_length, max_msg_size,
+import soulfind.defines : blue, bold, max_chat_message_length,
+                          max_interest_length, max_msg_size,
                           max_room_name_length, max_username_length, norm, red,
                           server_username;
 import soulfind.server.messages;
@@ -294,7 +295,13 @@ class User
 
     private void add_liked_item(string item)
     {
-        if (!likes(item)) liked_items[item] = item;
+        if (item.length > max_interest_length)
+            return;
+
+        if (likes(item))
+            return;
+
+        liked_items[item] = item;
     }
 
     private void del_liked_item(string item)
@@ -304,7 +311,13 @@ class User
 
     private void add_hated_item(string item)
     {
-        if (!hates(item)) hated_items[item] = item;
+        if (item.length > max_interest_length)
+            return;
+
+        if (hates(item))
+            return;
+
+        hated_items[item] = item;
     }
 
     private void del_hated_item(string item)

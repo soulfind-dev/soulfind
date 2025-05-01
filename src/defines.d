@@ -15,6 +15,7 @@ const default_max_users       = 65535;
 const kick_minutes            = 10;
 const max_msg_size            = 16384;
 const max_chat_message_length = 2048;
+const max_interest_length     = 64;
 const max_room_name_length    = 24;
 const max_room_ticker_length  = 1024;
 const max_search_query_length = 256;
