@@ -14,7 +14,9 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
+import std.algorithm : canFind;
 import std.array : join;
+import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : to;
 import std.datetime : Clock, SysTime;
@@ -23,6 +25,7 @@ import std.digest.md : MD5;
 import std.format : format;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
+import std.string : strip;
 
 class User
 {
@@ -85,14 +88,44 @@ class User
         return format!("%s:%d")(h_ip_address, port);
     }
 
-    string encode_password(string password)
+    private bool check_name(string text, uint max_length)
+    {
+        if (text.length <= 0 || text.length > max_length) {
+            return false;
+        }
+        foreach (c ; text) if (!c.isASCII) {
+            // non-ASCII control chars, etc
+            return false;
+        }
+        if (text.length == 1 && isPunctuation(text.to!dchar)) {
+            // only character is a symbol
+            return false;
+        }
+        if (text.strip != text) {
+            // leading/trailing whitespace
+            return false;
+        }
+
+        const string[] forbidden_names = [server_username];
+        const string[] forbidden_words = ["  "];
+
+        foreach (name ; forbidden_names) if (name == text) {
+            return false;
+        }
+        foreach (word ; forbidden_words) if (text.canFind(word)) {
+            return false;
+        }
+        return true;
+    }
+
+    private string encode_password(string password)
     {
         return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
     }
 
-    string verify_login(string password)
+    private string verify_login(string username, string password)
     {
-        if (!server.check_name(username, max_username_length))
+        if (!check_name(username, max_username_length))
             return "INVALIDUSERNAME";
 
         if (!server.db.user_exists(username)) {
@@ -385,11 +418,46 @@ class User
 
     void join_room(string name)
     {
+        string fail_message;
+        if (name.length <= 0)
+            fail_message = "Could not create room. Reason: Room name empty.";
+        else if (name.length > max_room_name_length)
+            fail_message = format!(
+                "Could not create room. Reason: Room name %s longer than %d "
+              ~ "characters.")(
+                name, max_room_name_length
+            );
+        else if (name.strip != name)
+            fail_message = format!(
+                "Could not create room. Reason: Room name %s contains leading "
+              ~ "or trailing spaces.")(
+                name
+            );
+        else if (name.canFind("  "))
+            fail_message = format!(
+                "Could not create room. Reason: Room name %s contains "
+              ~ "multiple following spaces.")(
+                name
+            );
+        else
+            foreach (c ; name) {
+                if (!c.isASCII) {
+                    fail_message = format!(
+                        "Could not create room. Reason: Room name %s contains "
+                      ~ "invalid characters.")(
+                        name
+                    );
+                    break;
+                }
+            }
+
+        if (fail_message.length > 0) {
+            server.server_pm(this, fail_message);
+            return;
+        }
+
         auto room = server.get_room(name);
         if (!room) room = server.add_room(name);
-
-        if (!room)
-            return;
 
         joined_rooms[name] = room;
         room.add_user(this);
@@ -502,8 +570,7 @@ class User
                 if (status != Status.offline)
                     break;
 
-                username = msg.username;
-                login_error = verify_login(msg.password);
+                login_error = verify_login(msg.username, msg.password);
 
                 if (login_error) {
                     scope response_msg = new SLogin(false, login_error);
@@ -511,6 +578,7 @@ class User
                     break;
                 }
 
+                username = msg.username;
                 auto user = server.get_user(username);
 
                 if (user && user.status != Status.offline) {

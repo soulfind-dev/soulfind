@@ -17,9 +17,7 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm : canFind;
 import std.array : join, replace, split;
-import std.ascii : isPrintable, isPunctuation;
 import std.conv : ConvException, to;
 import std.datetime : Clock, ClockType, SysTime;
 import std.exception : ifThrown;
@@ -336,9 +334,6 @@ class Server
 
     Room add_room(string name)
     {
-        if (!check_name(name, max_room_name_length))
-            return null;
-
         auto room = new Room(name);
         rooms[name] = room;
         return room;
@@ -444,7 +439,7 @@ class Server
         if (command.length > 0) switch (command[0])
         {
             case "help":
-                admin_pm(
+                server_pm(
                     admin,
                     "Available commands :"
                   ~ "\n\nusers\n\tList connected users"
@@ -466,7 +461,9 @@ class Server
 
             case "addprivileges":
                 if (command.length < 3) {
-                    admin_pm(admin, "Syntax is : addprivileges <days> <user>");
+                    server_pm(
+                        admin, "Syntax is : addprivileges <days> <user>"
+                    );
                     break;
                 }
 
@@ -475,14 +472,14 @@ class Server
                     days = command[1].to!uint;
                 }
                 catch (ConvException e) {
-                    admin_pm(admin, "Badly formatted number.");
+                    server_pm(admin, "Badly formatted number.");
                     break;
                 }
 
                 const username = command[2 .. $].join(" ");
                 auto user = get_user(username);
                 if (!user) {
-                    admin_pm(
+                    server_pm(
                         admin, format!("User %s does not exist.")(username)
                     );
                     break;
@@ -496,17 +493,17 @@ class Server
                     users.length,
                     users.byKey.join("\n\t")
                 );
-                admin_pm(admin, list);
+                server_pm(admin, list);
                 break;
 
             case "info":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : info <user>");
+                    server_pm(admin, "Syntax is : info <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
                 const user_info = show_user(username);
-                admin_pm(admin, user_info);
+                server_pm(admin, user_info);
                 break;
 
             case "kickall":
@@ -516,7 +513,7 @@ class Server
                         duration = minutes(command[1].to!uint);
                     }
                     catch (ConvException e) {
-                        admin_pm(admin, "Syntax is : kickall [minutes]");
+                        server_pm(admin, "Syntax is : kickall [minutes]");
                         break;
                     }
                 }
@@ -530,17 +527,19 @@ class Server
                     );
                     num_kicks += 1;
                 }
-                debug (user) writefln!("Admin %s kicked ALL %d users for %s!")(
+                debug (user) writefln!(
+                    "Admin %s kicked ALL %d users for %s!")(
                     blue ~ admin.username ~ norm, num_kicks, duration.toString
                 );
-                admin_pm(admin, format!("All %d users kicked for %s (+/-50s)")(
+                server_pm(admin, format!(
+                    "All %d users kicked for %s (+/-50s)")(
                     num_kicks, duration.toString)
                 );
                 break;
 
             case "kick":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : kick [minutes] <user>");
+                    server_pm(admin, "Syntax is : kick [minutes] <user>");
                     break;
                 }
 
@@ -556,20 +555,22 @@ class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    admin_pm(admin, format!("User %s non-existant")(username));
+                    server_pm(admin, format!(
+                        "User %s non-existant")(username)
+                    );
                     break;
                 }
 
                 SysTime expiration = ban_user(username, duration);
 
-                admin_pm(admin, format!("User %s kicked for %s; until %s")(
+                server_pm(admin, format!("User %s kicked for %s; until %s")(
                     username, duration.toString, expiration.toString)
                 );
                 break;
 
             case "ban":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : ban [days] <user>");
+                    server_pm(admin, "Syntax is : ban [days] <user>");
                     break;
                 }
 
@@ -585,25 +586,27 @@ class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    admin_pm(admin, format!("User %s non-existant")(username));
+                    server_pm(admin, format!(
+                        "User %s non-existant")(username)
+                    );
                     break;
                 }
 
                 SysTime expiration = ban_user(username, duration);
 
-                admin_pm(admin, format!("User %s banned for %s; until %s")(
+                server_pm(admin, format!("User %s banned for %s; until %s")(
                     username, duration.toString, expiration.toString)
                 );
                 break;
 
             case "unban":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : unban <user>");
+                    server_pm(admin, "Syntax is : unban <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
                 unban_user(username);
-                admin_pm(
+                server_pm(
                     admin, format!("User %s not banned anymore")(username)
                 );
                 break;
@@ -614,19 +617,19 @@ class Server
                     names.length,
                     names.join("\n\t")
                 );
-                admin_pm(admin, list);
+                server_pm(admin, list);
                 break;
 
             case "rooms":
                 string list;
                 foreach (room ; rooms)
                     list ~= format!("%s:%d ")(room.name, room.num_users);
-                admin_pm(admin, list);
+                server_pm(admin, list);
                 break;
 
             case "message":
                 if (command.length < 2) {
-                    admin_pm(admin, "Syntax is : message <message>");
+                    server_pm(admin, "Syntax is : message <message>");
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
@@ -634,11 +637,11 @@ class Server
                 break;
 
             case "uptime":
-                admin_pm(admin, h_uptime);
+                server_pm(admin, h_uptime);
                 break;
 
             default:
-                admin_pm(
+                server_pm(
                     admin,
                     "Don't expect me to understand what you want if you don't "
                   ~ "use a correct command..."
@@ -647,11 +650,11 @@ class Server
         }
     }
 
-    private void admin_pm(User admin, string message)
+    void server_pm(User user, string message)
     {
-        const pm = add_pm(message, server_username, admin.username);
+        const pm = add_pm(message, server_username, user.username);
         const new_message = true;
-        admin.send_pm(pm, new_message);
+        user.send_pm(pm, new_message);
     }
 
     private void global_message(string message)
@@ -730,35 +733,5 @@ class Server
     private string h_uptime()
     {
         return uptime.total!"seconds".seconds.toString;
-    }
-
-    bool check_name(string text, uint max_length)
-    {
-        if (!text || text.length > max_length) {
-            return false;
-        }
-        foreach (c ; text) if (!isPrintable(c)) {
-            // non-ASCII control chars, etc
-            return false;
-        }
-        if (text.length == 1 && isPunctuation(text.to!dchar)) {
-            // only character is a symbol
-            return false;
-        }
-        if (strip(text) != text) {
-            // leading/trailing whitespace
-            return false;
-        }
-
-        const string[] forbidden_names = [server_username, ""];
-        const string[] forbidden_words = ["  "];
-
-        foreach (name ; forbidden_names) if (name == text) {
-            return false;
-        }
-        foreach (word ; forbidden_words) if (canFind(text, word)) {
-            return false;
-        }
-        return true;
     }
 }
