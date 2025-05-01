@@ -7,15 +7,19 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, seconds;
-import soulfind.defines : blue, bold, max_msg_size, max_room_name_length, norm,
-                          red, server_username;
+import soulfind.defines : blue, bold, max_chat_message_length, max_msg_size,
+                          max_room_name_length, max_username_length, norm, red,
+                          server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.array : join;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
+import std.conv : to;
 import std.datetime : Clock, SysTime;
+import std.digest : digest, LetterCase, secureEqual, toHexString;
+import std.digest.md : MD5;
 import std.format : format;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
@@ -79,6 +83,37 @@ class User
     string h_address()
     {
         return format!("%s:%d")(h_ip_address, port);
+    }
+
+    string encode_password(string password)
+    {
+        return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
+    }
+
+    string verify_login(string password)
+    {
+        if (!server.check_name(username, max_username_length))
+            return "INVALIDUSERNAME";
+
+        if (!server.db.user_exists(username)) {
+            debug (user) writefln!("New user %s registering")(
+                blue ~ username ~ norm
+            );
+            server.db.add_user(username, encode_password(password));
+            return null;
+        }
+        debug (user) writefln!("User %s is registered")(
+            blue ~ username ~ norm
+        );
+
+        if (server.db.get_ban_expiration(username) > Clock.currTime.toUnixTime)
+            return "BANNED";
+
+        if (!secureEqual(
+                server.db.get_pass(username), encode_password(password)))
+            return "INVALIDPASS";
+
+        return null;
     }
 
 
@@ -353,6 +388,9 @@ class User
         auto room = server.get_room(name);
         if (!room) room = server.add_room(name);
 
+        if (!room)
+            return;
+
         joined_rooms[name] = room;
         room.add_user(this);
     }
@@ -465,7 +503,7 @@ class User
                     break;
 
                 username = msg.username;
-                login_error = server.check_login(username, msg.password);
+                login_error = verify_login(msg.password);
 
                 if (login_error) {
                     scope response_msg = new SLogin(false, login_error);
@@ -502,7 +540,7 @@ class User
 
                 scope response_msg = new SLogin(
                     true, server.get_motd(this), ip_address,
-                    server.encode_password(msg.password), supporter
+                    encode_password(msg.password), supporter
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
                 scope wish_interval_msg = new SWishlistInterval(
@@ -656,8 +694,7 @@ class User
 
             case JoinRoom:
                 scope msg = new UJoinRoom(msg_buf, username);
-                if (server.check_name(msg.room_name, max_room_name_length))
-                    join_room(msg.room_name);
+                join_room(msg.room_name);
                 break;
 
             case LeaveRoom:
@@ -691,6 +728,9 @@ class User
             case MessageUser:
                 scope msg = new UMessageUser(msg_buf, username);
                 auto user = server.get_user(msg.username);
+
+                if (msg.message.length > max_chat_message_length)
+                    break;
 
                 if (msg.username == server_username) {
                     if (!port)
@@ -924,7 +964,7 @@ class User
                 scope msg = new UChangePassword(msg_buf, username);
 
                 server.db.user_update_field(
-                    username, "password", server.encode_password(msg.password)
+                    username, "password", encode_password(msg.password)
                 );
 
                 scope response_msg = new SChangePassword(msg.password);
@@ -934,6 +974,9 @@ class User
             case MessageUsers:
                 scope msg = new UMessageUsers(msg_buf, username);
                 bool new_message = true;
+
+                if (msg.message.length > max_chat_message_length)
+                    break;
 
                 foreach (target_username ; msg.usernames) {
                     auto user = server.get_user(target_username);

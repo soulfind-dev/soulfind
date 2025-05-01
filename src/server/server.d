@@ -9,8 +9,9 @@ module soulfind.server.server;
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_max_users, default_port,
-                          kick_minutes, max_username_length, norm, red,
-                          server_username, VERSION;
+                          kick_minutes, max_room_name_length,
+                          max_search_query_length, norm, red, server_username,
+                          VERSION;
 import soulfind.main : running;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -21,8 +22,6 @@ import std.array : join, replace, split;
 import std.ascii : isPrintable, isPunctuation;
 import std.conv : ConvException, to;
 import std.datetime : Clock, ClockType, SysTime;
-import std.digest : digest, LetterCase, secureEqual, toHexString;
-import std.digest.md : MD5;
 import std.exception : ifThrown;
 import std.format : format;
 import std.process : thisProcessID;
@@ -255,6 +254,9 @@ class Server
 
     void search_files(uint token, string query, string username)
     {
+        if (query.length > max_search_query_length)
+            return;
+
         scope msg = new SFileSearch(username, token, query);
         send_to_all(msg);
     }
@@ -262,6 +264,9 @@ class Server
     void search_user_files(uint token, string query, string from_username,
                            string to_username)
     {
+        if (query.length > max_search_query_length)
+            return;
+
         auto user = get_user(to_username);
         if (!user)
             return;
@@ -273,6 +278,9 @@ class Server
     void search_room_files(uint token, string query, string username,
                            string room_name)
     {
+        if (query.length > max_search_query_length)
+            return;
+
         auto room = get_room(room_name);
         if (!room)
             return;
@@ -328,6 +336,9 @@ class Server
 
     Room add_room(string name)
     {
+        if (!check_name(name, max_room_name_length))
+            return null;
+
         auto room = new Room(name);
         rooms[name] = room;
         return room;
@@ -721,11 +732,6 @@ class Server
         return uptime.total!"seconds".seconds.toString;
     }
 
-    string encode_password(string pass)
-    {
-        return digest!MD5(pass).toHexString!(LetterCase.lower).to!string;
-    }
-
     bool check_name(string text, uint max_length)
     {
         if (!text || text.length > max_length) {
@@ -754,30 +760,5 @@ class Server
             return false;
         }
         return true;
-    }
-
-    string check_login(string username, string password)
-    {
-        if (!check_name(username, max_username_length))
-            return "INVALIDUSERNAME";
-
-        if (!db.user_exists(username)) {
-            debug (user) writefln!("New user %s registering")(
-                blue ~ username ~ norm
-            );
-            db.add_user(username, encode_password(password));
-            return null;
-        }
-        debug (user) writefln!("User %s is registered")(
-            blue ~ username ~ norm
-        );
-
-        if (db.get_ban_expiration(username) > Clock.currTime.toUnixTime)
-            return "BANNED";
-
-        if (!secureEqual(db.get_pass(username), encode_password(password)))
-            return "INVALIDPASS";
-
-        return null;
     }
 }

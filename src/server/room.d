@@ -6,6 +6,8 @@
 module soulfind.server.room;
 @safe:
 
+import soulfind.defines : max_chat_message_length, max_room_ticker_length,
+                          max_room_tickers;
 import soulfind.server.messages;
 import soulfind.server.user : User;
 import std.datetime : Clock;
@@ -87,6 +89,9 @@ class Room
         if (username !in users)
             return;
 
+        if (message.length > max_chat_message_length)
+            return;
+
         scope msg = new SSayChatroom(name, username, message);
         send_to_all(msg);
     }
@@ -97,6 +102,9 @@ class Room
     void add_ticker(string username, string content)
     {
         if (username !in users)
+            return;
+
+        if (content.length > max_room_ticker_length)
             return;
 
         if (username in tickers && tickers[username].content == content)
@@ -113,6 +121,9 @@ class Room
             content
         );
 
+        if (tickers.length >= max_room_tickers)
+            del_oldest_ticker ();
+
         scope msg = new SRoomTickerAdd(name, username, content);
         send_to_all(msg);
     }
@@ -126,6 +137,19 @@ class Room
 
         scope msg = new SRoomTickerRemove(name, username);
         send_to_all(msg);
+    }
+
+    private void del_oldest_ticker()
+    {
+        Ticker found_ticker;
+        foreach (ticker ; tickers) {
+            if (ticker.timestamp == 0)
+                continue;
+
+            if (ticker.timestamp < found_ticker.timestamp)
+                found_ticker = ticker;
+        }
+        del_ticker(found_ticker.username);
     }
 }
 
