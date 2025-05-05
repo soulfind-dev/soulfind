@@ -800,8 +800,7 @@ class User
                 );
 
                 scope response_msg = new SConnectToPeer(
-                    user.username, msg.type, user.ip_address, user.port,
-                    msg.token, user.privileged
+                    username, msg.type, ip_address, port, msg.token, privileged
                 );
                 user.send_message(response_msg);
                 break;
