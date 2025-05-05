@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Build
-
 on: [push, pull_request]
+permissions: {}
 
 jobs:
   build:
@@ -75,6 +75,7 @@ jobs:
       - name: Patch native Alpine NodeJS into Runner environment
         if: matrix.os == 'linux-arm64'
         run: |
+          apk upgrade
           apk add docker nodejs
           sed -i "s:ID=alpine:ID=NotpineForGHA:" /etc/os-release
           docker run --rm -v /:/host alpine sh -c 'cd /host/home/runner/runners/*/externals/ && rm -rf node20/* && mkdir node20/bin && ln -s /usr/bin/node node20/bin/node'
