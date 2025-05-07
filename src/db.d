@@ -42,7 +42,7 @@ class Sdb
     this(string filename)
     {
         debug(db) writefln!("DB: Using database: %s")(filename);
-        open_db(filename);
+        open(filename);
 
         if (!exists(filename) || !isFile(filename))
             throw new Exception(
@@ -82,19 +82,7 @@ class Sdb
     ~this()
     {
         debug(db) writeln("DB: Shutting down...");
-        close_db();
-    }
-
-    @trusted
-    private void open_db(string filename)
-    {
-        sqlite3_open(filename.toStringz(), &db);
-    }
-
-    @trusted
-    private void close_db() scope
-    {
-        sqlite3_close(db);
+        close();
     }
 
     private void init_config()
@@ -311,68 +299,131 @@ class Sdb
         return query(sql, parameters)[0][0].to!uint.ifThrown(0);
     }
 
-    @trusted
     private void raise_sql_error(string query, const string[] parameters,
                                  int res)
     {
-        const err_code = sqlite3_extended_errcode(db);
-        const err_desc = sqlite3_errstr(err_code).to!string;
+        const error_code = extended_error_code(db);
+        const error_string = error_string(error_code);
 
         writefln!("DB: Query [%s]")(query);
         writefln!("DB: Parameters [%s]")(parameters.join(", "));
         writefln!("DB: Result code %d.\n\n%s\n")(
-            res, sqlite3_errmsg(db).to!string
+            res, error_msg(db).to!string
         );
         throw new Exception(
-            format!("SQLite error %d (%s)")(err_code, err_desc)
+            format!("SQLite error %d (%s)")(error_code, error_string)
         );
     }
 
-    @trusted
     private string[][] query(string query, const string[] parameters = [])
     {
         string[][] ret;
         sqlite3_stmt* stmt;
-        char* tail;
 
-        int res = sqlite3_prepare_v2(
-            db, query.toStringz(), cast(int)query.length, &stmt, &tail
-        );
+        int res = prepare(db, query, stmt);
         if (res != SQLITE_OK) {
             raise_sql_error(query, parameters, res);
             return ret;
         }
 
         foreach (i, parameter ; parameters) {
-            res = sqlite3_bind_text(
-                stmt, cast(int)i + 1, parameter.toStringz(),
-                cast(int)parameter.length, SQLITE_TRANSIENT
-            );
+            res = bind_text(stmt, cast(int)i + 1, parameter);
             if (res != SQLITE_OK) {
-                sqlite3_finalize(stmt);
+                finalize(stmt);
                 raise_sql_error(query, parameters, res);
                 return ret;
             }
         }
 
-        res = sqlite3_step(stmt);
+        res = step(stmt);
 
         while (res == SQLITE_ROW) {
             string[] record;
-            const n = sqlite3_column_count(stmt);
+            const n = column_count(stmt);
 
             for (int i ; i < n ; i++)
-                record ~= sqlite3_column_text(stmt, i).to!string;
+                record ~= column_text(stmt, i).to!string;
 
             ret ~= record;
-            res = sqlite3_step(stmt);
+            res = step(stmt);
         }
 
-        sqlite3_finalize(stmt);
+        finalize(stmt);
 
         if (res != SQLITE_DONE)
             raise_sql_error(query, parameters, res);
 
         return ret;
+    }
+
+    @trusted
+    private void open(string filename)
+    {
+        sqlite3_open(filename.toStringz(), &db);
+    }
+
+    @trusted
+    private void close() scope
+    {
+        sqlite3_close(db);
+    }
+
+    @trusted
+    private int extended_error_code(sqlite3* db)
+    {
+        return sqlite3_extended_errcode(db);
+    }
+
+    @trusted
+    private string error_string(int error_code)
+    {
+        return sqlite3_errstr(error_code).to!string;
+    }
+
+    @trusted
+    private string error_msg(sqlite3* db)
+    {
+        return sqlite3_errmsg(db).to!string;
+    }
+
+    @trusted
+    private int prepare(sqlite3* db, string query, out sqlite3_stmt* statement)
+    {
+        return sqlite3_prepare_v2(
+            db, query.toStringz(), cast(int)query.length, &statement, null
+        );
+    }
+
+    @trusted
+    private int bind_text(sqlite3_stmt* statement, int index, string value)
+    {
+        return sqlite3_bind_text(
+            statement, index, value.toStringz(), cast(int)value.length,
+            SQLITE_TRANSIENT
+        );
+    }
+
+    @trusted
+    private void finalize(sqlite3_stmt* statement)
+    {
+        sqlite3_finalize(statement);
+    }
+
+    @trusted
+    private int step(sqlite3_stmt* statement)
+    {
+        return sqlite3_step(statement);
+    }
+
+    @trusted
+    private int column_count(sqlite3_stmt* statement)
+    {
+        return sqlite3_column_count(statement);
+    }
+
+    @trusted
+    private string column_text(sqlite3_stmt* statement, int index)
+    {
+        return sqlite3_column_text(statement, index).to!string;
     }
 }
