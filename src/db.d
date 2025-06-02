@@ -18,7 +18,7 @@ import std.conv : to;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
-import std.string : format, join, replace, toStringz;
+import std.string : format, fromStringz, join, replace, toStringz;
 
 struct SdbUserStats
 {
@@ -307,9 +307,8 @@ class Sdb
 
         writefln!("DB: Query [%s]")(query);
         writefln!("DB: Parameters [%s]")(parameters.join(", "));
-        writefln!("DB: Result code %d.\n\n%s\n")(
-            res, error_msg(db).to!string
-        );
+        writefln!("DB: Result code %d.\n\n%s\n")(res, error_msg(db));
+
         throw new Exception(
             format!("SQLite error %d (%s)")(error_code, error_string)
         );
@@ -327,7 +326,7 @@ class Sdb
         }
 
         foreach (i, parameter ; parameters) {
-            res = bind_text(stmt, cast(int)i + 1, parameter);
+            res = bind_text(stmt, cast(int) i + 1, parameter);
             if (res != SQLITE_OK) {
                 finalize(stmt);
                 raise_sql_error(query, parameters, res);
@@ -342,7 +341,7 @@ class Sdb
             const n = column_count(stmt);
 
             for (int i ; i < n ; i++)
-                record ~= column_text(stmt, i).to!string;
+                record ~= column_text(stmt, i);
 
             ret ~= record;
             res = step(stmt);
@@ -359,7 +358,7 @@ class Sdb
     @trusted
     private void open(string filename)
     {
-        sqlite3_open(filename.toStringz(), &db);
+        sqlite3_open(filename.toStringz, &db);
     }
 
     @trusted
@@ -377,20 +376,20 @@ class Sdb
     @trusted
     private string error_string(int error_code)
     {
-        return sqlite3_errstr(error_code).to!string;
+        return sqlite3_errstr(error_code).fromStringz.idup;
     }
 
     @trusted
     private string error_msg(sqlite3* db)
     {
-        return sqlite3_errmsg(db).to!string;
+        return sqlite3_errmsg(db).fromStringz.idup;
     }
 
     @trusted
     private int prepare(sqlite3* db, string query, out sqlite3_stmt* statement)
     {
         return sqlite3_prepare_v2(
-            db, query.toStringz(), cast(int)query.length, &statement, null
+            db, query.toStringz, cast(int) query.length, &statement, null
         );
     }
 
@@ -398,7 +397,7 @@ class Sdb
     private int bind_text(sqlite3_stmt* statement, int index, string value)
     {
         return sqlite3_bind_text(
-            statement, index, value.toStringz(), cast(int)value.length,
+            statement, index, value.toStringz, cast(int) value.length,
             SQLITE_TRANSIENT
         );
     }
@@ -424,6 +423,6 @@ class Sdb
     @trusted
     private string column_text(sqlite3_stmt* statement, int index)
     {
-        return sqlite3_column_text(statement, index).to!string;
+        return sqlite3_column_text(statement, index).fromStringz.idup;
     }
 }
