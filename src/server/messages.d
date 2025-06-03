@@ -10,9 +10,10 @@ import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.algorithm : sort;
+import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.stdio : writefln;
-import std.string : lastIndexOf;
+import std.string : lastIndexOf, representation;
 
 // Constants
 
@@ -642,9 +643,8 @@ class UCantConnectToPeer : UMessage
 
 class SMessage
 {
-    uint             code;
-    private ulong    offset;
-    private ubyte[]  out_buf;
+    uint                        code;
+    private Appender!(ubyte[])  out_buf;
 
     this(uint code) scope
     {
@@ -658,35 +658,21 @@ class SMessage
         return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
     }
 
-    const(ubyte)[] bytes() scope
+    ubyte[] bytes() scope
     {
-        return out_buf[0 .. offset];
-    }
-
-    private void resize_buffer(ulong size) scope
-    {
-        // Preallocate larger buffer size than required to reduce
-        // number of resizes while filling the buffer
-        if (out_buf.length < offset + size)
-            out_buf.length = (offset + size) * 2;
+        return out_buf.opSlice;
     }
 
     private void write(T)(T value) scope
         if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
     {
-        const(ubyte)[] bytes;
-
         static if (is(T == string)) {
-            bytes = cast(immutable(ubyte)[]) value;
             write!uint(cast(uint) value.length);
+            out_buf ~= value.representation;
         }
         else {
-            bytes = value.nativeToLittleEndian.idup;
+            out_buf ~= value.nativeToLittleEndian[];
         }
-
-        resize_buffer(bytes.length);
-        out_buf[offset .. offset + bytes.length] = bytes[];
-        offset += bytes.length;
     }
 }
 
