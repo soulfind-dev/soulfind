@@ -9,11 +9,13 @@ module soulfind.server.messages;
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
-import std.algorithm : sort;
+import std.algorithm : map, sort;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
+import std.encoding : isValid;
 import std.stdio : writefln;
 import std.string : lastIndexOf, representation;
+import std.utf : toUTF8;
 
 // Constants
 
@@ -118,8 +120,15 @@ class UMessage
 
         if (offset + size <= in_buf.length) {
             static if (is(T : string)) {
-                value = cast(T) in_buf[offset .. offset + size].idup;
+                const bytes = in_buf[offset .. offset + size];
                 offset += size;
+
+                if (bytes.isValid)
+                    // UTF-8
+                    value = cast(T) bytes.idup;
+                else
+                    // Latin-1 fallback
+                    value = bytes.map!(c => cast(wchar) c).toUTF8;
             }
             else {
                 value = in_buf.peek!(T, Endian.littleEndian)(&offset);
