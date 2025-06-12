@@ -7,8 +7,8 @@ permissions: {}
 
 jobs:
   lint:
-    timeout-minutes: 15
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
