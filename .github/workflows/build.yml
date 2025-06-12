@@ -53,9 +53,6 @@ jobs:
           - type: debug
             flags: --debug=db --debug=msg --debug=user
 
-          - compiler: ldc
-            dflags-preview: -preview all
-
         exclude:
           - os: linux-arm64
             compiler: dmd
@@ -68,7 +65,7 @@ jobs:
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
     env:
-      DFLAGS: ${{ matrix.dflags }} ${{ matrix.dflags-preview }}
+      DFLAGS: ${{ matrix.dflags }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
       # Workaround from https://github.com/actions/runner/issues/801#issuecomment-2394392502
