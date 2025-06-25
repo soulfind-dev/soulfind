@@ -34,6 +34,7 @@ const max_global_recommendations  = 200;
 const max_user_recommendations    = 100;
 const max_room_tickers            = 200;
 const speed_weight                = 50;
+const pbkdf2_iterations           = 100000;
 const server_username             = "server";
 const exit_message                = "A la prochaine...";
 
