@@ -12,6 +12,7 @@
         {
             "name": "default",
             "targetType": "none",
+            "mainSourceFile": "src/main.d",
             "dependencies": {
                 "soulfind:server": "*",
                 "soulfind:setup": "*"
@@ -30,6 +31,12 @@
                     "dflags": ["-static"]
                 }
             }
+        },
+        {
+            "name": "unittest",
+            "targetPath": "bin",
+            "libs-posix": ["sqlite3"],
+            "libs-windows": ["winsqlite3"]
         }
     ],
     "subPackages": [

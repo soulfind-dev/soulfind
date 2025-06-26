@@ -12,7 +12,6 @@ import soulfind.defines : blue, bold, default_max_users, default_port,
                           kick_minutes, max_room_name_length,
                           max_search_query_length, norm, red, server_username,
                           VERSION;
-import soulfind.main : running;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -29,6 +28,13 @@ import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketSet, SocketShutdown, TcpSocket;
 import std.stdio : writefln;
 import std.string : strip;
+
+version (unittest) {
+    auto running = true;
+}
+else {
+    import soulfind.main : running;
+}
 
 class Server
 {

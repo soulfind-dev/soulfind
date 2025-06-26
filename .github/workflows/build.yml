@@ -102,6 +102,9 @@ jobs:
         if: matrix.os != 'windows-arm64'
         run: dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} --config=${{ matrix.config }} ${{ matrix.flags }}
 
+      - name: Run tests
+        run: dub test
+
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'
         run: codesign -s - bin/*
@@ -111,4 +114,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: soulfind-${{ matrix.os }}-${{ matrix.type }}
-          path: bin
+          path: |
+            bin
+            !bin/*test*
