@@ -175,7 +175,7 @@ class Sdb
     bool is_admin(string username)
     {
         const sql = format!(
-            "SELECT username FROM %s WHERE username = ?;")(
+            "SELECT 1 FROM %s WHERE username = ?;")(
             admins_table
         );
         return query(sql, [username]).length > 0;
@@ -194,7 +194,7 @@ class Sdb
     bool user_exists(string username)
     {
         const sql = format!(
-            "SELECT username FROM %s WHERE username = ?;")(
+            "SELECT 1 FROM %s WHERE username = ?;")(
             users_table
         );
         return query(sql, [username]).length > 0;
