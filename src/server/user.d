@@ -98,7 +98,7 @@ class User
             // non-ASCII control chars, etc
             return false;
         }
-        if (text.length == 1 && isPunctuation(text.to!dchar)) {
+        if (text.length == 1 && isPunctuation(text[0])) {
             // only character is a symbol
             return false;
         }
@@ -107,8 +107,8 @@ class User
             return false;
         }
 
-        const string[] forbidden_names = [server_username];
-        const string[] forbidden_words = ["  "];
+        static immutable forbidden_names = [server_username];
+        static immutable forbidden_words = ["  "];
 
         foreach (name ; forbidden_names) if (name == text) {
             return false;

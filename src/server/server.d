@@ -441,21 +441,26 @@ class Server
             case "help":
                 server_pm(
                     admin,
-                    "Available commands :"
-                  ~ "\n\nusers\n\tList connected users"
-                  ~ "\n\ninfo <user>\n\tInfo about user <user>"
-                  ~ format!("\n\nkickall [minutes]\n\tDisconnect active users"
-                            ~ " for [%d] minutes")(kick_minutes)
-                  ~ format!("\n\nkick [minutes] <user>\n\tDisconnect <user>"
-                            ~ " for [%d] minutes")(kick_minutes)
-                  ~ "\n\nban [days] <user>\n\tBan <user> for [365] days"
-                  ~ "\n\nunban <user>\n\tUnban <user>"
-                  ~ "\n\nadmins\n\tList admins"
-                  ~ "\n\nrooms\n\tList rooms and number of occupiants"
-                  ~ "\n\naddprivileges <days> <user>\n\tAdd <days> days of"
-                  ~ " privileges to user <user>"
-                  ~ "\n\nmessage <message>\n\tSend global message <message>"
-                  ~ "\n\nuptime\n\tShow server uptime"
+                    format!(
+                        "Available commands :"
+                      ~ "\n\nusers\n\tList connected users"
+                      ~ "\n\ninfo <user>\n\tInfo about user <user>"
+                      ~ "\n\nkickall [minutes]\n\tDisconnect active users"
+                      ~ " for [%d] minutes"
+                      ~ "\n\nkick [minutes] <user>\n\tDisconnect <user>"
+                      ~ " for [%d] minutes"
+                      ~ "\n\nban [days] <user>\n\tBan <user> for [365] days"
+                      ~ "\n\nunban <user>\n\tUnban <user>"
+                      ~ "\n\nadmins\n\tList admins"
+                      ~ "\n\nrooms\n\tList rooms and number of occupiants"
+                      ~ "\n\naddprivileges <days> <user>\n\tAdd <days> days of"
+                      ~ " privileges to user <user>"
+                      ~ "\n\nmessage <message>\n\tSend global message"
+                      ~ " <message>"
+                      ~ "\n\nuptime\n\tShow server uptime")(
+                        kick_minutes,
+                        kick_minutes
+                    )
                 );
                 break;
 
