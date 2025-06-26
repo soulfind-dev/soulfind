@@ -270,7 +270,13 @@ class Setup
     private void ban_user()
     {
         write("User to ban : ");
-        db.user_update_field(input.strip, "banned", ulong.max);
+        const username = input.strip;
+
+        if (db.user_exists(username))
+            db.user_update_field(username, "banned", ulong.max);
+        else
+            writefln!("\nUser %s is not registered")(username);
+
         banned_users();
     }
 
