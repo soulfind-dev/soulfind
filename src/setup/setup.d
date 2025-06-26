@@ -130,9 +130,10 @@ class Setup
 
     private void listen_port()
     {
-        const port = db.get_config_value("port").to!ushort.ifThrown(
-            default_port
-        );
+        const port = db.get_config_value("port")
+            .to!ushort
+            .ifThrown(default_port);
+
         show_menu(
             format!("Listen port : %d")(port),
             [
@@ -160,9 +161,10 @@ class Setup
 
     private void max_users()
     {
-        const max_users = db.get_config_value("max_users").to!uint.ifThrown(
-            default_max_users
-        );
+        const max_users = db.get_config_value("max_users")
+            .to!uint
+            .ifThrown(default_max_users);
+
         show_menu(
             format!("Max users allowed : %d")(max_users),
             [

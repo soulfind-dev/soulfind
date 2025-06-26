@@ -58,9 +58,9 @@ class Server
         db = new Sdb(db_filename);
         global_room = new GlobalRoom();
 
-        port = db.get_config_value("port").to!ushort.ifThrown(
-            cast(ushort) default_port
-        );
+        port = db.get_config_value("port")
+            .to!ushort
+            .ifThrown(cast(ushort) default_port);
     }
 
 
