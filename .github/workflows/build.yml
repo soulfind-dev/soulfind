@@ -14,15 +14,28 @@ jobs:
         compiler: [ldc, dmd]
         type: [release, debug]
         include:
+          - config: default
+
+          - type: debug
+            flags: --debug=db --debug=msg --debug=user
+
           - os: linux-x86_64
             arch: x86_64
             image: ubuntu-latest
             container: alpine:edge
 
+          - os: linux-x86_64
+            compiler: ldc
+            config: static
+
           - os: linux-arm64
             arch: aarch64
             image: ubuntu-24.04-arm
             container: alpine:edge
+
+          - os: linux-arm64
+            compiler: ldc
+            config: static
 
           - os: macos-x86_64
             arch: x86_64
@@ -42,17 +55,6 @@ jobs:
             arch: aarch64-windows-msvc
             image: windows-latest
 
-          - os: linux-x86_64
-            compiler: ldc
-            dflags: -static
-
-          - os: linux-arm64
-            compiler: ldc
-            dflags: -static
-
-          - type: debug
-            flags: --debug=db --debug=msg --debug=user
-
         exclude:
           - os: linux-arm64
             compiler: dmd
@@ -65,7 +67,6 @@ jobs:
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
     env:
-      DFLAGS: ${{ matrix.dflags }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
       # Workaround from https://github.com/actions/runner/issues/801#issuecomment-2394392502
@@ -99,7 +100,7 @@ jobs:
 
       - name: Build (Other)
         if: matrix.os != 'windows-arm64'
-        run: dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} ${{ matrix.flags }}
+        run: dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} --config=${{ matrix.config }} ${{ matrix.flags }}
 
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'

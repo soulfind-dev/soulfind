@@ -8,11 +8,30 @@
         "dmd": ">=2.98.0",
         "gdc": ">=15.0.0"
     },
-    "dependencies": {
-        "soulfind:server": "*",
-        "soulfind:setup": "*"
-    },
-    "targetType": "none",
+    "configurations": [
+        {
+            "name": "default",
+            "targetType": "none",
+            "dependencies": {
+                "soulfind:server": "*",
+                "soulfind:setup": "*"
+            }
+        },
+        {
+            "name": "static",
+            "targetType": "none",
+            "dependencies": {
+                "soulfind:server": {
+                    "version": "*",
+                    "dflags": ["-static"]
+                },
+                "soulfind:setup": {
+                    "version": "*",
+                    "dflags": ["-static"]
+                }
+            }
+        }
+    ],
     "subPackages": [
         {
             "name": "server",
