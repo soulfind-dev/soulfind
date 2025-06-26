@@ -591,7 +591,8 @@ class User
                 if (status != Status.offline)
                     break;
 
-                login_error = verify_login(msg.username, msg.password);
+                username = msg.username;
+                login_error = verify_login(username, msg.password);
 
                 if (login_error) {
                     scope response_msg = new SLogin(false, login_error);
@@ -599,7 +600,6 @@ class User
                     break;
                 }
 
-                username = msg.username;
                 auto user = server.get_user(username);
 
                 if (user && user.status != Status.offline) {
