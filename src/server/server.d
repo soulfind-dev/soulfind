@@ -394,6 +394,8 @@ class Server
         auto sock = user.sock;
 
         if (sock in user_socks) {
+            const address = sock.remoteAddress;
+
             read_socks.remove(sock);
             write_socks.remove(sock);
             user_socks.remove(sock);
@@ -401,6 +403,7 @@ class Server
             sock.shutdown(SocketShutdown.BOTH);
             sock.close();
 
+            debug (user) writefln!("Closed connection to %s")(address);
             user.sock = null;
         }
 
@@ -408,7 +411,7 @@ class Server
             users.remove(username);
 
         if (user.status == Status.offline) {
-            writefln!(
+            if (user.login_error) writefln!(
                 "User %s @ %s denied (%s)")(
                 red ~ username ~ norm,
                 bold ~ user.h_ip_address ~ norm,
