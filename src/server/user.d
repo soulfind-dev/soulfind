@@ -163,9 +163,20 @@ class User
 
     void set_status(uint new_status)
     {
-        status = new_status;
-        scope msg = new SGetUserStatus(username, new_status, privileged);
-        send_to_watching(msg);
+        if (new_status == status)
+            return;
+
+        final switch (new_status) {
+            case Status.offline:
+            case Status.away:
+            case Status.online:
+                status = new_status;
+                scope msg = new SGetUserStatus(
+                    username, new_status, privileged
+                );
+                send_to_watching(msg);
+                break;
+        }
     }
 
 
@@ -853,7 +864,7 @@ class User
 
             case SetStatus:
                 scope msg = new USetStatus(msg_buf, username);
-                set_status(msg.status);
+                if (msg.status != Status.offline) set_status(msg.status);
                 break;
 
             case ServerPing:
