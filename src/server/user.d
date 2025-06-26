@@ -7,10 +7,10 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, seconds;
-import soulfind.defines : blue, bold, max_chat_message_length,
-                          max_interest_length, max_msg_size,
-                          max_room_name_length, max_username_length, norm, red,
-                          server_username;
+import soulfind.defines : blue, bold, default_max_users,
+                          max_chat_message_length, max_interest_length,
+                          max_msg_size, max_room_name_length,
+                          max_username_length, norm, red, server_username;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -23,6 +23,7 @@ import std.conv : to;
 import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
+import std.exception : ifThrown;
 import std.format : format;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
@@ -126,6 +127,13 @@ class User
 
     private string verify_login(string username, string password)
     {
+        const max_users = server.db.get_config_value("max_users")
+            .to!uint
+            .ifThrown(default_max_users);
+
+        if (server.users.length >= max_users)
+            return "SVRFULL";
+
         if (!check_name(username, max_username_length))
             return "INVALIDUSERNAME";
 

@@ -8,10 +8,9 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, default_max_users, default_port,
-                          kick_minutes, max_room_name_length,
-                          max_search_query_length, norm, red, server_username,
-                          VERSION;
+import soulfind.defines : blue, bold, default_port, kick_minutes,
+                          max_room_name_length, max_search_query_length, norm,
+                          red, server_username, VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -44,7 +43,6 @@ class Server
 
     private MonoTime      started_at;
     private ushort        port;
-    private uint          max_users;
 
     private User[Socket]  user_socks;
     private SocketSet     read_socks;
@@ -62,9 +60,6 @@ class Server
 
         port = db.get_config_value("port").to!ushort.ifThrown(
             cast(ushort) default_port
-        );
-        max_users = db.get_config_value("max_users").to!uint.ifThrown(
-            default_max_users
         );
     }
 
@@ -101,8 +96,8 @@ class Server
         );
 
         const timeout = 1.seconds;
-        read_socks = new SocketSet(max_users + 1);
-        write_socks = new SocketSet(max_users + 1);
+        read_socks = new SocketSet();
+        write_socks = new SocketSet();
 
         while (running) {
             read_socks.add(sock);
