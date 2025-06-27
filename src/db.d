@@ -216,7 +216,7 @@ class Sdb
         query(sql, [value, username]);
     }
 
-    void user_update_field(string username, string field, ulong value)
+    void user_update_field(string username, string field, long value)
     {
         const sql = format!(
             "UPDATE %s SET %s = ? WHERE username = ?;")(

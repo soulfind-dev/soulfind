@@ -280,7 +280,7 @@ class Setup
         const username = input.strip;
 
         if (db.user_exists(username))
-            db.user_update_field(username, "banned", ulong.max);
+            db.user_update_field(username, "banned", long.max);
         else
             writefln!("\nUser %s is not registered")(username);
 
