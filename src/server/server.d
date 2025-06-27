@@ -538,11 +538,11 @@ class Server
                 }
                 debug (user) writefln!(
                     "Admin %s kicked ALL %d users for %s!")(
-                    blue ~ admin.username ~ norm, num_kicks, duration.toString
+                    blue ~ admin.username ~ norm, num_kicks, duration
                 );
                 server_pm(admin, format!(
                     "All %d users kicked for %s (+/-50s)")(
-                    num_kicks, duration.toString)
+                    num_kicks, duration)
                 );
                 break;
 
@@ -573,7 +573,7 @@ class Server
                 SysTime expiration = ban_user(username, duration);
 
                 server_pm(admin, format!("User %s kicked for %s; until %s")(
-                    username, duration.toString, expiration.toString)
+                    username, duration, expiration)
                 );
                 break;
 
@@ -604,7 +604,7 @@ class Server
                 SysTime expiration = ban_user(username, duration);
 
                 server_pm(admin, format!("User %s banned for %s; until %s")(
-                    username, duration.toString, expiration.toString)
+                    username, duration, expiration)
                 );
                 break;
 
