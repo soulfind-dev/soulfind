@@ -459,8 +459,8 @@ class Server
                       ~ "\n\nrooms\n\tList rooms and number of users"
                       ~ "\n\naddprivileges <days> <user>\n\tAdd privileges to"
                       ~ " user"
-                      ~ "\n\ndelprivileges [days] <user>\n\tRemove privileges"
-                      ~ " from user"
+                      ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
+                      ~ " privileges from user"
                       ~ "\n\nmessage <message>\n\tSend global message"
                       ~ "\n\nuptime\n\tShow server uptime")(
                         kick_minutes,
@@ -507,6 +507,54 @@ class Server
                     "Added %d days of privileges to user %s")(
                     days, username)
                 );
+                break;
+
+            case "removeprivileges":
+                if (command.length < 2) {
+                    server_pm(
+                        admin, "Syntax is : removeprivileges [days] <user>"
+                    );
+                    break;
+                }
+
+                uint days;
+                uint seconds;
+                string username;
+                try {
+                    days = command[1].to!uint;
+                    seconds = days * 3600 * 24;
+                    username = command[2 .. $].join(" ");
+                }
+                catch (ConvException e) {
+                    seconds = uint.max;
+                    username = command[1 .. $].join(" ");
+                }
+
+                if (!db.user_exists(username)) {
+                    server_pm(
+                        admin, format!("User %s is not registered")(
+                        username)
+                    );
+                    break;
+                }
+
+                db.remove_user_privileges(username, seconds);
+
+                auto user = get_user(username);
+                if (user)
+                    user.refresh_privileges();
+
+                string response;
+                if (seconds == uint.max)
+                    response = format!(
+                        "Removed all privileges from user %s")(username);
+                else
+                    response = format!(
+                        "Removed %d days of privileges from user %s")(
+                        days, username
+                    );
+
+                server_pm(admin, response);
                 break;
 
             case "users":
