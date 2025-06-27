@@ -489,7 +489,7 @@ class Server
                 auto user = get_user(username);
                 if (!user) {
                     server_pm(
-                        admin, format!("User %s does not exist.")(username)
+                        admin, format!("User %s is not registered")(username)
                     );
                     break;
                 }
@@ -511,8 +511,15 @@ class Server
                     break;
                 }
                 const username = command[1 .. $].join(" ");
-                const user_info = show_user(username);
-                server_pm(admin, user_info);
+
+                if (!db.user_exists(username)) {
+                    server_pm(admin, format!(
+                        "User %s is not registered")(username)
+                    );
+                    break;
+                }
+
+                server_pm(admin, user_info(username));
                 break;
 
             case "kickall":
@@ -565,7 +572,7 @@ class Server
 
                 if (!db.user_exists(username)) {
                     server_pm(admin, format!(
-                        "User %s non-existant")(username)
+                        "User %s is not registered")(username)
                     );
                     break;
                 }
@@ -596,7 +603,7 @@ class Server
 
                 if (!db.user_exists(username)) {
                     server_pm(admin, format!(
-                        "User %s non-existant")(username)
+                        "User %s is not registered")(username)
                     );
                     break;
                 }
@@ -674,32 +681,81 @@ class Server
         }
     }
 
-    private string show_user(string username)
+    private string user_info(string username)
     {
-        auto user = get_user(username);
-        if (!user)
-            return "";
+        User user;
+        auto client_version = "none";
+        auto address = "none";
+        auto connected_at = "none";
+        auto status = "offline";
+        auto banned = "false";
+        auto privileged = "false";
+        uint speed, upload_number;
+        uint shared_files, shared_folders;
+        string joined_rooms;
+
+        const admin = db.is_admin(username);
+        const banned_until = db.get_user_banned_until(username);
+        const privileged_until = db.get_user_privileged_until(username);
+        const supporter = privileged_until > 0;
+
+        if (banned_until == long.max)
+            banned = "forever";
+        else if (banned_until > Clock.currTime.toUnixTime)
+            banned = format!("until %s")(SysTime.fromUnixTime(banned_until));
+
+        if (privileged_until > Clock.currTime.toUnixTime)
+            privileged = format!("until %s")(
+                SysTime.fromUnixTime(privileged_until));
+
+        user = get_user(username);
+        if (user) {
+            client_version = user.h_client_version;
+            address = user.h_address;
+            connected_at = user.connected_at.toString;
+            status = (user.status == Status.away) ? "away" : "online";
+            speed = user.speed;
+            upload_number = user.upload_number;
+            shared_files = user.shared_files;
+            shared_folders = user.shared_folders;
+            joined_rooms = user.h_joined_rooms;
+        } else {
+            const user_stats = db.get_user_stats(username);
+            speed = user_stats.speed;
+            upload_number = user_stats.upload_number;
+            shared_files = user_stats.shared_files;
+            shared_folders = user_stats.shared_folders;
+        }
 
         return format!(
-            "%s: connected at %s"
+            "%s"
           ~ "\n\tclient version: %s"
           ~ "\n\taddress: %s"
+          ~ "\n\tconnected at: %s"
+          ~ "\n\tstatus: %s"
           ~ "\n\tadmin: %s"
+          ~ "\n\tbanned: %s"
+          ~ "\n\tprivileged: %s"
+          ~ "\n\tsupporter: %s"
           ~ "\n\tfiles: %s"
           ~ "\n\tdirs: %s"
-          ~ "\n\tstatus: %s"
-          ~ "\n\tprivileges: %s"
+          ~ "\n\tupload speed: %s"
+          ~ "\n\tupload number: %s"
           ~ "\n\tjoined rooms: %s")(
             username,
-            user.connected_at,
-            user.h_client_version,
-            user.h_address,
-            db.is_admin(username),
-            user.shared_files,
-            user.shared_folders,
-            user.status,
-            user.h_privileges,
-            user.h_joined_rooms
+            client_version,
+            address,
+            connected_at,
+            status,
+            admin,
+            banned,
+            privileged,
+            supporter,
+            shared_files,
+            shared_folders,
+            speed,
+            upload_number,
+            joined_rooms
         );
     }
 

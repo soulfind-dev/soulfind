@@ -256,11 +256,6 @@ class User
         );
     }
 
-    string h_privileges()
-    {
-        return privileged ? privileges.seconds.toString : "none";
-    }
-
     bool privileged()
     {
         return privileged_until > Clock.currTime.toUnixTime;
