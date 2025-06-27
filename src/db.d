@@ -8,11 +8,12 @@ module soulfind.db;
 
 import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        sqlite3_column_count, sqlite3_column_text,
-                       sqlite3_errmsg, sqlite3_errstr,
+                       sqlite3_config, sqlite3_errmsg, sqlite3_errstr,
                        sqlite3_extended_errcode, sqlite3_finalize,
                        sqlite3_initialize, sqlite3_open, sqlite3_prepare_v2,
                        sqlite3_shutdown, sqlite3_step, sqlite3_stmt,
-                       SQLITE_DONE, SQLITE_OK, SQLITE_ROW, SQLITE_TRANSIENT;
+                       SQLITE_CONFIG_SINGLETHREAD, SQLITE_DONE, SQLITE_OK,
+                       SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -360,6 +361,10 @@ class Sdb
     @trusted
     private void initialize()
     {
+        // Soulfind is single-threaded. Disable SQLite mutexes for a slight
+        // performance improvement.
+        sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
+
         if (sqlite3_initialize() != SQLITE_OK)
             throw new Exception("Cannot start SQLite");
     }
