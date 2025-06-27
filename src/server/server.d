@@ -478,8 +478,10 @@ class Server
                 }
 
                 uint days;
+                uint seconds;
                 try {
                     days = command[1].to!uint;
+                    seconds = days * 3600 * 24;
                 }
                 catch (ConvException e) {
                     server_pm(admin, "Badly formatted number.");
@@ -487,15 +489,24 @@ class Server
                 }
 
                 const username = command[2 .. $].join(" ");
-                auto user = get_user(username);
-                if (!user) {
+                if (!db.user_exists(username)) {
                     server_pm(
-                        admin, format!("User %s is not registered")(username)
+                        admin, format!("User %s is not registered")(
+                        username)
                     );
                     break;
                 }
 
-                user.add_privileges(days * 3600 * 24);
+                db.add_user_privileges(username, seconds);
+
+                auto user = get_user(username);
+                if (user)
+                    user.refresh_privileges();
+
+                server_pm(admin, format!(
+                    "Added %d days of privileges to user %s")(
+                    days, username)
+                );
                 break;
 
             case "users":
@@ -702,6 +713,7 @@ class Server
 
         if (banned_until == long.max)
             banned = "forever";
+
         else if (banned_until > Clock.currTime.toUnixTime)
             banned = format!("until %s")(SysTime.fromUnixTime(banned_until));
 
@@ -720,7 +732,8 @@ class Server
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
             joined_rooms = user.h_joined_rooms;
-        } else {
+        }
+        else {
             const user_stats = db.get_user_stats(username);
             speed = user_stats.speed;
             upload_number = user_stats.upload_number;

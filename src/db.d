@@ -20,6 +20,7 @@ import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
+import std.datetime : Clock;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
@@ -223,6 +224,51 @@ class Sdb
             users_table, field
         );
         query(sql, [value.to!string, username]);
+    }
+
+    void add_user_privileges(string username, uint seconds)
+    {
+        auto privileged_until = get_user_privileged_until(username);
+        const now = Clock.currTime.toUnixTime;
+
+        if (privileged_until < now) privileged_until = now;
+        privileged_until += seconds;
+
+        user_update_field(username, "privileges", privileged_until);
+
+        debug (user) writefln!(
+            "Added %s seconds of privileges to user %s")(
+            seconds, blue ~ username ~ norm,
+        );
+    }
+
+    void remove_user_privileges(string username, uint seconds)
+    {
+        auto privileged_until = get_user_privileged_until(username);
+        if (privileged_until <= 0)
+            return;
+
+        const now = Clock.currTime.toUnixTime;
+
+        if (privileged_until > now + seconds)
+            privileged_until -= seconds;
+        else
+            privileged_until = now;
+
+        user_update_field(username, "privileges", privileged_until);
+
+        debug (user) {
+            if (seconds == uint.max)
+                writefln!(
+                    "Removed all privileges from user %s")(
+                    blue ~ username ~ norm
+                );
+            else
+                writefln!(
+                    "Removed %s seconds of privileges from user %s")(
+                    seconds, blue ~ username ~ norm
+                );
+        }
     }
 
     string get_pass(string username)

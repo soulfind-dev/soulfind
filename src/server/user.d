@@ -6,7 +6,7 @@
 module soulfind.server.user;
 @safe:
 
-import core.time : days, seconds;
+import core.time : seconds;
 import soulfind.defines : blue, bold, default_max_users,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
@@ -218,42 +218,15 @@ class User
 
     // Privileges
 
-    void add_privileges(uint seconds)
+    void refresh_privileges(bool notify_user = true)
     {
-        if (!privileged) privileged_until = Clock.currTime.toUnixTime;
-        privileged_until += seconds;
-        server.db.user_update_field(username, "privileges", privileged_until);
+        privileged_until = server.db.get_user_privileged_until(username);
 
-        scope msg = new SCheckPrivileges(privileges);
-        send_message(msg);
-
-        debug (user) writefln!(
-            "Given %d secs of privileges to user %s who now has %d secs")(
-            seconds, blue ~ username ~ norm, privileges
-        );
-    }
-
-    void remove_privileges(uint seconds)
-    {
-        if (!privileged)
+        if (!notify_user)
             return;
 
-        const now = Clock.currTime.toUnixTime;
-
-        if (privileged_until > now + seconds)
-            privileged_until -= seconds;
-        else
-            privileged_until = now;
-
-        server.db.user_update_field(username, "privileges", privileged_until);
-
         scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
-
-        debug (user) writefln!(
-            "Taken %d secs of privileges from user %s who now has %d secs")(
-            seconds, blue ~ username ~ norm, privileges
-        );
     }
 
     bool privileged()
@@ -633,8 +606,6 @@ class User
 
                 major_version = msg.major_version;
                 minor_version = msg.minor_version;
-                privileged_until = server.db
-                    .get_user_privileged_until(username);
 
                 const user_stats = server.db.get_user_stats(username);
                 speed = user_stats.speed;
@@ -642,6 +613,7 @@ class User
                 shared_files = user_stats.shared_files;
                 shared_folders = user_stats.shared_folders;
 
+                refresh_privileges(false);
                 server.add_user(this);
                 watch(username);
 
@@ -1057,13 +1029,21 @@ class User
                 scope msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.username);
                 const admin = server.db.is_admin(msg.username);
+                const seconds_added = msg.days * 3600 * 24;
+
                 if (!user)
                     break;
-                if (days(msg.days) > seconds(privileges) && !admin)
+
+                if (seconds(seconds_added) > seconds(privileges) && !admin)
                     break;
 
-                user.add_privileges(msg.days * 3600 * 24);
-                if (!admin) remove_privileges(msg.days * 3600 * 24);
+                server.db.add_user_privileges(msg.username, seconds_added);
+                user.refresh_privileges();
+
+                if (!admin) {
+                    server.db.remove_user_privileges(username, seconds_added);
+                    refresh_privileges();
+                }
                 break;
 
             case ChangePassword:
