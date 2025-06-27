@@ -17,7 +17,7 @@ import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
 import std.array : join, replace, split;
 import std.conv : ConvException, to;
-import std.datetime : Clock, ClockType, SysTime;
+import std.datetime : Clock, SysTime;
 import std.exception : ifThrown;
 import std.format : format;
 import std.process : thisProcessID;
@@ -608,7 +608,7 @@ class Server
                     blue ~ admin.username ~ norm, num_kicks, duration
                 );
                 server_pm(admin, format!(
-                    "All %d users kicked for %s (+/-50s)")(
+                    "Kicked all %d users for %s (+/-50s)")(
                     num_kicks, duration)
                 );
                 break;
@@ -637,10 +637,10 @@ class Server
                     break;
                 }
 
-                SysTime expiration = ban_user(username, duration);
+                ban_user(username, duration);
 
-                server_pm(admin, format!("User %s kicked for %s; until %s")(
-                    username, duration, expiration)
+                server_pm(admin, format!("Kicked user %s for %s")(
+                    username, duration)
                 );
                 break;
 
@@ -668,10 +668,10 @@ class Server
                     break;
                 }
 
-                SysTime expiration = ban_user(username, duration);
+                const banned_until = ban_user(username, duration);
 
-                server_pm(admin, format!("User %s banned for %s; until %s")(
-                    username, duration, expiration)
+                server_pm(admin, format!("Banned user %s until %s")(
+                    username, banned_until)
                 );
                 break;
 
@@ -683,7 +683,7 @@ class Server
                 const username = command[1 .. $].join(" ");
                 unban_user(username);
                 server_pm(
-                    admin, format!("User %s not banned anymore")(username)
+                    admin, format!("Unbanned user %s")(username)
                 );
                 break;
 
@@ -832,12 +832,12 @@ class Server
 
     private SysTime ban_user(string username, Duration duration)
     {
-        SysTime expiration = Clock.currTime!(ClockType.second) + duration;
+        const banned_until = Clock.currTime + duration;
 
-        db.user_update_field(username, "banned", expiration.toUnixTime);
+        db.user_update_field(username, "banned", banned_until.toUnixTime);
         disconnect_user(username);
 
-        return expiration;
+        return banned_until;
     }
 
     private void unban_user(string username)
