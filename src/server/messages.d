@@ -881,13 +881,13 @@ class SConnectToPeer : SMessage
 
 class SMessageUser : SMessage
 {
-    this(uint id, ulong timestamp, string username, string message,
+    this(uint id, uint timestamp, string username, string message,
          bool new_message) scope
     {
         super(MessageUser);
 
         write!uint(id);
-        write!uint(cast(uint) timestamp);
+        write!uint(timestamp);
         write!string(username);
         write!string(message);
         write!bool(new_message);
@@ -1000,11 +1000,11 @@ class SAdminMessage : SMessage
 
 class SCheckPrivileges : SMessage
 {
-    this(long time) scope
+    this(uint seconds) scope
     {
         super(CheckPrivileges);
 
-        write!uint(cast(uint) time);
+        write!uint(seconds);
     }
 }
 
@@ -1070,7 +1070,7 @@ class SRoomTicker : SMessage
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ticker ; sort_timestamp(tickers.values))
+        foreach (ticker ; sort_time(tickers.values))
         {
             write!string(ticker.username);
             write!string(ticker.content);
@@ -1078,9 +1078,9 @@ class SRoomTicker : SMessage
     }
 
     @trusted
-    private auto sort_timestamp(Ticker[] tickers) scope
+    private auto sort_time(Ticker[] tickers) scope
     {
-        return tickers.sort!((ref a, ref b) => a.timestamp < b.timestamp);
+        return tickers.sort!((ref a, ref b) => a.time < b.time);
     }
 }
 

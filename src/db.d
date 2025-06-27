@@ -6,6 +6,7 @@
 module soulfind.db;
 @safe:
 
+import core.time : Duration;
 import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        sqlite3_column_count, sqlite3_column_text,
                        sqlite3_config, sqlite3_db_config, sqlite3_errmsg,
@@ -20,7 +21,7 @@ import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
-import std.datetime : Clock;
+import std.datetime : Clock, SysTime;
 import std.exception : ifThrown;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
@@ -226,29 +227,30 @@ class Sdb
         query(sql, [value.to!string, username]);
     }
 
-    void add_user_privileges(string username, uint seconds)
+    void add_user_privileges(string username, Duration duration)
     {
-        auto privileged_until = get_user_privileged_until(username);
+        auto privileged_until = get_user_privileged_until(username).toUnixTime;
         const now = Clock.currTime.toUnixTime;
 
         if (privileged_until < now) privileged_until = now;
-        privileged_until += seconds;
+        privileged_until += duration.total!"seconds";
 
         user_update_field(username, "privileges", privileged_until);
 
         debug (user) writefln!(
-            "Added %s seconds of privileges to user %s")(
-            seconds, blue ~ username ~ norm,
+            "Added %s of privileges to user %s")(
+            duration.total!"days".days, blue ~ username ~ norm,
         );
     }
 
-    void remove_user_privileges(string username, uint seconds)
+    void remove_user_privileges(string username, Duration duration)
     {
-        auto privileged_until = get_user_privileged_until(username);
+        auto privileged_until = get_user_privileged_until(username).toUnixTime;
         if (privileged_until <= 0)
             return;
 
         const now = Clock.currTime.toUnixTime;
+        const seconds = duration.total!"seconds";
 
         if (privileged_until > now + seconds)
             privileged_until -= seconds;
@@ -258,29 +260,20 @@ class Sdb
         user_update_field(username, "privileges", privileged_until);
 
         debug (user) {
-            if (seconds == uint.max)
+            if (duration == Duration.max)
                 writefln!(
                     "Removed all privileges from user %s")(
                     blue ~ username ~ norm
                 );
             else
                 writefln!(
-                    "Removed %s seconds of privileges from user %s")(
-                    seconds, blue ~ username ~ norm
+                    "Removed %s of privileges from user %s")(
+                    duration.total!"days".days, blue ~ username ~ norm
                 );
         }
     }
 
-    string get_pass(string username)
-    {
-        const sql = format!(
-            "SELECT password FROM %s WHERE username = ?;")(
-            users_table
-        );
-        return query(sql, [username])[0][0];
-    }
-
-    long get_user_privileged_until(string username)
+    SysTime get_user_privileged_until(string username)
     {
         const sql = format!(
             "SELECT privileges FROM %s WHERE username = ?;")(
@@ -292,10 +285,28 @@ class Sdb
         if (res.length > 0)
             privileged_until = res[0][0].to!long.ifThrown(0);
 
-        return privileged_until;
+        return SysTime.fromUnixTime(privileged_until);
     }
 
-    long get_user_banned_until(string username)
+    void ban_user(string username, Duration duration)
+    {
+        long banned_until;
+
+        if (duration == Duration.max)
+            banned_until = long.max;
+        else
+            banned_until = (
+                Clock.currTime.toUnixTime + duration.total!"seconds");
+
+        user_update_field(username, "banned", banned_until);
+    }
+
+    void unban_user(string username)
+    {
+        user_update_field(username, "banned", 0);
+    }
+
+    SysTime get_user_banned_until(string username)
     {
         const sql = format!(
             "SELECT banned FROM %s WHERE username = ?;")(
@@ -307,7 +318,16 @@ class Sdb
         if (res.length > 0)
             banned_until = res[0][0].to!long.ifThrown(0);
 
-        return banned_until;
+        return SysTime.fromUnixTime(banned_until);
+    }
+
+    string get_pass(string username)
+    {
+        const sql = format!(
+            "SELECT password FROM %s WHERE username = ?;")(
+            users_table
+        );
+        return query(sql, [username])[0][0];
     }
 
     SdbUserStats get_user_stats(string username)

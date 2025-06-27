@@ -6,11 +6,13 @@
 module soulfind.server.pm;
 @safe:
 
+import std.datetime : SysTime;
+
 struct PM
 {
-    uint    id;
-    ulong   timestamp;
-    string  from_username;
-    string  to_username;
-    string  message;
+    uint     id;
+    SysTime  time;
+    string   from_username;
+    string   to_username;
+    string   message;
 }

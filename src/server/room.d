@@ -10,13 +10,13 @@ import soulfind.defines : max_chat_message_length, max_room_ticker_length,
                           max_room_tickers;
 import soulfind.server.messages;
 import soulfind.server.user : User;
-import std.datetime : Clock;
+import std.datetime : Clock, SysTime;
 
 struct Ticker
 {
-    string  username;
-    ulong   timestamp;
-    string  content;
+    string   username;
+    SysTime  time;
+    string   content;
 }
 
 class Room
@@ -117,7 +117,7 @@ class Room
 
         tickers[username] = Ticker(
             username,
-            Clock.currTime.toUnixTime,
+            Clock.currTime,
             content
         );
 
@@ -143,10 +143,7 @@ class Room
     {
         Ticker found_ticker;
         foreach (ticker ; tickers) {
-            if (ticker.timestamp == 0)
-                continue;
-
-            if (ticker.timestamp < found_ticker.timestamp)
+            if (ticker.time < found_ticker.time)
                 found_ticker = ticker;
         }
         del_ticker(found_ticker.username);

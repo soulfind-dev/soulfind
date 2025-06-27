@@ -6,7 +6,7 @@
 module soulfind.server.user;
 @safe:
 
-import core.time : seconds;
+import core.time : days, Duration, seconds;
 import soulfind.defines : blue, bold, default_max_users,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
@@ -15,7 +15,7 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
-import std.algorithm : canFind;
+import std.algorithm : canFind, clamp;
 import std.array : join;
 import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
@@ -43,7 +43,7 @@ class User
     uint                    status;
     SysTime                 connected_at;
     string                  login_error;
-    long                    privileged_until;
+    SysTime                 privileged_until;
 
     private Server          server;
 
@@ -150,7 +150,7 @@ class User
 
         const banned_until = server.db.get_user_banned_until(username);
 
-        if (banned_until > Clock.currTime.toUnixTime)
+        if (banned_until > Clock.currTime)
             return "BANNED";
 
         if (!secureEqual(
@@ -225,26 +225,30 @@ class User
         if (!notify_user)
             return;
 
-        scope msg = new SCheckPrivileges(privileges);
+        scope msg = new SCheckPrivileges(
+            cast(uint) privileges
+                .total!"seconds"
+                .clamp(0, uint.max)
+        );
         send_message(msg);
     }
 
     bool privileged()
     {
-        return privileged_until > Clock.currTime.toUnixTime;
+        return privileged_until > Clock.currTime;
     }
 
     bool supporter()
     {    // user has had privileges at some point
-        return privileged_until > 0;
+        return privileged_until.toUnixTime > 0;
     }
 
-    private long privileges()
+    private Duration privileges()
     {
         if (privileged)
-            return privileged_until - Clock.currTime.toUnixTime;
+            return privileged_until - Clock.currTime;
 
-        return 0;
+        return 0.seconds;
     }
 
 
@@ -418,8 +422,8 @@ class User
     void send_pm(PM pm, bool new_message)
     {
         scope msg = new SMessageUser(
-            pm.id, pm.timestamp, pm.from_username, pm.message,
-            new_message
+            pm.id, cast(uint) pm.time.toUnixTime.clamp(0, uint.max),
+            pm.from_username, pm.message, new_message
         );
         send_message(msg);
     }
@@ -745,7 +749,7 @@ class User
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
                     user_privileged = server.db.get_user_privileged_until(
-                        msg.username) > Clock.currTime.toUnixTime;
+                        msg.username) > Clock.currTime;
                 }
                 else {
                     debug (user) writefln!(
@@ -962,8 +966,7 @@ class User
 
             case CheckPrivileges:
                 scope msg = new UCheckPrivileges(msg_buf, username);
-                scope response_msg = new SCheckPrivileges(privileges);
-                send_message(response_msg);
+                refresh_privileges();
                 break;
 
             case WishlistSearch:
@@ -1029,19 +1032,19 @@ class User
                 scope msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.username);
                 const admin = server.db.is_admin(msg.username);
-                const seconds_added = msg.days * 3600 * 24;
+                const duration = msg.days.days;
 
                 if (!user)
                     break;
 
-                if (seconds(seconds_added) > seconds(privileges) && !admin)
+                if (duration > privileges && !admin)
                     break;
 
-                server.db.add_user_privileges(msg.username, seconds_added);
+                server.db.add_user_privileges(msg.username, duration);
                 user.refresh_privileges();
 
                 if (!admin) {
-                    server.db.remove_user_privileges(username, seconds_added);
+                    server.db.remove_user_privileges(username, duration);
                     refresh_privileges();
                 }
                 break;

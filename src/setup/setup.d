@@ -6,6 +6,7 @@
 module soulfind.setup.setup;
 @safe:
 
+import core.time : Duration;
 import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
                           VERSION;
@@ -280,7 +281,7 @@ class Setup
         const username = input.strip;
 
         if (db.user_exists(username))
-            db.user_update_field(username, "banned", long.max);
+            db.ban_user(username, Duration.max);
         else
             writefln!("\nUser %s is not registered")(username);
 
@@ -290,7 +291,7 @@ class Setup
     private void unban_user()
     {
         write("User to unban : ");
-        db.user_update_field(input.strip, "banned", 0);
+        db.unban_user(input.strip);
         banned_users();
     }
 

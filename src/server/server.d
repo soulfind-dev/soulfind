@@ -8,13 +8,14 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, default_port, kick_minutes,
+import soulfind.defines : blue, bold, default_port, kick_duration,
                           max_room_name_length, max_search_query_length, norm,
                           red, server_username, VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
+import std.algorithm : clamp;
 import std.array : join, replace, split;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
@@ -295,7 +296,7 @@ class Server
     {
         auto pm = PM(
             new_pm_id,
-            Clock.currTime.toUnixTime,
+            Clock.currTime,
             from_username,
             to_username,
             message
@@ -453,7 +454,7 @@ class Server
                       ~ " [%d] minutes"
                       ~ "\n\nkick [minutes] <user>\n\tDisconnect user for"
                       ~ " [%d] minutes"
-                      ~ "\n\nban [days] <user>\n\tBan user for [365] days"
+                      ~ "\n\nban [days] <user>\n\tBan user"
                       ~ "\n\nunban <user>\n\tUnban user"
                       ~ "\n\nadmins\n\tList admins"
                       ~ "\n\nrooms\n\tList rooms and number of users"
@@ -463,8 +464,8 @@ class Server
                       ~ " privileges from user"
                       ~ "\n\nmessage <message>\n\tSend global message"
                       ~ "\n\nuptime\n\tShow server uptime")(
-                        kick_minutes,
-                        kick_minutes
+                        kick_duration.total!"minutes",
+                        kick_duration.total!"minutes"
                     )
                 );
                 break;
@@ -477,14 +478,15 @@ class Server
                     break;
                 }
 
-                uint days;
-                uint seconds;
+                Duration duration;
                 try {
-                    days = command[1].to!uint;
-                    seconds = days * 3600 * 24;
+                    duration = command[1]
+                        .to!ulong
+                        .clamp(0, uint.max)
+                        .days;
                 }
                 catch (ConvException e) {
-                    server_pm(admin, "Badly formatted number.");
+                    server_pm(admin, "Invalid number or too many days");
                     break;
                 }
 
@@ -497,15 +499,15 @@ class Server
                     break;
                 }
 
-                db.add_user_privileges(username, seconds);
+                db.add_user_privileges(username, duration);
 
                 auto user = get_user(username);
                 if (user)
                     user.refresh_privileges();
 
                 server_pm(admin, format!(
-                    "Added %d days of privileges to user %s")(
-                    days, username)
+                    "Added %s of privileges to user %s")(
+                    duration.total!"days".days, username)
                 );
                 break;
 
@@ -517,16 +519,14 @@ class Server
                     break;
                 }
 
-                uint days;
-                uint seconds;
+                Duration duration;
                 string username;
                 try {
-                    days = command[1].to!uint;
-                    seconds = days * 3600 * 24;
+                    duration = command[1].to!ulong.days;
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException e) {
-                    seconds = uint.max;
+                    duration = Duration.max;
                     username = command[1 .. $].join(" ");
                 }
 
@@ -538,20 +538,20 @@ class Server
                     break;
                 }
 
-                db.remove_user_privileges(username, seconds);
+                db.remove_user_privileges(username, duration);
 
                 auto user = get_user(username);
                 if (user)
                     user.refresh_privileges();
 
                 string response;
-                if (seconds == uint.max)
+                if (duration == Duration.max)
                     response = format!(
                         "Removed all privileges from user %s")(username);
                 else
                     response = format!(
-                        "Removed %d days of privileges from user %s")(
-                        days, username
+                        "Removed %s of privileges from user %s")(
+                        duration.total!"days".days, username
                     );
 
                 server_pm(admin, response);
@@ -583,10 +583,13 @@ class Server
                 break;
 
             case "kickall":
-                Duration duration = minutes(kick_minutes);
+                Duration duration = kick_duration;
                 if (command.length > 1) {
                     try {
-                        duration = minutes(command[1].to!uint);
+                        duration = command[1]
+                            .to!ulong
+                            .clamp(0, ushort.max)
+                            .minutes;
                     }
                     catch (ConvException e) {
                         server_pm(admin, "Syntax is : kickall [minutes]");
@@ -598,9 +601,10 @@ class Server
                     if (user.username == admin.username)
                         continue;
 
-                    ban_user(
-                        user.username, duration + seconds(uniform(-50, 50))
+                    db.ban_user(
+                        user.username, duration + uniform(-50, 50).seconds
                     );
+                    disconnect_user(user.username);
                     num_kicks += 1;
                 }
                 debug (user) writefln!(
@@ -609,7 +613,7 @@ class Server
                 );
                 server_pm(admin, format!(
                     "Kicked all %d users for %s (+/-50s)")(
-                    num_kicks, duration)
+                    num_kicks, duration.total!"minutes".minutes)
                 );
                 break;
 
@@ -622,11 +626,14 @@ class Server
                 Duration duration;
                 string username;
                 try {
-                    duration = minutes(command[1].to!uint);
+                    duration = command[1]
+                        .to!ulong
+                        .clamp(0, ushort.max)
+                        .minutes;
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException e) {
-                    duration = minutes(kick_minutes);
+                    duration = kick_duration;
                     username = command[1 .. $].join(" ");
                 }
 
@@ -637,10 +644,11 @@ class Server
                     break;
                 }
 
-                ban_user(username, duration);
+                db.ban_user(username, duration);
+                disconnect_user(username);
 
                 server_pm(admin, format!("Kicked user %s for %s")(
-                    username, duration)
+                    username, duration.total!"minutes".minutes)
                 );
                 break;
 
@@ -653,11 +661,14 @@ class Server
                 Duration duration;
                 string username;
                 try {
-                    duration = days(command[1].to!uint);
+                    duration = command[1]
+                        .to!ulong
+                        .clamp(0, uint.max)
+                        .days;
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException e) {
-                    duration = days(365);
+                    duration = Duration.max;
                     username = command[1 .. $].join(" ");
                 }
 
@@ -668,11 +679,18 @@ class Server
                     break;
                 }
 
-                const banned_until = ban_user(username, duration);
+                db.ban_user(username, duration);
+                disconnect_user(username);
 
-                server_pm(admin, format!("Banned user %s until %s")(
-                    username, banned_until)
-                );
+                string response;
+                if (duration == Duration.max)
+                    response = format!("Banned user %s forever")(username);
+                else
+                    response = format!("Banned user %s for %s")(
+                        username, duration.total!"days".days
+                    );
+
+                server_pm(admin, response);
                 break;
 
             case "unban":
@@ -681,7 +699,7 @@ class Server
                     break;
                 }
                 const username = command[1 .. $].join(" ");
-                unban_user(username);
+                db.unban_user(username);
                 server_pm(
                     admin, format!("Unbanned user %s")(username)
                 );
@@ -713,7 +731,9 @@ class Server
                 break;
 
             case "uptime":
-                server_pm(admin, h_uptime);
+                server_pm(admin, format!("Running for %s")(
+                    uptime.total!"seconds".seconds)
+                );
                 break;
 
             default:
@@ -751,7 +771,7 @@ class Server
         const admin = db.is_admin(username);
         auto banned = "false";
         auto privileged = "false";
-        long privileged_until;
+        SysTime privileged_until;
         bool supporter;
         uint speed, upload_number;
         uint shared_files, shared_folders;
@@ -774,7 +794,7 @@ class Server
         else {
             const user_stats = db.get_user_stats(username);
             privileged_until = db.get_user_privileged_until(username);
-            supporter = privileged_until > 0;
+            supporter = privileged_until.toUnixTime > 0;
             speed = user_stats.speed;
             upload_number = user_stats.upload_number;
             shared_files = user_stats.shared_files;
@@ -782,15 +802,14 @@ class Server
         }
 
         const banned_until = db.get_user_banned_until(username);
-        if (banned_until == long.max)
+        if (banned_until == SysTime.fromUnixTime(long.max))
             banned = "forever";
 
-        else if (banned_until > Clock.currTime.toUnixTime)
-            banned = format!("until %s")(SysTime.fromUnixTime(banned_until));
+        else if (banned_until > Clock.currTime)
+            banned = format!("until %s")(banned_until);
 
-        if (privileged_until > Clock.currTime.toUnixTime)
-            privileged = format!("until %s")(
-                SysTime.fromUnixTime(privileged_until));
+        if (privileged_until > Clock.currTime)
+            privileged = format!("until %s")(privileged_until);
 
         return format!(
             "%s"
@@ -830,22 +849,6 @@ class Server
         if (user) del_user(user);
     }
 
-    private SysTime ban_user(string username, Duration duration)
-    {
-        const banned_until = Clock.currTime + duration;
-
-        db.user_update_field(username, "banned", banned_until.toUnixTime);
-        disconnect_user(username);
-
-        return banned_until;
-    }
-
-    private void unban_user(string username)
-    {
-        if (db.user_exists(username))
-            db.user_update_field(username, "banned", 0);
-    }
-
     string get_motd(User user)
     {
         return db.get_config_value("motd")
@@ -858,10 +861,5 @@ class Server
     private Duration uptime()
     {
         return MonoTime.currTime - started_at;
-    }
-
-    private string h_uptime()
-    {
-        return uptime.total!"seconds".seconds.toString;
     }
 }

@@ -6,13 +6,15 @@
 module soulfind.defines;
 @safe:
 
+import core.time : minutes;
+
 // Constants
 
 const VERSION                 = "0.5.0-dev";
 const default_db_filename     = "soulfind.db";
 const default_port            = 2242;
 const default_max_users       = 65535;
-const kick_minutes            = 10;
+const kick_duration           = 10.minutes;
 const max_msg_size            = 16384;
 const max_chat_message_length = 2048;
 const max_interest_length     = 64;
