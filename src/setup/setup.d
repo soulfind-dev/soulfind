@@ -6,13 +6,13 @@
 module soulfind.setup.setup;
 @safe:
 
-import core.time : Duration;
+import core.time : days, Duration;
 import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
                           VERSION;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
-import std.datetime : Clock;
+import std.datetime : Clock, SysTime;
 import std.exception : ifThrown;
 import std.format : format;
 import std.stdio : readf, readln, StdioException, write, writefln, writeln;
@@ -267,7 +267,7 @@ class Setup
                 db.num_users("banned", Clock.currTime.toUnixTime)
             ),
             [
-                MenuItem("1", "Ban user forever",  &ban_user),
+                MenuItem("1", "Ban user",          &ban_user),
                 MenuItem("2", "Unban user",        &unban_user),
                 MenuItem("3", "List banned users", &list_banned),
                 MenuItem("q", "Return",            &main_menu)
@@ -280,10 +280,41 @@ class Setup
         write("User to ban : ");
         const username = input.strip;
 
-        if (db.user_exists(username))
-            db.ban_user(username, Duration.max);
-        else
+        if (!db.user_exists(username)) {
             writefln!("\nUser %s is not registered")(username);
+            banned_users();
+            return;
+        }
+
+        Duration banned_until;
+
+        while (true) {
+            write("Number of days to ban user (empty = forever) : ");
+            const duration = input.strip;
+
+            if (duration.length == 0) {
+                banned_until = Duration.max;
+                break;
+            }
+
+            try {
+                banned_until = duration.to!uint.days;
+                break;
+            }
+            catch (ConvException) {
+                writeln("Please enter a valid number");
+            }
+        }
+
+        db.ban_user(username, banned_until);
+
+        if (banned_until == Duration.max)
+            writefln!("\nBanned user %s forever")(username);
+        else
+            writefln!(
+                "\nBanned user %s until %s")(
+                username, banned_until
+            );
 
         banned_users();
     }
@@ -300,7 +331,13 @@ class Setup
         const users = db.usernames("banned", Clock.currTime.toUnixTime);
 
         writefln!("\nBanned users (%d)...")(users.length);
-        foreach (user ; users) writefln!("\t%s")(user);
+        foreach (user ; users) {
+            const banned_until = db.get_user_banned_until(user);
+            if (banned_until == SysTime.fromUnixTime(long.max))
+                writefln!("\t%s (forever)")(user);
+            else
+                writefln!("\t%s (until %s)")(user, banned_until);
+        }
 
         banned_users();
     }
