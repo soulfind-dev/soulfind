@@ -234,22 +234,34 @@ class Sdb
         return query(sql, [username])[0][0];
     }
 
-    long get_user_privileges(string username)
+    long get_user_privileged_until(string username)
     {
         const sql = format!(
             "SELECT privileges FROM %s WHERE username = ?;")(
             users_table
         );
-        return query(sql, [username])[0][0].to!long.ifThrown(0);
+        const res = query(sql, [username]);
+        long privileged_until;
+
+        if (res.length > 0)
+            privileged_until = res[0][0].to!long.ifThrown(0);
+
+        return privileged_until;
     }
 
-    long get_ban_expiration(string username)
+    long get_user_banned_until(string username)
     {
         const sql = format!(
             "SELECT banned FROM %s WHERE username = ?;")(
             users_table
         );
-        return query(sql, [username])[0][0].to!long.ifThrown(0);
+        const res = query(sql, [username]);
+        long banned_until;
+
+        if (res.length > 0)
+            banned_until = res[0][0].to!long.ifThrown(0);
+
+        return banned_until;
     }
 
     SdbUserStats get_user_stats(string username)

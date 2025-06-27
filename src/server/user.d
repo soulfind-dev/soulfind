@@ -50,7 +50,7 @@ class User
     private uint            minor_version;
     private uint            ip_address;
     private ushort          port;
-    private long            priv_expiration;
+    private long            privileged_until;
 
     private string[string]  liked_items;
     private string[string]  hated_items;
@@ -148,7 +148,9 @@ class User
             blue ~ username ~ norm
         );
 
-        if (server.db.get_ban_expiration(username) > Clock.currTime.toUnixTime)
+        const banned_until = server.db.get_user_banned_until(username);
+
+        if (banned_until > Clock.currTime.toUnixTime)
             return "BANNED";
 
         if (!secureEqual(
@@ -218,9 +220,9 @@ class User
 
     void add_privileges(uint seconds)
     {
-        if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
-        priv_expiration += seconds;
-        server.db.user_update_field(username, "privileges", priv_expiration);
+        if (privileges <= 0) privileged_until = Clock.currTime.toUnixTime;
+        privileged_until += seconds;
+        server.db.user_update_field(username, "privileges", privileged_until);
 
         scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
@@ -233,9 +235,9 @@ class User
 
     void remove_privileges(uint seconds)
     {
-        priv_expiration -= seconds;
-        if (privileges <= 0) priv_expiration = Clock.currTime.toUnixTime;
-        server.db.user_update_field(username, "privileges", priv_expiration);
+        privileged_until -= seconds;
+        if (privileges <= 0) privileged_until = Clock.currTime.toUnixTime;
+        server.db.user_update_field(username, "privileges", privileged_until);
 
         scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
@@ -248,7 +250,7 @@ class User
 
     private long privileges()
     {
-        long privileges = priv_expiration - Clock.currTime.toUnixTime;
+        long privileges = privileged_until - Clock.currTime.toUnixTime;
         if (privileges <= 0) privileges = 0;
         return privileges;
     }
@@ -265,7 +267,7 @@ class User
 
     bool supporter()
     {    // user has had privileges at some point
-        return priv_expiration > 0;
+        return privileged_until > 0;
     }
 
 
@@ -627,7 +629,8 @@ class User
 
                 major_version = msg.major_version;
                 minor_version = msg.minor_version;
-                priv_expiration = server.db.get_user_privileges(username);
+                privileged_until = server.db
+                    .get_user_privileged_until(username);
 
                 const user_stats = server.db.get_user_stats(username);
                 speed = user_stats.speed;
@@ -765,7 +768,7 @@ class User
                         "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
-                    user_privileged = server.db.get_user_privileges(
+                    user_privileged = server.db.get_user_privileged_until(
                         msg.username) > Clock.currTime.toUnixTime;
                 }
                 else {
