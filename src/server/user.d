@@ -220,7 +220,7 @@ class User
 
     void add_privileges(uint seconds)
     {
-        if (privileges <= 0) privileged_until = Clock.currTime.toUnixTime;
+        if (!privileged) privileged_until = Clock.currTime.toUnixTime;
         privileged_until += seconds;
         server.db.user_update_field(username, "privileges", privileged_until);
 
@@ -236,7 +236,7 @@ class User
     void remove_privileges(uint seconds)
     {
         privileged_until -= seconds;
-        if (privileges <= 0) privileged_until = Clock.currTime.toUnixTime;
+        if (!privileged) privileged_until = Clock.currTime.toUnixTime;
         server.db.user_update_field(username, "privileges", privileged_until);
 
         scope msg = new SCheckPrivileges(privileges);
@@ -248,26 +248,27 @@ class User
         );
     }
 
-    private long privileges()
-    {
-        long privileges = privileged_until - Clock.currTime.toUnixTime;
-        if (privileges <= 0) privileges = 0;
-        return privileges;
-    }
-
     string h_privileges()
     {
-        return privileges > 0 ? privileges.seconds.toString : "none";
+        return privileged ? privileges.seconds.toString : "none";
     }
 
     bool privileged()
     {
-        return privileges > 0;
+        return privileged_until > Clock.currTime.toUnixTime;
     }
 
     bool supporter()
     {    // user has had privileges at some point
         return privileged_until > 0;
+    }
+
+    private long privileges()
+    {
+        if (privileged)
+            return privileged_until - Clock.currTime.toUnixTime;
+
+        return 0;
     }
 
 
