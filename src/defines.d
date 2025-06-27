@@ -14,6 +14,7 @@ const VERSION                 = "0.5.0-dev";
 const default_db_filename     = "soulfind.db";
 const default_port            = 2242;
 const default_max_users       = 65535;
+const login_timeout           = 1.minutes;
 const kick_duration           = 10.minutes;
 const max_msg_size            = 16384;
 const max_chat_message_length = 2048;

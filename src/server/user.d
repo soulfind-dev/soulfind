@@ -7,7 +7,7 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, Duration, seconds;
-import soulfind.defines : blue, bold, default_max_users,
+import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
                           max_username_length, norm, red, server_username;
@@ -25,6 +25,7 @@ import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.exception : ifThrown;
 import std.format : format;
+import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 import std.string : strip;
@@ -42,7 +43,7 @@ class User
 
     uint                    status;
     SysTime                 connected_at;
-    string                  login_error;
+    string                  login_rejection;
     SysTime                 privileged_until;
     bool                    supporter;
 
@@ -89,6 +90,18 @@ class User
     string h_address()
     {
         return format!("%s:%d")(h_ip_address, port);
+    }
+
+    bool login_timed_out()
+    {
+        if (status != Status.offline)
+            return false;
+
+        // Login attempts always time out for banned users. Add jitter to
+        // login timeout to spread out reconnect attempts after e.g. kicking
+        // all online users, which also bans them for a few minutes.
+        const login_timeout = login_timeout + uniform(0, 30).seconds;
+        return (Clock.currTime - connected_at) > login_timeout;
     }
 
     private bool check_name(string text, uint max_length)
@@ -148,11 +161,6 @@ class User
         debug (user) writefln!("User %s is registered")(
             blue ~ username ~ norm
         );
-
-        const banned_until = server.db.get_user_banned_until(username);
-
-        if (banned_until > Clock.currTime)
-            return "BANNED";
 
         if (!secureEqual(
                 server.db.get_pass(username), encode_password(password)))
@@ -583,10 +591,20 @@ class User
                     break;
 
                 username = msg.username;
-                login_error = verify_login(username, msg.password);
 
-                if (login_error) {
-                    scope response_msg = new SLogin(false, login_error);
+                if (server.db.user_banned(username))
+                    // The official server doesn't send a response when a user
+                    // is banned. We also ban users temporarily when kicking
+                    // them, and simply closing the connection after some time
+                    // allows the client to automatically reconnect to the
+                    // server.
+                    break;
+
+                server.db.unban_user(username);
+                login_rejection = verify_login(username, msg.password);
+
+                if (login_rejection) {
+                    scope response_msg = new SLogin(false, login_rejection);
                     send_message(response_msg);
                     break;
                 }

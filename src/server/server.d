@@ -159,7 +159,7 @@ class Server
                     if (send_ready)
                         write_socks.remove(user_sock);
 
-                    if (user.login_error)
+                    if (user.login_rejection || user.login_timed_out)
                         recv_success = send_success = false;
                 }
                 else if (!send_ready) {
@@ -407,11 +407,11 @@ class Server
             users.remove(username);
 
         if (user.status == Status.offline) {
-            if (user.login_error) writefln!(
+            if (user.login_rejection) writefln!(
                 "User %s @ %s denied (%s)")(
                 red ~ username ~ norm,
                 bold ~ user.h_ip_address ~ norm,
-                red ~ user.login_error ~ norm
+                red ~ user.login_rejection ~ norm
             );
             return;
         }
