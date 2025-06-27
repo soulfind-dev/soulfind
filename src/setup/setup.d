@@ -9,12 +9,14 @@ module soulfind.setup.setup;
 import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
                           VERSION;
+import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
 import std.datetime : Clock;
 import std.exception : ifThrown;
 import std.format : format;
 import std.stdio : readf, readln, StdioException, write, writefln, writeln;
 import std.string : chomp, strip;
+import std.system : endian, instructionSetArchitecture, os;
 
 struct MenuItem
 {
@@ -82,7 +84,7 @@ class Setup
                 MenuItem("2", "Max users allowed", &max_users),
                 MenuItem("3", "MOTD",              &motd),
                 MenuItem("4", "Banned users",      &banned_users),
-                MenuItem("i", "Server info",       &info),
+                MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
         );
@@ -208,12 +210,12 @@ class Setup
     private void set_motd()
     {
         writefln!(
-            "\nYou can use the following variables :
-             \n\t%%sversion%%    : server version (%s)
-             \n\t%%users%%       : number of connected users
-             \n\t%%username%%    : name of the connecting user
-             \n\t%%version%%     : version of the user's client software
-             \n\nNew MOTD (end with a dot on a single line) :\n--")(
+            "\nYou can use the following variables :"
+          ~ "\n\t%%sversion%%    : server version (%s)"
+          ~ "\n\t%%users%%       : number of connected users"
+          ~ "\n\t%%username%%    : name of the connecting user"
+          ~ "\n\t%%version%%     : version of the user's client software"
+          ~ "\n\nNew MOTD (end with a dot on a single line) :\n--")(
              VERSION
         );
 
@@ -232,21 +234,26 @@ class Setup
         motd();
     }
 
-    private void info()
+    private void server_info()
     {
         show_menu(
             format!(
-                "Soulfind %s (compiled on %s)
-                 \n\t%d registered users
-                 \n\t%d privileged users
-                 \n\t%d banned users")(
-                VERSION, __DATE__,
+                "Soulfind %s"
+              ~ "\n\tOS: %s"
+              ~ "\n\tArch: %s (%s)"
+              ~ "\n\tCompiled with %s %s.%s on %s"
+              ~ "\n\nStats:"
+              ~ "\n\t%d registered users"
+              ~ "\n\t%d privileged users"
+              ~ "\n\t%d banned users")(
+                VERSION, os, instructionSetArchitecture, endian, name,
+                version_major, version_minor, __DATE__,
                 db.num_users,
                 db.num_users("privileges", Clock.currTime.toUnixTime),
                 db.num_users("banned", Clock.currTime.toUnixTime)
             ),
             [
-                MenuItem("1", "Recount", &info),
+                MenuItem("1", "Recount", &server_info),
                 MenuItem("q", "Return", &main_menu)
             ]
         );
