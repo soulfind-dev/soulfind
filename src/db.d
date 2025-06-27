@@ -8,11 +8,15 @@ module soulfind.db;
 
 import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        sqlite3_column_count, sqlite3_column_text,
-                       sqlite3_config, sqlite3_errmsg, sqlite3_errstr,
-                       sqlite3_extended_errcode, sqlite3_finalize,
-                       sqlite3_initialize, sqlite3_open, sqlite3_prepare_v2,
-                       sqlite3_shutdown, sqlite3_step, sqlite3_stmt,
-                       SQLITE_CONFIG_SINGLETHREAD, SQLITE_DONE, SQLITE_OK,
+                       sqlite3_config, sqlite3_db_config, sqlite3_errmsg,
+                       sqlite3_errstr, sqlite3_extended_errcode,
+                       sqlite3_finalize, sqlite3_initialize, sqlite3_open,
+                       sqlite3_prepare_v2, sqlite3_shutdown, sqlite3_step,
+                       sqlite3_stmt, SQLITE_CONFIG_SINGLETHREAD,
+                       SQLITE_DBCONFIG_DEFENSIVE,
+                       SQLITE_DBCONFIG_ENABLE_TRIGGER,
+                       SQLITE_DBCONFIG_ENABLE_VIEW,
+                       SQLITE_DBCONFIG_TRUSTED_SCHEMA, SQLITE_DONE, SQLITE_OK,
                        SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
@@ -373,6 +377,12 @@ class Sdb
     private void open(string filename)
     {
         sqlite3_open(filename.toStringz, &db);
+
+        // https://www.sqlite.org/security.html
+        sqlite3_db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1, null);
+        sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, 0, null);
+        sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0, null);
+        sqlite3_db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, null);
     }
 
     @trusted
