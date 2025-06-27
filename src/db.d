@@ -10,9 +10,9 @@ import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        sqlite3_column_count, sqlite3_column_text,
                        sqlite3_errmsg, sqlite3_errstr,
                        sqlite3_extended_errcode, sqlite3_finalize,
-                       sqlite3_open, sqlite3_prepare_v2, sqlite3_step,
-                       sqlite3_stmt, SQLITE_DONE, SQLITE_OK, SQLITE_ROW,
-                       SQLITE_TRANSIENT;
+                       sqlite3_initialize, sqlite3_open, sqlite3_prepare_v2,
+                       sqlite3_shutdown, sqlite3_step, sqlite3_stmt,
+                       SQLITE_DONE, SQLITE_OK, SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.conv : to;
 import std.exception : ifThrown;
@@ -42,6 +42,7 @@ class Sdb
     this(string filename)
     {
         debug(db) writefln!("DB: Using database: %s")(filename);
+        initialize();
         open(filename);
 
         if (!exists(filename) || !isFile(filename))
@@ -83,6 +84,7 @@ class Sdb
     {
         debug(db) writeln("DB: Shutting down...");
         close();
+        shutdown();
     }
 
     private void init_config()
@@ -356,6 +358,13 @@ class Sdb
     }
 
     @trusted
+    private void initialize()
+    {
+        if (sqlite3_initialize() != SQLITE_OK)
+            throw new Exception("Cannot start SQLite");
+    }
+
+    @trusted
     private void open(string filename)
     {
         sqlite3_open(filename.toStringz, &db);
@@ -365,6 +374,12 @@ class Sdb
     private void close() scope
     {
         sqlite3_close(db);
+    }
+
+    @trusted
+    private void shutdown()
+    {
+        sqlite3_shutdown();
     }
 
     @trusted
