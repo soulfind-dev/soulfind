@@ -43,6 +43,7 @@ class User
     uint                    status;
     SysTime                 connected_at;
     string                  login_error;
+    long                    privileged_until;
 
     private Server          server;
 
@@ -50,7 +51,6 @@ class User
     private uint            minor_version;
     private uint            ip_address;
     private ushort          port;
-    private long            privileged_until;
 
     private string[string]  liked_items;
     private string[string]  hated_items;

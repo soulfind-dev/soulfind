@@ -748,17 +748,40 @@ class Server
         auto address = "none";
         auto connected_at = "none";
         auto status = "offline";
+        const admin = db.is_admin(username);
         auto banned = "false";
         auto privileged = "false";
+        long privileged_until;
+        bool supporter;
         uint speed, upload_number;
         uint shared_files, shared_folders;
         string joined_rooms;
 
-        const admin = db.is_admin(username);
-        const banned_until = db.get_user_banned_until(username);
-        const privileged_until = db.get_user_privileged_until(username);
-        const supporter = privileged_until > 0;
+        user = get_user(username);
+        if (user) {
+            client_version = user.h_client_version;
+            address = user.h_address;
+            connected_at = user.connected_at.toString;
+            status = (user.status == Status.away) ? "away" : "online";
+            privileged_until = user.privileged_until;
+            supporter = user.supporter;
+            speed = user.speed;
+            upload_number = user.upload_number;
+            shared_files = user.shared_files;
+            shared_folders = user.shared_folders;
+            joined_rooms = user.h_joined_rooms;
+        }
+        else {
+            const user_stats = db.get_user_stats(username);
+            privileged_until = db.get_user_privileged_until(username);
+            supporter = privileged_until > 0;
+            speed = user_stats.speed;
+            upload_number = user_stats.upload_number;
+            shared_files = user_stats.shared_files;
+            shared_folders = user_stats.shared_folders;
+        }
 
+        const banned_until = db.get_user_banned_until(username);
         if (banned_until == long.max)
             banned = "forever";
 
@@ -768,26 +791,6 @@ class Server
         if (privileged_until > Clock.currTime.toUnixTime)
             privileged = format!("until %s")(
                 SysTime.fromUnixTime(privileged_until));
-
-        user = get_user(username);
-        if (user) {
-            client_version = user.h_client_version;
-            address = user.h_address;
-            connected_at = user.connected_at.toString;
-            status = (user.status == Status.away) ? "away" : "online";
-            speed = user.speed;
-            upload_number = user.upload_number;
-            shared_files = user.shared_files;
-            shared_folders = user.shared_folders;
-            joined_rooms = user.h_joined_rooms;
-        }
-        else {
-            const user_stats = db.get_user_stats(username);
-            speed = user_stats.speed;
-            upload_number = user_stats.upload_number;
-            shared_files = user_stats.shared_files;
-            shared_folders = user_stats.shared_folders;
-        }
 
         return format!(
             "%s"
