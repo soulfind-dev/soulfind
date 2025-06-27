@@ -235,8 +235,16 @@ class User
 
     void remove_privileges(uint seconds)
     {
-        privileged_until -= seconds;
-        if (!privileged) privileged_until = Clock.currTime.toUnixTime;
+        if (!privileged)
+            return;
+
+        const now = Clock.currTime.toUnixTime;
+
+        if (privileged_until > now + seconds)
+            privileged_until -= seconds;
+        else
+            privileged_until = now;
+
         server.db.user_update_field(username, "privileges", privileged_until);
 
         scope msg = new SCheckPrivileges(privileges);
