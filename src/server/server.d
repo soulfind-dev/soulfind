@@ -22,7 +22,6 @@ import std.datetime : Clock, SysTime;
 import std.exception : ifThrown;
 import std.format : format;
 import std.process : thisProcessID;
-import std.random : uniform;
 import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketSet, SocketShutdown, TcpSocket;
@@ -601,9 +600,7 @@ class Server
                     if (user.username == admin.username)
                         continue;
 
-                    db.ban_user(
-                        user.username, duration + uniform(-50, 50).seconds
-                    );
+                    db.ban_user(user.username, duration);
                     disconnect_user(user.username);
                     num_kicks += 1;
                 }
@@ -612,7 +609,7 @@ class Server
                     blue ~ admin.username ~ norm, num_kicks, duration
                 );
                 server_pm(admin, format!(
-                    "Kicked all %d users for %s (+/-50s)")(
+                    "Kicked all %d users for %s")(
                     num_kicks, duration.total!"minutes".minutes)
                 );
                 break;
