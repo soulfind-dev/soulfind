@@ -482,7 +482,7 @@ class Server
                 try {
                     duration = command[1]
                         .to!ulong
-                        .clamp(0, short.max)
+                        .clamp(0, ushort.max)
                         .days;
                 }
                 catch (ConvException e) {
@@ -663,7 +663,7 @@ class Server
                 try {
                     duration = command[1]
                         .to!ulong
-                        .clamp(0, short.max)
+                        .clamp(0, ushort.max)
                         .days;
                     username = command[2 .. $].join(" ");
                 }
