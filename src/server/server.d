@@ -482,7 +482,7 @@ class Server
                 try {
                     duration = command[1]
                         .to!ulong
-                        .clamp(0, uint.max)
+                        .clamp(0, short.max)
                         .days;
                 }
                 catch (ConvException e) {
@@ -663,7 +663,7 @@ class Server
                 try {
                     duration = command[1]
                         .to!ulong
-                        .clamp(0, uint.max)
+                        .clamp(0, short.max)
                         .days;
                     username = command[2 .. $].join(" ");
                 }
@@ -764,6 +764,7 @@ class Server
     private string user_info(string username)
     {
         User user;
+        const now = Clock.currTime;
         auto client_version = "none";
         auto address = "none";
         auto connected_at = "none";
@@ -794,7 +795,7 @@ class Server
         else {
             const user_stats = db.get_user_stats(username);
             privileged_until = db.get_user_privileged_until(username);
-            supporter = privileged_until.toUnixTime > 0;
+            supporter = db.user_supporter(username);
             speed = user_stats.speed;
             upload_number = user_stats.upload_number;
             shared_files = user_stats.shared_files;
@@ -805,10 +806,10 @@ class Server
         if (banned_until == SysTime.fromUnixTime(long.max))
             banned = "forever";
 
-        else if (banned_until > Clock.currTime)
+        else if (banned_until > now)
             banned = format!("until %s")(banned_until);
 
-        if (privileged_until > Clock.currTime)
+        if (privileged_until > now)
             privileged = format!("until %s")(privileged_until);
 
         return format!(

@@ -44,6 +44,7 @@ class User
     SysTime                 connected_at;
     string                  login_error;
     SysTime                 privileged_until;
+    bool                    supporter;
 
     private Server          server;
 
@@ -221,6 +222,7 @@ class User
     void refresh_privileges(bool notify_user = true)
     {
         privileged_until = server.db.get_user_privileged_until(username);
+        supporter = server.db.user_supporter(username);
 
         if (!notify_user)
             return;
@@ -236,11 +238,6 @@ class User
     bool privileged()
     {
         return privileged_until > Clock.currTime;
-    }
-
-    bool supporter()
-    {    // user has had privileges at some point
-        return privileged_until.toUnixTime > 0;
     }
 
     private Duration privileges()
@@ -748,8 +745,7 @@ class User
                         "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
-                    user_privileged = server.db.get_user_privileged_until(
-                        msg.username) > Clock.currTime;
+                    user_privileged = server.db.user_privileged(msg.username);
                 }
                 else {
                     debug (user) writefln!(

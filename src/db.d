@@ -273,6 +273,25 @@ class Sdb
         }
     }
 
+    bool user_privileged(string username)
+    {
+        const sql = format!(
+            "SELECT 1 FROM %s WHERE username = ? AND privileges > ?;")(
+            users_table
+        );
+        const now = Clock.currTime.toUnixTime;
+        return query(sql, [username, now.to!string]).length > 0;
+    }
+
+    bool user_supporter(string username)
+    {
+        const sql = format!(
+            "SELECT 1 FROM %s WHERE username = ? AND privileges > ?;")(
+            users_table
+        );
+        return query(sql, [username, "0"]).length > 0;
+    }
+
     SysTime get_user_privileged_until(string username)
     {
         const sql = format!(
@@ -304,6 +323,16 @@ class Sdb
     void unban_user(string username)
     {
         user_update_field(username, "banned", 0);
+    }
+
+    bool user_banned(string username)
+    {
+        const sql = format!(
+            "SELECT 1 FROM %s WHERE username = ? AND banned > ?;")(
+            users_table
+        );
+        const now = Clock.currTime.toUnixTime;
+        return query(sql, [username, now.to!string]).length > 0;
     }
 
     SysTime get_user_banned_until(string username)
