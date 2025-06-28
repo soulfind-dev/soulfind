@@ -6,7 +6,7 @@
 module soulfind.db;
 @safe:
 
-import core.time : Duration;
+import core.time : days, Duration;
 import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        sqlite3_column_count, sqlite3_column_text,
                        sqlite3_config, sqlite3_db_config, sqlite3_errmsg,
