@@ -110,7 +110,13 @@ class Setup
     private void del_admin()
     {
         write("Admin to remove : ");
-        db.del_admin(input.strip);
+        const username = input.strip;
+
+        if (db.is_admin(username))
+            db.del_admin(username);
+        else
+            writefln!("\nUser %s is not an admin")(username);
+
         admins();
     }
 
@@ -320,7 +326,13 @@ class Setup
     private void unban_user()
     {
         write("User to unban : ");
-        db.unban_user(input.strip);
+        const username = input.strip;
+
+        if (db.user_banned(username))
+            db.unban_user(username);
+        else
+            writefln!("\nUser %s is not banned")(username);
+
         banned_users();
     }
 
