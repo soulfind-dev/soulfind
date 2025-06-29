@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: 2025 Soulfind Contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Libraries
+on:
+  push:
+    paths: ['lib/*.def']
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  update-libraries:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        arch: [x86, x64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate import libraries
+        run: |
+          $vsPath = vswhere -property installationPath
+          $defFiles = Get-ChildItem -Path lib -Filter *.def
+          foreach ($defFile in $defFiles) {
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($defFile.Name)
+            $defPath = $defFile.FullName
+            $libPath = "lib\$baseName-${{ matrix.arch }}.lib"
+            cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" && lib /def:$defPath /out:$libPath /machine:${{ matrix.arch }}"
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: libs-${{ matrix.arch }}
+          path: lib/*.lib
+
+  push-libraries:
+    needs: update-libraries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download import libraries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: libs-*
+          path: lib/
+          merge-multiple: true
+
+      - name: Set up Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Push import libraries
+        run: |
+          git add lib/
+          git commit -m 'Update Windows import libraries'
+          git push

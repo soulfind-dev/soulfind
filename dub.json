@@ -31,7 +31,9 @@
             "name": "unittest",
             "targetPath": "bin",
             "libs-posix": ["sqlite3"],
-            "libs-windows": ["winsqlite3"]
+            "libs-windows-x86": ["$PACKAGE_DIR/lib/winsqlite3-x86"],
+            "libs-windows-x86_64": ["$PACKAGE_DIR/lib/winsqlite3-x64"],
+            "libs-windows-aarch64": ["$PACKAGE_DIR/lib/winsqlite3-arm64"]
         }
     ],
     "subPackages": [
@@ -41,7 +43,9 @@
             "targetPath": "bin",
             "targetName": "soulfind",
             "libs-posix": ["sqlite3"],
-            "libs-windows": ["winsqlite3"],
+            "libs-windows-x86": ["$PACKAGE_DIR/lib/winsqlite3-x86"],
+            "libs-windows-x86_64": ["$PACKAGE_DIR/lib/winsqlite3-x64"],
+            "libs-windows-aarch64": ["$PACKAGE_DIR/lib/winsqlite3-arm64"],
             "excludedSourceFiles": ["src/setup/*"]
         },
         {
@@ -50,7 +54,9 @@
             "targetPath": "bin",
             "targetName": "soulsetup",
             "libs-posix": ["sqlite3"],
-            "libs-windows": ["winsqlite3"],
+            "libs-windows-x86": ["$PACKAGE_DIR/lib/winsqlite3-x86"],
+            "libs-windows-x86_64": ["$PACKAGE_DIR/lib/winsqlite3-x64"],
+            "libs-windows-aarch64": ["$PACKAGE_DIR/lib/winsqlite3-arm64"],
             "excludedSourceFiles": ["src/server/*"]
         }
     ]

@@ -1,0 +1,22 @@
+; SPDX-FileCopyrightText: 2025 Soulfind Contributors
+; SPDX-License-Identifier: GPL-3.0-or-later
+
+LIBRARY winsqlite3.dll
+EXPORTS
+    sqlite3_initialize
+    sqlite3_shutdown
+    sqlite3_config
+    sqlite3_db_config
+
+    sqlite3_open
+    sqlite3_close
+    sqlite3_extended_errcode
+    sqlite3_errmsg
+    sqlite3_errstr
+
+    sqlite3_prepare_v2
+    sqlite3_bind_text
+    sqlite3_column_count
+    sqlite3_step
+    sqlite3_column_text
+    sqlite3_finalize
