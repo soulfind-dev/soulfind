@@ -77,8 +77,7 @@ class Room
 
     void send_to_all(scope SMessage msg)
     {
-        foreach (user ; users)
-            user.send_message(msg);
+        foreach (user ; users) user.send_message(msg);
     }
 
 
@@ -170,7 +169,6 @@ class GlobalRoom
     void say(string room_name, string username, string message)
     {
         scope msg = new SGlobalRoomMessage(room_name, username, message);
-        foreach (user ; users)
-            user.send_message(msg);
+        foreach (user ; users) user.send_message(msg);
     }
 }

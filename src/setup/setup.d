@@ -374,7 +374,7 @@ class Setup
 
         Appender!string output;
         output ~= format!("\nRegistered users (%d)...")(users.length);
-        foreach (user ; users) output ~= format!("\t%s")(user);
+        foreach (user ; users) output ~= format!("\n\t%s")(user);
 
         writeln(output[]);
         registered_users();

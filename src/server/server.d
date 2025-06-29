@@ -24,7 +24,7 @@ import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketSet, SocketShutdown, TcpSocket;
 import std.stdio : writefln;
-import std.string : format, join, split, strip;
+import std.string : format, join, split;
 
 version (unittest) {
     auto running = true;
@@ -104,12 +104,10 @@ class Server
             if (read_socks.isSet(sock)) {
                 while (true) {
                     Socket new_sock;
-                    try {
-                        new_sock = sock.accept();
-                    }
-                    catch (SocketAcceptException) {
+                    try new_sock = sock.accept();
+                    catch (SocketAcceptException)
                         break;
-                    }
+
                     if (!new_sock.isAlive)
                         break;
 
@@ -621,8 +619,7 @@ class Server
                 db.remove_user_privileges(username, duration);
 
                 auto user = get_user(username);
-                if (user)
-                    user.refresh_privileges();
+                if (user) user.refresh_privileges();
 
                 string response;
                 if (duration == Duration.max)
@@ -838,8 +835,6 @@ class Server
     private void global_message(string message)
     {
         scope msg = new SAdminMessage(message);
-        foreach (user ; users) {
-            user.send_message(msg);
-        }
+        foreach (user ; users) user.send_message(msg);
     }
 }

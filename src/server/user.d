@@ -433,7 +433,7 @@ class User
     void join_room(string name)
     {
         string fail_message;
-        if (name.length <= 0)
+        if (name.length == 0)
             fail_message = "Could not create room. Reason: Room name empty.";
         else if (name.length > max_room_name_length)
             fail_message = format!(
