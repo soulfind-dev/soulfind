@@ -1021,7 +1021,7 @@ class User
                 calc_speed(msg.speed);
                 debug (user) writefln!(
                     "User %s reports speed of %d B/s (~ %d B/s)")(
-                    blue ~ username ~ norm, msg.speed, user.speed
+                    blue ~ username ~ norm, msg.speed, speed
                 );
                 break;
 
