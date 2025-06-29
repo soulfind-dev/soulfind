@@ -21,6 +21,10 @@ Ensure the following dependencies are installed:
  - `dub` for build system
  - `sqlite3` for database
 
+You can download a compiler for Windows and macOS on [dlang.org]((https://dlang.org/download.html).
+The dub build system is included. On other systems, use a package manager to
+install the dependencies.
+
 On Windows, you must [install the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/)
 in order to use the system bindings for sqlite3. On macOS, no action is
 required to use them.
