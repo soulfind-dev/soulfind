@@ -6,17 +6,9 @@
 module soulfind.setup;
 @safe:
 
-import soulfind.db : Sdb;
-import soulfind.defines : default_db_filename, default_max_users, default_port,
-                          VERSION;
+import soulfind.defines : default_db_filename;
 import soulfind.setup.setup : Setup;
-import std.conv : ConvException, to;
-import std.datetime : Clock;
-import std.format : format;
-import std.stdio : readf, readln, StdioException, write, writefln, writeln;
-import std.string : chomp, strip;
-
-Sdb sdb;
+import std.stdio : writefln;
 
 int run(string[] args)
 {
@@ -33,7 +25,6 @@ int run(string[] args)
         }
         db_filename = args[1];
     }
-
 
     auto setup = new Setup(db_filename);
     setup.show();

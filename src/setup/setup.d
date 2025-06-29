@@ -13,9 +13,8 @@ import soulfind.defines : default_db_filename, default_max_users, default_port,
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.format : format;
-import std.stdio : readf, readln, StdioException, write, writefln, writeln;
-import std.string : chomp, strip;
+import std.stdio : readln, StdioException, write, writefln, writeln;
+import std.string : chomp, format, strip;
 import std.system : endian, instructionSetArchitecture, os;
 
 struct MenuItem
@@ -48,30 +47,26 @@ class Setup
 
     private void show_menu(string heading, MenuItem[] items)
     {
-        while (true) {
+        do {
             writefln!("\n%s\n")(heading);
 
             foreach (item; items)
-            {
                 writeln(format!("%s. %s")(item.index, item.label));
-            }
 
             write("\nYour choice : ");
             const choice = input.strip;
 
             foreach (item; items)
-            {
-                if (choice == item.index)
-                {
+                if (choice == item.index) {
                     item.action();
                     return;
                 }
-            }
 
             writeln(
                 "Next time, try a number which has an action assigned to it..."
             );
         }
+        while(true);
     }
 
     private void main_menu()
@@ -290,7 +285,7 @@ class Setup
 
         Duration banned_until;
 
-        while (true) {
+        do {
             write("Number of days to ban user (empty = forever) : ");
             const duration = input.strip;
 
@@ -307,6 +302,7 @@ class Setup
                 writeln("Please enter a valid number");
             }
         }
+        while(true);
 
         db.ban_user(username, banned_until);
 
