@@ -16,7 +16,7 @@ import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
 import std.algorithm : clamp;
-import std.array : join, replace, split;
+import std.array : join, split;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.exception : ifThrown;
@@ -373,7 +373,7 @@ class Server
             "User %s @ %s logging in with version %s")(
             blue ~ user.username ~ norm,
             bold ~ user.address.toAddrString ~ norm,
-            bold ~ user.h_client_version ~ norm
+            bold ~ user.client_version ~ norm
         );
         users[user.username] = user;
     }
@@ -421,7 +421,7 @@ class Server
         user.leave_joined_rooms();
         global_room.remove_user(username);
 
-        user.set_status(Status.offline);
+        user.update_status(Status.offline);
         writefln!(
             "User %s @ %s quit")(
             red ~ username ~ norm,
@@ -780,7 +780,7 @@ class Server
 
         user = get_user(username);
         if (user) {
-            client_version = user.h_client_version;
+            client_version = user.client_version;
             address = user.address.toString;
             connected_at = user.connected_at.toString;
             status = (user.status == Status.away) ? "away" : "online";
@@ -790,7 +790,7 @@ class Server
             upload_number = user.upload_number;
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
-            joined_rooms = user.h_joined_rooms;
+            joined_rooms = user.joined_room_names.join(", ");
         }
         else {
             const user_stats = db.get_user_stats(username);
@@ -848,15 +848,6 @@ class Server
     {
         auto user = get_user(username);
         if (user) del_user(user);
-    }
-
-    string get_motd(User user)
-    {
-        return db.get_config_value("motd")
-            .replace("%sversion%", VERSION)
-            .replace("%users%", users.length.to!string)
-            .replace("%username%", user.username)
-            .replace("%version%", user.h_client_version);
     }
 
     private Duration uptime()

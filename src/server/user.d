@@ -10,13 +10,13 @@ import core.time : days, Duration, seconds;
 import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
-                          max_username_length, norm, red, server_username;
+                          max_username_length, norm, red, server_username,
+                          VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.algorithm : canFind, clamp;
-import std.array : join;
 import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : to;
@@ -24,11 +24,10 @@ import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.exception : ifThrown;
-import std.format : format;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
-import std.string : strip;
+import std.string : format, join, replace, strip;
 
 class User
 {
@@ -36,22 +35,20 @@ class User
     Socket                  sock;
     InternetAddress         address;
 
+    uint                    status;
+    string                  client_version;
+    SysTime                 connected_at;
+    string                  login_rejection;
+    SysTime                 privileged_until;
+    bool                    supporter;
+
     uint                    speed;                // in B/s
     uint                    upload_number;
     uint                    shared_files;
     uint                    shared_folders;
     string                  country_code;
 
-    uint                    status;
-    SysTime                 connected_at;
-    string                  login_rejection;
-    SysTime                 privileged_until;
-    bool                    supporter;
-
     private Server          server;
-
-    private uint            major_version;
-    private uint            minor_version;
 
     private string[string]  liked_items;
     private string[string]  hated_items;
@@ -74,11 +71,15 @@ class User
     }
 
 
-    // Client
+    // Login
 
-    string h_client_version()
+    string motd()
     {
-        return format!("%d.%d")(major_version, minor_version);
+        return server.db.get_config_value("motd")
+            .replace("%sversion%", VERSION)
+            .replace("%users%", server.users.length.to!string)
+            .replace("%username%", username)
+            .replace("%version%", client_version);
     }
 
     bool login_timed_out()
@@ -95,7 +96,7 @@ class User
 
     private bool check_name(string text, uint max_length)
     {
-        if (text.length <= 0 || text.length > max_length) {
+        if (text.length == 0 || text.length > max_length) {
             return false;
         }
         foreach (c ; text) if (!c.isASCII) {
@@ -161,7 +162,7 @@ class User
 
     // Status
 
-    void set_status(uint new_status)
+    void update_status(uint new_status)
     {
         if (new_status == status)
             return;
@@ -201,15 +202,12 @@ class User
         server.db.user_update_field(username, "speed", speed);
     }
 
-    private void set_shared_files(uint new_files)
+    private void update_shared_stats(uint new_files, uint new_folders)
     {
         shared_files = new_files;
-        server.db.user_update_field(username, "files", shared_files);
-    }
-
-    private void set_shared_folders(uint new_folders)
-    {
         shared_folders = new_folders;
+
+        server.db.user_update_field(username, "files", shared_files);
         server.db.user_update_field(username, "folders", shared_folders);
     }
 
@@ -460,7 +458,7 @@ class User
                 }
             }
 
-        if (fail_message.length > 0) {
+        if (fail_message) {
             server.server_pm(this, fail_message);
             return;
         }
@@ -493,9 +491,9 @@ class User
         foreach (name, room ; joined_rooms) leave_room(name);
     }
 
-    string h_joined_rooms()
+    string[] joined_room_names()
     {
-        return joined_rooms.byKey.join(", ");
+        return joined_rooms.keys;
     }
 
 
@@ -589,8 +587,8 @@ class User
                     // server.
                     break;
 
-                server.db.unban_user(username);
                 login_rejection = verify_login(username, msg.password);
+                server.db.unban_user(username);
 
                 if (login_rejection) {
                     scope response_msg = new SLogin(false, login_rejection);
@@ -605,15 +603,15 @@ class User
                         "User %s @ %s already logged in with version %s")(
                         red ~ username ~ norm,
                         bold ~ user.address.toAddrString ~ norm,
-                        bold ~ user.h_client_version ~ norm
+                        bold ~ user.client_version ~ norm
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
                     server.del_user(user);
                 }
 
-                major_version = msg.major_version;
-                minor_version = msg.minor_version;
+                client_version = format!("%d.%d")(
+                    msg.major_version, msg.minor_version);
 
                 const user_stats = server.db.get_user_stats(username);
                 speed = user_stats.speed;
@@ -626,8 +624,8 @@ class User
                 watch(username);
 
                 scope response_msg = new SLogin(
-                    true, server.get_motd(this), address.addr,
-                    encode_password(msg.password), supporter
+                    true, motd, address.addr, encode_password(msg.password),
+                    supporter
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
                 scope wish_interval_msg = new SWishlistInterval(
@@ -637,7 +635,7 @@ class User
                 send_message(room_list_msg);
                 send_message(wish_interval_msg);
 
-                set_status(Status.online);
+                update_status(Status.online);
 
                 foreach (pm ; server.get_pms_for(username)) {
                     const new_message = false;
@@ -853,7 +851,7 @@ class User
 
             case SetStatus:
                 scope msg = new USetStatus(msg_buf, username);
-                if (msg.status != Status.offline) set_status(msg.status);
+                if (msg.status != Status.offline) update_status(msg.status);
                 break;
 
             case ServerPing:
@@ -867,8 +865,7 @@ class User
                     blue ~ username ~ norm, msg.shared_files,
                     msg.shared_folders
                 );
-                set_shared_folders(msg.shared_folders);
-                set_shared_files(msg.shared_files);
+                update_shared_stats(msg.shared_files, msg.shared_folders);
 
                 scope response_msg = new SGetUserStats(
                     username, speed, upload_number, shared_files,
@@ -1011,11 +1008,7 @@ class User
 
             case SendUploadSpeed:
                 scope msg = new USendUploadSpeed(msg_buf, username);
-                auto user = server.get_user(username);
-                if (!user)
-                    break;
-
-                user.calc_speed(msg.speed);
+                calc_speed(msg.speed);
                 debug (user) writefln!(
                     "User %s reports speed of %d B/s (~ %d B/s)")(
                     blue ~ username ~ norm, msg.speed, user.speed
