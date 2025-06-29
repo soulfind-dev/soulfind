@@ -39,7 +39,8 @@ class Server
     GlobalRoom            global_room;
     User[string]          users;
 
-    private MonoTime      started_at;
+    private SysTime       started_at;
+    private MonoTime      started_monotime;
     private ushort        port;
 
     private User[Socket]  user_socks;
@@ -52,12 +53,13 @@ class Server
 
     this(string db_filename)
     {
-        started_at = MonoTime.currTime;
-        db = new Sdb(db_filename);
-        global_room = new GlobalRoom();
+        this.db                = new Sdb(db_filename);
+        this.started_at        = Clock.currTime;
+        this.started_monotime  = MonoTime.currTime;
+        this.global_room       = new GlobalRoom();
 
-        try port = db.get_config_value("port").to!ushort;
-        catch (ConvException) port = cast(ushort) default_port;
+        try this.port = db.get_config_value("port").to!ushort;
+        catch (ConvException) this.port = cast(ushort) default_port;
     }
 
 
@@ -820,9 +822,11 @@ class Server
                 break;
 
             case "uptime":
-                server_pm(admin, format!("Running for %s")(
-                    (MonoTime.currTime - started_at).total!"seconds".seconds)
+                const duration = (MonoTime.currTime - started_monotime);
+                const response = format!("Running for %s since %s")(
+                    duration.total!"seconds".seconds, started_at
                 );
+                server_pm(admin, response);
                 break;
 
             default:
