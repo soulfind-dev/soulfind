@@ -18,7 +18,7 @@ import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.algorithm : canFind, clamp;
-import std.array : Appender;
+import std.array : Appender, array;
 import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, to;
@@ -422,7 +422,7 @@ class User
 
     // Private Messages
 
-    void send_pm(PM pm, bool new_message)
+    void send_pm(const PM pm, bool new_message)
     {
         scope msg = new SMessageUser(
             pm.id, cast(uint) pm.time.toUnixTime.clamp(0, uint.max),
@@ -504,7 +504,7 @@ class User
 
     string[] joined_room_names()
     {
-        return joined_rooms.keys;
+        return joined_rooms.byKey.array;
     }
 
 

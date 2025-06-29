@@ -307,10 +307,10 @@ class Setup
             banned = "forever";
 
         else if (banned_until > now)
-            banned = format!("until %s")(banned_until);
+            banned = format!("until %s")(banned_until.toSimpleString);
 
         if (privileged_until > now)
-            privileged = format!("until %s")(privileged_until);
+            privileged = format!("until %s")(privileged_until.toSimpleString);
 
         if (stats.exists) {
             writefln!(
@@ -392,7 +392,9 @@ class Setup
         output ~= format!("\nPrivileged users (%d)...")(users.length);
         foreach (user ; users) {
             const privileged_until = db.user_privileged_until(user);
-            output ~= format!("\n\t%s (until %s)")(user, privileged_until);
+            output ~= format!("\n\t%s (until %s)")(
+                user, privileged_until.toSimpleString
+            );
         }
 
         writeln(output[]);
@@ -483,7 +485,8 @@ class Setup
             if (banned_until == SysTime.fromUnixTime(long.max))
                 output ~= format!("\n\t%s (forever)")(user);
             else
-                output ~= format!("\n\t%s (until %s)")(user, banned_until);
+                output ~= format!("\n\t%s (until %s)")(
+                    user, banned_until.toSimpleString);
         }
 
         writeln(output[]);

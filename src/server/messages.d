@@ -10,7 +10,7 @@ import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.algorithm : sort;
-import std.array : Appender;
+import std.array : Appender, array;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : to;
 import std.encoding : isValid;
@@ -1074,23 +1074,17 @@ class SItemSimilarUsers : SMessage
 
 class SRoomTicker : SMessage
 {
-    this(string room_name, Ticker[string] tickers) scope
+    this(string room_name, Ticker[] tickers) scope
     {
         super(RoomTicker);
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ticker ; sort_time(tickers.values))
+        foreach (ticker ; tickers.sort)
         {
             write!string(ticker.username);
             write!string(ticker.content);
         }
-    }
-
-    @trusted
-    private auto sort_time(Ticker[] tickers) scope
-    {
-        return tickers.sort!((ref a, ref b) => a.time < b.time);
     }
 }
 

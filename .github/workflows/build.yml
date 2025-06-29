@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64, windows-x86_64, windows-arm64]
-        compiler: [ldc, dmd]
+        compiler: [ldc, dmd, gdc]
         type: [release, debug]
         include:
           - config: default
@@ -19,51 +19,64 @@ jobs:
           - type: debug
             flags: --debug=db --debug=msg --debug=user
 
+          - compiler: ldc
+            package: ldc
+
+          - compiler: dmd
+            package: dmd
+
+          - compiler: gdc
+            package: gcc-gdc
+
           - os: linux-x86_64
-            arch: x86_64
             image: ubuntu-latest
             container: alpine:edge
-
-          - os: linux-x86_64
-            compiler: ldc
             config: static
 
-          - os: linux-arm64
-            arch: aarch64
-            image: ubuntu-24.04-arm
-            container: alpine:edge
+          - os: linux-x86_64
+            compiler: dmd
+            config: default
 
           - os: linux-arm64
-            compiler: ldc
+            image: ubuntu-24.04-arm
+            container: alpine:edge
             config: static
 
           - os: macos-x86_64
-            arch: x86_64
             image: macos-13
             target: 10.12
 
           - os: macos-arm64
-            arch: arm64-apple-macos
             image: macos-latest
             target: 11
 
           - os: windows-x86_64
-            arch: x86_64
             image: windows-latest
 
           - os: windows-arm64
-            arch: aarch64-windows-msvc
             image: windows-latest
 
         exclude:
           - os: linux-arm64
             compiler: dmd
 
+          - os: macos-x86_64
+            compiler: gdc
+
           - os: macos-arm64
             compiler: dmd
 
+          - os: macos-arm64
+            compiler: gdc
+
+          - os: windows-x86_64
+            compiler: gdc
+
           - os: windows-arm64
             compiler: dmd
+
+          - os: windows-arm64
+            compiler: gdc
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
     env:
@@ -84,7 +97,7 @@ jobs:
 
       - name: Set up D (Linux)
         if: runner.os == 'Linux'
-        run: apk add ${{ matrix.compiler }} dub gcc musl-dev sqlite-static
+        run: apk add ${{ matrix.package }} dub gcc musl-dev sqlite-static
 
       - name: Set up D (Other)
         if: runner.os != 'Linux'
@@ -96,11 +109,11 @@ jobs:
         if: matrix.os == 'windows-arm64'
         run: |
           $vsPath = vswhere -property installationPath
-          cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=x64 && dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} ${{ matrix.flags }}"
+          cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=x64 && dub build -v --build=${{ matrix.type }} --arch=aarch64-windows-msvc ${{ matrix.flags }}"
 
       - name: Build (Other)
         if: matrix.os != 'windows-arm64'
-        run: dub build -v --build=${{ matrix.type }} --arch=${{ matrix.arch }} --config=${{ matrix.config }} ${{ matrix.flags }}
+        run: dub build -v --build=${{ matrix.type }} --config=${{ matrix.config }} ${{ matrix.flags }}
 
       - name: Run tests
         run: dub test

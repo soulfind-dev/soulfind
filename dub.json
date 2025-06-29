@@ -3,11 +3,6 @@
     "description": "Soulseek server implementation in D",
     "copyright": "Copyright © 2005-2025, Soulfind Contributors",
     "license": "GPL-3.0-or-later",
-    "toolchainRequirements": {
-        "ldc": ">=1.28.0",
-        "dmd": ">=2.98.0",
-        "gdc": ">=15.0.0"
-    },
     "configurations": [
         {
             "name": "default",

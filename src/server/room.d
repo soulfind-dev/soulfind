@@ -10,6 +10,7 @@ import soulfind.defines : max_chat_message_length, max_room_ticker_length,
                           max_room_tickers;
 import soulfind.server.messages;
 import soulfind.server.user : User;
+import std.array : array;
 import std.datetime : Clock, SysTime;
 
 struct Ticker
@@ -17,6 +18,12 @@ struct Ticker
     string   username;
     SysTime  time;
     string   content;
+
+    int opCmp(ref const Ticker t) const
+    {
+        return (t.time > time) - (t.time < time);
+    }
+
 }
 
 class Room
@@ -47,7 +54,7 @@ class Room
             user.shared_files, user.shared_folders, user.country_code
         );
         scope join_room_msg = new SJoinRoom(name, users);
-        scope tickers_msg = new SRoomTicker(name, tickers);
+        scope tickers_msg = new SRoomTicker(name, tickers.byValue.array);
 
         send_to_all(joined_room_msg);
         user.send_message(join_room_msg);

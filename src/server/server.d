@@ -449,7 +449,7 @@ class Server
         if (user) {
             client_version = user.client_version;
             address = user.address.toString;
-            connected_at = user.connected_at.toString;
+            connected_at = user.connected_at.toSimpleString;
             status = (user.status == Status.away) ? "away" : "online";
             privileged_until = user.privileged_until;
             supporter = user.supporter;
@@ -474,10 +474,10 @@ class Server
             banned = "forever";
 
         else if (banned_until > now)
-            banned = format!("until %s")(banned_until);
+            banned = format!("until %s")(banned_until.toSimpleString);
 
         if (privileged_until > now)
-            privileged = format!("until %s")(privileged_until);
+            privileged = format!("until %s")(privileged_until.toSimpleString);
 
         return format!(
             "%s"
@@ -645,7 +645,8 @@ class Server
                 foreach (user ; users)
                     output ~= format!(
                         "\n\t%s (client version: %s, connected at: %s)")(
-                        user.username, user.client_version, user.connected_at
+                        user.username, user.client_version,
+                        user.connected_at.toSimpleString
                     );
 
                 server_pm(admin, output[]);
@@ -682,23 +683,25 @@ class Server
                         break;
                     }
                 }
-                uint num_kicks;
-                foreach (user ; users.values) {
-                    if (user.username == admin.username)
-                        continue;
+                Appender!(User[]) users_to_kick;
+                foreach (user ; users)
+                    if (user.username != admin.username)
+                        users_to_kick ~= user;
 
+                foreach (user ; users_to_kick) {
                     db.ban_user(user.username, duration);
                     del_user(user);
-                    num_kicks += 1;
                 }
+
                 debug (user) writefln!(
                     "Admin %s kicked ALL %d users for %s!")(
-                    blue ~ admin.username ~ norm, num_kicks, duration
+                    blue ~ admin.username ~ norm, users_to_kick[].length,
+                    duration
                 );
                 server_pm(admin, format!(
                     "Kicked all %d users for %s")(
-                    num_kicks, duration.total!"minutes".minutes)
-                );
+                    users_to_kick[].length, duration.total!"minutes".minutes
+                ));
                 break;
 
             case "kick":
@@ -825,7 +828,8 @@ class Server
             case "uptime":
                 const duration = (MonoTime.currTime - started_monotime);
                 const response = format!("Running for %s since %s")(
-                    duration.total!"seconds".seconds, started_at
+                    duration.total!"seconds".seconds,
+                    started_at.toSimpleString
                 );
                 server_pm(admin, response);
                 break;
