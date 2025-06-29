@@ -6,7 +6,7 @@
 module soulfind.server.user;
 @safe:
 
-import core.time : days, Duration, seconds;
+import core.time : days, Duration, MonoTime, seconds;
 import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
@@ -50,6 +50,7 @@ class User
     string                  country_code;
 
     private Server          server;
+    private MonoTime        connected_monotime;
 
     private string[string]  liked_items;
     private string[string]  hated_items;
@@ -65,10 +66,11 @@ class User
 
     this(Server serv, Socket sock, InternetAddress address)
     {
-        this.server        = serv;
-        this.sock          = sock;
-        this.address       = address;
-        this.connected_at  = Clock.currTime;
+        this.server              = serv;
+        this.sock                = sock;
+        this.address             = address;
+        this.connected_at        = Clock.currTime;
+        this.connected_monotime  = MonoTime.currTime;
     }
 
 
@@ -92,7 +94,7 @@ class User
         // login timeout to spread out reconnect attempts after e.g. kicking
         // all online users, which also bans them for a few minutes.
         const login_timeout = login_timeout + uniform(0, 30).seconds;
-        return (Clock.currTime - connected_at) > login_timeout;
+        return (MonoTime.currTime - connected_monotime) > login_timeout;
     }
 
     private bool check_name(string text, uint max_length)
