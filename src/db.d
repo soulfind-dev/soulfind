@@ -35,6 +35,9 @@ struct SdbUserStats
     uint    upload_number;
     uint    shared_files;
     uint    shared_folders;
+
+    bool    updating_speed;
+    bool    updating_shared;
 }
 
 class Sdb
@@ -382,6 +385,49 @@ class Sdb
             user_stats.shared_folders  = record[3].to!uint.ifThrown(0);
         }
         return user_stats;
+    }
+
+    void user_update_stats(string username, SdbUserStats stats)
+    {
+        string[] fields;
+        string[] parameters;
+
+        if (stats.updating_speed) {
+            fields ~= "speed = ?";
+            parameters ~= stats.speed.to!string;
+        }
+
+        if (stats.updating_shared) {
+            fields ~= "files = ?";
+            parameters ~= stats.shared_files.to!string;
+
+            fields ~= "folders = ?";
+            parameters ~= stats.shared_folders.to!string;
+        }
+
+        if (!fields)
+            return;
+
+        const sql = format!(
+            "UPDATE %s SET %s WHERE username = ?;")(
+            users_table, fields.join(", ")
+        );
+
+        debug(user) {
+            string updated;
+            foreach (i, ref field; fields)
+            {
+                if (i > 0) updated ~= ", ";
+                updated ~= field.replace("?", parameters[i]);
+            }
+            writefln!(
+                "Updating user %s's stats (%s)")(
+                blue ~ username ~ norm, updated
+            );
+        }
+
+        parameters ~= stats.username;
+        query(sql, parameters);
     }
 
     string[] usernames(string field = null, ulong min = 1,

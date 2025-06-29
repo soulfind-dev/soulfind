@@ -7,6 +7,7 @@ module soulfind.server.user;
 @safe:
 
 import core.time : days, Duration, seconds;
+import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
@@ -199,7 +200,11 @@ class User
         );
         send_to_watching(msg);
 
-        server.db.user_update_field(username, "speed", speed);
+        auto stats = SdbUserStats();
+        stats.speed = speed;
+        stats.updating_speed = true;
+
+        server.db.user_update_stats(username, stats);
     }
 
     private void update_shared_stats(uint new_files, uint new_folders)
@@ -207,8 +212,12 @@ class User
         shared_files = new_files;
         shared_folders = new_folders;
 
-        server.db.user_update_field(username, "files", shared_files);
-        server.db.user_update_field(username, "folders", shared_folders);
+        auto stats = SdbUserStats();
+        stats.shared_files = new_files;
+        stats.shared_folders = new_folders;
+        stats.updating_shared = true;
+
+        server.db.user_update_stats(username, stats);
     }
 
 
