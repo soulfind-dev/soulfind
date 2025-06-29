@@ -635,11 +635,15 @@ class Server
                 break;
 
             case "users":
-                const list = format!("%d connected users.\n\t%s")(
-                    users.length,
-                    users.byKey.join("\n\t")
-                );
-                server_pm(admin, list);
+                Appender!string output;
+                output ~= format!("%d connected users.")(users.length);
+                foreach (user ; users)
+                    output ~= format!(
+                        "\n\t%s (client version: %s, connected at: %s)")(
+                        user.username, user.client_version, user.connected_at
+                    );
+
+                server_pm(admin, output[]);
                 break;
 
             case "info":
@@ -785,19 +789,25 @@ class Server
                 break;
 
             case "admins":
+                Appender!string output;
                 const names = db.admins;
-                const list = format!("%d registered admins.\n\t%s")(
-                    names.length,
-                    names.join("\n\t")
-                );
-                server_pm(admin, list);
+                output ~= format!("%d registered admins.")(names.length);
+                foreach (name ; names) {
+                    const status = (name in users) ? "online" : "offline";
+                    output ~= format!("\n\t%s (%s)")(name, status);
+                }
+
+                server_pm(admin, output[]);
                 break;
 
             case "rooms":
-                string list;
+                Appender!string output;
+                output ~= format!("%d registered rooms.")(rooms.length);
                 foreach (room ; rooms)
-                    list ~= format!("%s:%d ")(room.name, room.num_users);
-                server_pm(admin, list);
+                    output ~= format!("\n\t%s (users: %d, tickers: %d)")(
+                        room.name, room.num_users, room.num_tickers);
+
+                server_pm(admin, output[]);
                 break;
 
             case "message":

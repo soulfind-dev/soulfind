@@ -142,10 +142,14 @@ class Room
     {
         Ticker found_ticker;
         foreach (ticker ; tickers) {
-            if (ticker.time < found_ticker.time)
-                found_ticker = ticker;
+            if (ticker.time < found_ticker.time) found_ticker = ticker;
         }
         del_ticker(found_ticker.username);
+    }
+
+    ulong num_tickers()
+    {
+        return tickers.length;
     }
 }
 
