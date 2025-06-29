@@ -18,6 +18,7 @@ import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.algorithm : canFind, clamp;
+import std.array : Appender;
 import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, to;
@@ -405,13 +406,13 @@ class User
 
     private string[] item_similar_users(string item)
     {
-        string[] usernames;
+        Appender!(string[]) usernames;
         foreach (user ; server.users) {
             if (user is this)
                 continue;
             if (user.likes(item)) usernames ~= user.username;
         }
-        return usernames;
+        return usernames[];
     }
 
 

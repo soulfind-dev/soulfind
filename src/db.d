@@ -20,6 +20,7 @@ import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        SQLITE_DBCONFIG_TRUSTED_SCHEMA, SQLITE_DONE, SQLITE_OK,
                        SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
+import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.file : exists, isFile;
@@ -205,9 +206,9 @@ class Sdb
         const sql = format!("SELECT username FROM %s;")(
             admins_table
         );
-        string[] admins;
+        Appender!(string[]) admins;
         foreach (record ; query(sql)) admins ~= record[0];
-        return admins;
+        return admins[];
     }
 
     bool is_admin(string username)
@@ -483,7 +484,7 @@ class Sdb
     string[] usernames(string field = null, ulong min = 1,
                        ulong max = ulong.max)
     {
-        string[] usernames;
+        Appender!(string[]) usernames;
         auto sql = format!("SELECT username FROM %s")(users_table);
         string[] parameters;
 
@@ -493,7 +494,7 @@ class Sdb
         }
         sql ~= ";";
         foreach (record ; query(sql, parameters)) usernames ~= record[0];
-        return usernames;
+        return usernames[];
     }
 
     uint num_users(string field = null, ulong min = 1, ulong max = ulong.max)
@@ -526,13 +527,13 @@ class Sdb
 
     private string[][] query(string query, const string[] parameters = [])
     {
-        string[][] ret;
+        Appender!(string[][]) ret;
         sqlite3_stmt* stmt;
 
         int res = prepare(db, query, stmt);
         if (res != SQLITE_OK) {
             raise_sql_error(query, parameters, res);
-            return ret;
+            return ret[];
         }
 
         foreach (i, parameter ; parameters) {
@@ -540,7 +541,7 @@ class Sdb
             if (res != SQLITE_OK) {
                 finalize(stmt);
                 raise_sql_error(query, parameters, res);
-                return ret;
+                return ret[];
             }
         }
 
@@ -559,7 +560,7 @@ class Sdb
         if (res != SQLITE_DONE)
             raise_sql_error(query, parameters, res);
 
-        return ret;
+        return ret[];
     }
 
     @trusted

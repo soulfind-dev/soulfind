@@ -16,6 +16,7 @@ import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
 import std.algorithm : clamp;
+import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.process : thisProcessID;
@@ -131,7 +132,7 @@ class Server
                 }
             }
 
-            User[] users_to_remove;
+            Appender!(User[]) users_to_remove;
 
             foreach (user_sock, user ; user_socks) {
                 const recv_ready = read_socks.isSet(user_sock);
@@ -311,9 +312,9 @@ class Server
 
     PM[] user_pms(string username)
     {
-        PM[] user_pms;
+        Appender!(PM[]) user_pms;
         foreach (pm ; pms) if (pm.to_username == username) user_pms ~= pm;
-        return user_pms;
+        return user_pms[];
     }
 
     private bool find_pm(uint id)

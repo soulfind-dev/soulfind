@@ -10,6 +10,7 @@ import core.time : days, Duration;
 import soulfind.db : Sdb;
 import soulfind.defines : default_db_filename, default_max_users, default_port,
                           VERSION;
+import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
@@ -124,9 +125,11 @@ class Setup
     {
         const names = db.admins;
 
-        writefln!("\nAdmins (%d)...")(names.length);
-        foreach (name ; names) writefln!("\t%s")(name);
+        Appender!string output;
+        output ~= format!("\nAdmins (%d)...")(names.length);
+        foreach (name ; names) output ~= format!("\n\t%s")(name);
 
+        writeln(output[]);
         admins();
     }
 
@@ -223,18 +226,19 @@ class Setup
              VERSION
         );
 
-        string motd_template;
-
+        Appender!string motd_template;
+        auto first = true;
         do {
             const line = input.chomp;
             if (line.strip == ".")
                 break;
-            if (motd_template.length > 0) motd_template ~= "\n";
+            if (first) motd_template ~= "\n";
             motd_template ~= line;
+            first = false;
         }
         while(true);
 
-        db.set_config_value("motd", motd_template);
+        db.set_config_value("motd", motd_template[]);
         motd();
     }
 
@@ -340,15 +344,17 @@ class Setup
     {
         const users = db.usernames("banned", Clock.currTime.toUnixTime);
 
-        writefln!("\nBanned users (%d)...")(users.length);
+        Appender!string output;
+        output ~= format!("\nBanned users (%d)...")(users.length);
         foreach (user ; users) {
             const banned_until = db.user_banned_until(user);
             if (banned_until == SysTime.fromUnixTime(long.max))
-                writefln!("\t%s (forever)")(user);
+                output ~= format!("\n\t%s (forever)")(user);
             else
-                writefln!("\t%s (until %s)")(user, banned_until);
+                output ~= format!("\n\t%s (until %s)")(user, banned_until);
         }
 
+        writeln(output[]);
         banned_users();
     }
 }
