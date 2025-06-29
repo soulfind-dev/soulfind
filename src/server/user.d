@@ -154,7 +154,8 @@ class User
         );
 
         if (!secureEqual(
-                server.db.get_pass(username), encode_password(password)))
+                server.db.get_user_password(username),
+                encode_password(password)))
             return "INVALIDPASS";
 
         return null;
@@ -225,7 +226,7 @@ class User
 
     void refresh_privileges(bool notify_user = true)
     {
-        privileged_until = server.db.get_user_privileged_until(username);
+        privileged_until = server.db.user_privileged_until(username);
         supporter = server.db.user_supporter(username);
 
         if (!notify_user)
@@ -622,7 +623,7 @@ class User
                 client_version = format!("%d.%d")(
                     msg.major_version, msg.minor_version);
 
-                const user_stats = server.db.get_user_stats(username);
+                const user_stats = server.db.user_stats(username);
                 speed = user_stats.speed;
                 upload_number = user_stats.upload_number;
                 shared_files = user_stats.shared_files;
@@ -711,7 +712,7 @@ class User
                     user_country_code = user.country_code;
                 }
                 else {
-                    const user_stats = server.db.get_user_stats(msg.username);
+                    const user_stats = server.db.user_stats(msg.username);
                     user_exists = user_stats.exists;
                     user_speed = user_stats.speed;
                     user_upload_number = user_stats.upload_number;
@@ -897,7 +898,7 @@ class User
                     user_shared_folders = user.shared_folders;
                 }
                 else {
-                    const user_stats = server.db.get_user_stats(msg.username);
+                    const user_stats = server.db.user_stats(msg.username);
                     user_speed = user_stats.speed;
                     user_upload_number = user_stats.upload_number;
                     user_shared_files = user_stats.shared_files;
@@ -1060,8 +1061,8 @@ class User
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
 
-                server.db.user_update_field(
-                    username, "password", encode_password(msg.password)
+                server.db.set_user_password(
+                    username, encode_password(msg.password)
                 );
 
                 scope response_msg = new SChangePassword(msg.password);

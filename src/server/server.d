@@ -458,8 +458,8 @@ class Server
             joined_rooms = user.joined_room_names.join(", ");
         }
         else {
-            const user_stats = db.get_user_stats(username);
-            privileged_until = db.get_user_privileged_until(username);
+            const user_stats = db.user_stats(username);
+            privileged_until = db.user_privileged_until(username);
             supporter = db.user_supporter(username);
             speed = user_stats.speed;
             upload_number = user_stats.upload_number;
@@ -467,7 +467,7 @@ class Server
             shared_folders = user_stats.shared_folders;
         }
 
-        const banned_until = db.get_user_banned_until(username);
+        const banned_until = db.user_banned_until(username);
         if (banned_until == SysTime.fromUnixTime(long.max))
             banned = "forever";
 

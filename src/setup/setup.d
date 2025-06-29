@@ -332,7 +332,7 @@ class Setup
 
         writefln!("\nBanned users (%d)...")(users.length);
         foreach (user ; users) {
-            const banned_until = db.get_user_banned_until(user);
+            const banned_until = db.user_banned_until(user);
             if (banned_until == SysTime.fromUnixTime(long.max))
                 writefln!("\t%s (forever)")(user);
             else

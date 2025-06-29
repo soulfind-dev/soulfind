@@ -40,6 +40,13 @@ struct SdbUserStats
     bool    updating_shared;
 }
 
+class SdbException : Exception
+{
+    this(string msg, string file = __FILE__, size_t line = __LINE__) {
+        super(msg, file, line);
+    }
+}
+
 class Sdb
 {
     sqlite3* db;
@@ -56,7 +63,7 @@ class Sdb
         open(filename);
 
         if (!exists(filename) || !isFile(filename))
-            throw new Exception(
+            throw new SdbException(
                 format!("Cannot create database file %s")(filename));
 
         const users_sql = format!(
@@ -212,33 +219,19 @@ class Sdb
         return query(sql, [username]).length > 0;
     }
 
-    void user_update_field(string username, string field, string value)
-    {
-        const sql = format!(
-            "UPDATE %s SET %s = ? WHERE username = ?;")(
-            users_table, field
-        );
-        query(sql, [value, username]);
-    }
-
-    void user_update_field(string username, string field, long value)
-    {
-        const sql = format!(
-            "UPDATE %s SET %s = ? WHERE username = ?;")(
-            users_table, field
-        );
-        query(sql, [value.to!string, username]);
-    }
-
     void add_user_privileges(string username, Duration duration)
     {
-        auto privileged_until = get_user_privileged_until(username).toUnixTime;
+        const sql = format!(
+            "UPDATE %s SET privileges = ? WHERE username = ?;")(
+            users_table
+        );
+        auto privileged_until = user_privileged_until(username).toUnixTime;
         const now = Clock.currTime.toUnixTime;
 
         if (privileged_until < now) privileged_until = now;
         privileged_until += duration.total!"seconds";
 
-        user_update_field(username, "privileges", privileged_until);
+        query(sql, [privileged_until.to!string, username]);
 
         debug (user) writefln!(
             "Added %s of privileges to user %s")(
@@ -248,10 +241,14 @@ class Sdb
 
     void remove_user_privileges(string username, Duration duration)
     {
-        auto privileged_until = get_user_privileged_until(username).toUnixTime;
+        auto privileged_until = user_privileged_until(username).toUnixTime;
         if (privileged_until <= 0)
             return;
 
+        const sql = format!(
+            "UPDATE %s SET privileges = ? WHERE username = ?;")(
+            users_table
+        );
         const now = Clock.currTime.toUnixTime;
         const seconds = duration.total!"seconds";
 
@@ -260,7 +257,7 @@ class Sdb
         else
             privileged_until = now;
 
-        user_update_field(username, "privileges", privileged_until);
+        query(sql, [privileged_until.to!string, username]);
 
         debug (user) {
             if (duration == Duration.max)
@@ -292,10 +289,11 @@ class Sdb
             "SELECT 1 FROM %s WHERE username = ? AND privileges > ?;")(
             users_table
         );
-        return query(sql, [username, "0"]).length > 0;
+        const privileged_until = 0;
+        return query(sql, [username, privileged_until.to!string]).length > 0;
     }
 
-    SysTime get_user_privileged_until(string username)
+    SysTime user_privileged_until(string username)
     {
         const sql = format!(
             "SELECT privileges FROM %s WHERE username = ?;")(
@@ -312,6 +310,10 @@ class Sdb
 
     void ban_user(string username, Duration duration)
     {
+        const sql = format!(
+            "UPDATE %s SET banned = ? WHERE username = ?;")(
+            users_table
+        );
         long banned_until;
 
         if (duration == Duration.max)
@@ -320,12 +322,17 @@ class Sdb
             banned_until = (
                 Clock.currTime.toUnixTime + duration.total!"seconds");
 
-        user_update_field(username, "banned", banned_until);
+        query(sql, [banned_until.to!string, username]);
     }
 
     void unban_user(string username)
     {
-        user_update_field(username, "banned", 0);
+        const sql = format!(
+            "UPDATE %s SET banned = ? WHERE username = ?;")(
+            users_table
+        );
+        const banned_until = 0;
+        query(sql, [banned_until.to!string, username]);
     }
 
     bool user_banned(string username)
@@ -338,7 +345,7 @@ class Sdb
         return query(sql, [username, now.to!string]).length > 0;
     }
 
-    SysTime get_user_banned_until(string username)
+    SysTime user_banned_until(string username)
     {
         const sql = format!(
             "SELECT banned FROM %s WHERE username = ?;")(
@@ -353,7 +360,7 @@ class Sdb
         return SysTime.fromUnixTime(banned_until);
     }
 
-    string get_pass(string username)
+    string get_user_password(string username)
     {
         const sql = format!(
             "SELECT password FROM %s WHERE username = ?;")(
@@ -362,11 +369,17 @@ class Sdb
         return query(sql, [username])[0][0];
     }
 
-    SdbUserStats get_user_stats(string username)
+    void set_user_password(string username, string password)
     {
-        debug(db) writefln!("DB: Requested %s's info...")(
-            blue ~ username ~ norm
+        const sql = format!(
+            "UPDATE %s SET password = ? WHERE username = ?;")(
+            users_table
         );
+        query(sql, [password, username]);
+    }
+
+    SdbUserStats user_stats(string username)
+    {
         const sql = format!(
             "SELECT speed,ulnum,files,folders"
           ~ " FROM %s"
@@ -415,7 +428,7 @@ class Sdb
 
         debug(user) {
             string updated;
-            foreach (i, ref field; fields)
+            foreach (i, field; fields)
             {
                 if (i > 0) updated ~= ", ";
                 updated ~= field.replace("?", parameters[i]);
@@ -433,7 +446,7 @@ class Sdb
     string[] usernames(string field = null, ulong min = 1,
                        ulong max = ulong.max)
     {
-        string[] ret;
+        string[] usernames;
         auto sql = format!("SELECT username FROM %s")(users_table);
         string[] parameters;
 
@@ -442,8 +455,8 @@ class Sdb
             parameters = [min.to!string, max.to!string];
         }
         sql ~= ";";
-        foreach (record ; query(sql, parameters)) ret ~= record[0];
-        return ret;
+        foreach (record ; query(sql, parameters)) usernames ~= record[0];
+        return usernames;
     }
 
     uint num_users(string field = null, ulong min = 1, ulong max = ulong.max)
@@ -456,7 +469,7 @@ class Sdb
             parameters = [min.to!string, max.to!string];
         }
         sql ~= ";";
-        return query(sql, parameters)[0][0].to!uint.ifThrown(0);
+        return query(sql, parameters)[0][0].to!uint;
     }
 
     private void raise_sql_error(string query, const string[] parameters,
@@ -469,7 +482,7 @@ class Sdb
         writefln!("DB: Parameters [%s]")(parameters.join(", "));
         writefln!("DB: Result code %d.\n\n%s\n")(res, error_msg(db));
 
-        throw new Exception(
+        throw new SdbException(
             format!("SQLite error %d (%s)")(error_code, error_string)
         );
     }
@@ -495,12 +508,9 @@ class Sdb
         }
 
         res = step(stmt);
-
         while (res == SQLITE_ROW) {
             string[] record;
-            const n = column_count(stmt);
-
-            for (int i ; i < n ; i++)
+            foreach (i ; 0 .. column_count(stmt))
                 record ~= column_text(stmt, i);
 
             ret ~= record;
@@ -523,7 +533,7 @@ class Sdb
         sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
 
         if (sqlite3_initialize() != SQLITE_OK)
-            throw new Exception("Cannot start SQLite");
+            throw new SdbException("Cannot start SQLite");
     }
 
     @trusted
