@@ -637,7 +637,7 @@ class User
 
                 update_status(Status.online);
 
-                foreach (pm ; server.get_pms_for(username)) {
+                foreach (pm ; server.user_pms(username)) {
                     const new_message = false;
                     debug (user) writefln!(
                         "Sending offline PM (id %d) from %s to %s")(
