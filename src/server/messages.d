@@ -9,13 +9,13 @@ module soulfind.server.messages;
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
-import std.algorithm : map, sort;
+import std.algorithm : sort;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
+import std.conv : to;
 import std.encoding : isValid;
 import std.stdio : writefln;
-import std.string : lastIndexOf, representation;
-import std.utf : toUTF8;
+import std.string : representation;
 
 // Constants
 
@@ -103,8 +103,11 @@ class UMessage
 
     string name() scope
     {
-        const cls_name = typeid(this).name;
-        return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
+        auto cls_name = typeid(this).name;
+        foreach_reverse (i; 0 .. cls_name.length)
+            if (cls_name[i] == '.')
+                return cls_name[i + 1 .. $];
+        return cls_name;
     }
 
     private T read(T)() scope
@@ -123,12 +126,16 @@ class UMessage
                 const bytes = in_buf[offset .. offset + size];
                 offset += size;
 
-                if (bytes.isValid)
+                if (bytes.isValid) {
                     // UTF-8
                     value = cast(T) bytes.idup;
-                else
+                }
+                else {
                     // Latin-1 fallback
-                    value = bytes.map!(c => cast(wchar) c).toUTF8;
+                    auto wchars = new wchar[bytes.length];
+                    foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
+                    value = wchars.to!string;
+                }
             }
             else {
                 value = in_buf.peek!(T, Endian.littleEndian)(&offset);
@@ -663,13 +670,16 @@ class SMessage
 
     string name() scope
     {
-        const cls_name = typeid(this).name;
-        return cls_name[cls_name.lastIndexOf(".") + 1 .. $];
+        auto cls_name = typeid(this).name;
+        foreach_reverse (i; 0 .. cls_name.length)
+            if (cls_name[i] == '.')
+                return cls_name[i + 1 .. $];
+        return cls_name;
     }
 
     ubyte[] bytes() scope
     {
-        return out_buf.opSlice;
+        return out_buf[];
     }
 
     private void write(T)(T value) scope
