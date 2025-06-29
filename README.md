@@ -14,29 +14,55 @@ production.
 
 ## Building
 
+### Dependencies
+
 Ensure the following dependencies are installed:
  - `ldc`, `dmd` or `gdc` for compiler
- - `gcc` for linker
  - `dub` for build system
  - `sqlite3` for database
 
-To build Soulfind, run:
+On Windows, you must [install the Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/)
+in order to use the system bindings for sqlite3. On macOS, no action is
+required to use them.
+
+On other systems, you must additionally install `gcc` for linking.
+
+
+### Compiling a Binary
+
+To compile Soulfind, run:
 
 ```sh
 dub build
 ```
 
-To build Soulfind with debug logging enabled:
+To compile Soulfind with debug logging enabled:
 
 ```sh
 dub build --debug=db --debug=msg --debug=user
 ```
 
-LDC is used as the default D compiler. Set the DC environment variable to
-`dmd` to use DMD instead:
+To compile a static binary on supported systems (mainly musl-based Linux
+distributions), run:
+
+```sh
+dub build --config=static
+```
+
+Once compiled, binaries are available in the `bin/` folder.
+
+
+### Using a Different Compiler
+
+LDC is used as the default D compiler. Set the DC environment variable to use
+a different compiler:
 
 ```sh
 DC=dmd dub build
+```
+
+```sh
+DC=gdc dub build
 ```
 
 
