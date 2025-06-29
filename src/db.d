@@ -59,8 +59,19 @@ class Sdb
     this(string filename)
     {
         debug(db) writefln!("DB: Using database: %s")(filename);
+
+        // Soulfind is single-threaded. Disable SQLite mutexes for a slight
+        // performance improvement.
+        config(SQLITE_CONFIG_SINGLETHREAD);
+
         initialize();
         open(filename);
+
+        // https://www.sqlite.org/security.html
+        db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1);
+        db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, 0);
+        db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
+        db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
         if (!exists(filename) || !isFile(filename))
             throw new SdbException(
@@ -520,22 +531,28 @@ class Sdb
         return query(sql, parameters)[0][0].to!uint;
     }
 
-    private void raise_sql_error(string query, const string[] parameters,
-                                 int res)
+    private void raise_sql_error(string query = null,
+                                 const string[] parameters = null,
+                                 int res = 0)
     {
         const error_code = extended_error_code(db);
         const error_string = error_string(error_code);
 
-        writefln!("DB: Query [%s]")(query);
-        writefln!("DB: Parameters [%s]")(parameters.join(", "));
-        writefln!("DB: Result code %d.\n\n%s\n")(res, error_msg(db));
+        if (query)
+            writefln!("DB: Query [%s]")(query);
+
+        if (parameters)
+            writefln!("DB: Parameters [%s]")(parameters.join(", "));
+
+        if (res)
+            writefln!("DB: Result code %d.\n\n%s\n")(res, error_msg(db));
 
         throw new SdbException(
             format!("SQLite error %d (%s)")(error_code, error_string)
         );
     }
 
-    private string[][] query(string query, const string[] parameters = [])
+    private string[][] query(string query, const string[] parameters = null)
     {
         Appender!(string[][]) ret;
         sqlite3_stmt* stmt;
@@ -576,36 +593,45 @@ class Sdb
     @trusted
     private void initialize()
     {
-        // Soulfind is single-threaded. Disable SQLite mutexes for a slight
-        // performance improvement.
-        sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
-
         if (sqlite3_initialize() != SQLITE_OK)
-            throw new SdbException("Cannot start SQLite");
+            raise_sql_error();
     }
 
     @trusted
     private void open(string filename)
     {
-        sqlite3_open(filename.toStringz, &db);
-
-        // https://www.sqlite.org/security.html
-        sqlite3_db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1, null);
-        sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, 0, null);
-        sqlite3_db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0, null);
-        sqlite3_db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, null);
+        if (sqlite3_open(filename.toStringz, &db) != SQLITE_OK)
+            raise_sql_error();
     }
 
     @trusted
     private void close() scope
     {
-        sqlite3_close(db);
+        if (sqlite3_close(db) != SQLITE_OK)
+            raise_sql_error();
     }
 
     @trusted
-    private void shutdown()
+    private void shutdown() scope
     {
         sqlite3_shutdown();
+    }
+
+    @trusted
+    private void config(int option)
+    {
+        if (sqlite3_config(option) != SQLITE_OK)
+            raise_sql_error();
+    }
+
+    @trusted
+    private void db_config(sqlite3* db, int option, int value)
+    {
+        if (sqlite3_db_config(db, option, value, null) != SQLITE_OK)
+            // Ignore response, since SQLite versions shipped with older
+            // Windows and macOS versions may lack newer options. Other
+            // operations will proceed as usual.
+            return;
     }
 
     @trusted
@@ -646,7 +672,8 @@ class Sdb
     @trusted
     private void finalize(sqlite3_stmt* statement)
     {
-        sqlite3_finalize(statement);
+        if (sqlite3_finalize(statement) != SQLITE_OK)
+            raise_sql_error();
     }
 
     @trusted
