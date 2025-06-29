@@ -58,8 +58,10 @@ class Server
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
 
-        try this.port = db.get_config_value("port").to!ushort;
-        catch (ConvException) this.port = cast(ushort) default_port;
+        try
+            this.port = db.get_config_value("port").to!ushort;
+        catch (ConvException)
+            this.port = cast(ushort) default_port;
     }
 
 
@@ -106,7 +108,8 @@ class Server
             if (read_socks.isSet(sock)) {
                 while (true) {
                     Socket new_sock;
-                    try new_sock = sock.accept();
+                    try
+                        new_sock = sock.accept();
                     catch (SocketAcceptException)
                         break;
 
@@ -719,8 +722,8 @@ class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    server_pm(admin, format!(
-                        "User %s is not registered")(username)
+                    server_pm(
+                        admin, format!("User %s is not registered")(username)
                     );
                     break;
                 }
@@ -731,8 +734,8 @@ class Server
                 if (user) del_user(user);
 
                 server_pm(admin, format!("Kicked user %s for %s")(
-                    username, duration.total!"minutes".minutes)
-                );
+                    username, duration.total!"minutes".minutes
+                ));
                 break;
 
             case "ban":
@@ -785,9 +788,7 @@ class Server
                 }
                 const username = command[1 .. $].join(" ");
                 db.unban_user(username);
-                server_pm(
-                    admin, format!("Unbanned user %s")(username)
-                );
+                server_pm(admin, format!("Unbanned user %s")(username));
                 break;
 
             case "admins":

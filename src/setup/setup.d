@@ -34,7 +34,7 @@ class Setup
 
     this(string db_filename)
     {
-        db = new Sdb(db_filename);
+        this.db  = new Sdb(db_filename);
     }
 
     void show()
@@ -140,8 +140,10 @@ class Setup
     private void listen_port()
     {
         ulong port;
-        try port = db.get_config_value("port").to!ushort;
-        catch (ConvException) port = default_port;
+        try
+            port = db.get_config_value("port").to!ushort;
+        catch (ConvException)
+            port = default_port;
 
         show_menu(
             format!("Listen port : %d")(port),
@@ -174,8 +176,10 @@ class Setup
     private void max_users()
     {
         ulong max_users;
-        try max_users = db.get_config_value("max_users").to!uint;
-        catch (ConvException) max_users = default_max_users;
+        try
+            max_users = db.get_config_value("max_users").to!uint;
+        catch (ConvException)
+            max_users = default_max_users;
 
         show_menu(
             format!("Max users allowed : %d")(max_users),

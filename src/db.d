@@ -430,8 +430,8 @@ class Sdb
         auto user_stats = SdbUserStats();
 
         if (res.length > 0) {
-            const record               = res[0];
-            user_stats.exists          = true;
+            const record                   = res[0];
+            user_stats.exists              = true;
 
             try user_stats.speed           = record[0].to!uint;
             catch (ConvException) {}

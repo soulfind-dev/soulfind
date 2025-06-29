@@ -135,8 +135,10 @@ class User
     private string verify_login(string username, string password)
     {
         ulong max_users;
-        try max_users = server.db.get_config_value("max_users").to!uint;
-        catch (ConvException) max_users = default_max_users;
+        try
+            max_users = server.db.get_config_value("max_users").to!uint;
+        catch (ConvException)
+            max_users = default_max_users;
 
         if (server.users.length >= max_users)
             return "SVRFULL";
