@@ -20,11 +20,10 @@ import soulfind.server.server : Server;
 import std.algorithm : canFind, clamp;
 import std.ascii : isASCII, isPunctuation;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
-import std.conv : to;
+import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
-import std.exception : ifThrown;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
@@ -132,9 +131,9 @@ class User
 
     private string verify_login(string username, string password)
     {
-        const max_users = server.db.get_config_value("max_users")
-            .to!uint
-            .ifThrown(default_max_users);
+        ulong max_users;
+        try max_users = server.db.get_config_value("max_users").to!uint;
+        catch (ConvException) max_users = default_max_users;
 
         if (server.users.length >= max_users)
             return "SVRFULL";

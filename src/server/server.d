@@ -18,7 +18,6 @@ import soulfind.server.user : User;
 import std.algorithm : clamp;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.exception : ifThrown;
 import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
@@ -56,9 +55,8 @@ class Server
         db = new Sdb(db_filename);
         global_room = new GlobalRoom();
 
-        port = db.get_config_value("port")
-            .to!ushort
-            .ifThrown(cast(ushort) default_port);
+        try port = db.get_config_value("port").to!ushort;
+        catch (ConvException) port = cast(ushort) default_port;
     }
 
 

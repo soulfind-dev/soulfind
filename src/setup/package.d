@@ -12,7 +12,6 @@ import soulfind.defines : default_db_filename, default_max_users, default_port,
 import soulfind.setup.setup : Setup;
 import std.conv : ConvException, to;
 import std.datetime : Clock;
-import std.exception : ifThrown;
 import std.format : format;
 import std.stdio : readf, readln, StdioException, write, writefln, writeln;
 import std.string : chomp, strip;

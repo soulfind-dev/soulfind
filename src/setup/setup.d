@@ -13,7 +13,6 @@ import soulfind.defines : default_db_filename, default_max_users, default_port,
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.exception : ifThrown;
 import std.format : format;
 import std.stdio : readf, readln, StdioException, write, writefln, writeln;
 import std.string : chomp, strip;
@@ -38,7 +37,7 @@ class Setup
 
     void show()
     {
-        try { main_menu(); } catch (StdioException) {}
+        try main_menu(); catch (StdioException) {}
     }
 
     @trusted
@@ -133,9 +132,9 @@ class Setup
 
     private void listen_port()
     {
-        const port = db.get_config_value("port")
-            .to!ushort
-            .ifThrown(default_port);
+        ulong port;
+        try port = db.get_config_value("port").to!ushort;
+        catch (ConvException) port = default_port;
 
         show_menu(
             format!("Listen port : %d")(port),
@@ -151,9 +150,12 @@ class Setup
         write("New listen port : ");
 
         const value = input.strip;
-        const port = value.to!uint.ifThrown(0);
-        if (port <= 0 || port > ushort.max) {
-            writefln!("Please enter a port in the range %d-%d")(1, 65535);
+        ushort port;
+        try {
+            port = value.to!ushort;
+        }
+        catch (ConvException) {
+            writefln!("Please enter a port in the range %d-%d")(1, ushort.max);
             set_listen_port();
             return;
         }
@@ -164,9 +166,9 @@ class Setup
 
     private void max_users()
     {
-        const max_users = db.get_config_value("max_users")
-            .to!uint
-            .ifThrown(default_max_users);
+        ulong max_users;
+        try max_users = db.get_config_value("max_users").to!uint;
+        catch (ConvException) max_users = default_max_users;
 
         show_menu(
             format!("Max users allowed : %d")(max_users),

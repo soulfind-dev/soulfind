@@ -20,9 +20,8 @@ import etc.c.sqlite3 : sqlite3, sqlite3_bind_text, sqlite3_close,
                        SQLITE_DBCONFIG_TRUSTED_SCHEMA, SQLITE_DONE, SQLITE_OK,
                        SQLITE_ROW, SQLITE_TRANSIENT;
 import soulfind.defines : blue, default_max_users, default_port, norm;
-import std.conv : to;
+import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.exception : ifThrown;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
 import std.string : format, fromStringz, join, replace, toStringz;
@@ -325,7 +324,7 @@ class Sdb
         long privileged_until;
 
         if (res.length > 0)
-            privileged_until = res[0][0].to!long.ifThrown(0);
+            try privileged_until = res[0][0].to!long; catch (ConvException) {}
 
         return SysTime.fromUnixTime(privileged_until);
     }
@@ -381,7 +380,7 @@ class Sdb
         long banned_until;
 
         if (res.length > 0)
-            banned_until = res[0][0].to!long.ifThrown(0);
+            try banned_until = res[0][0].to!long; catch (ConvException) {}
 
         return SysTime.fromUnixTime(banned_until);
     }
@@ -422,10 +421,18 @@ class Sdb
         if (res.length > 0) {
             const record               = res[0];
             user_stats.exists          = true;
-            user_stats.speed           = record[0].to!uint.ifThrown(0);
-            user_stats.upload_number   = record[1].to!uint.ifThrown(0);
-            user_stats.shared_files    = record[2].to!uint.ifThrown(0);
-            user_stats.shared_folders  = record[3].to!uint.ifThrown(0);
+
+            try user_stats.speed           = record[0].to!uint;
+            catch (ConvException) {}
+
+            try user_stats.upload_number   = record[1].to!uint;
+            catch (ConvException) {}
+
+            try user_stats.shared_files    = record[2].to!uint;
+            catch (ConvException) {}
+
+            try user_stats.shared_folders  = record[3].to!uint;
+            catch (ConvException) {}
         }
         return user_stats;
     }
