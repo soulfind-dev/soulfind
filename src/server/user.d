@@ -143,9 +143,6 @@ class User
             return "INVALIDUSERNAME";
 
         if (!server.db.user_exists(username)) {
-            debug (user) writefln!("New user %s registering")(
-                blue ~ username ~ norm
-            );
             server.db.add_user(username, encode_password(password));
             return null;
         }
@@ -870,11 +867,6 @@ class User
 
             case SharedFoldersFiles:
                 scope msg = new USharedFoldersFiles(msg_buf, username);
-                debug (user) writefln!(
-                    "User %s reports sharing %d files in %d folders")(
-                    blue ~ username ~ norm, msg.shared_files,
-                    msg.shared_folders
-                );
                 update_shared_stats(msg.shared_files, msg.shared_folders);
 
                 scope response_msg = new SGetUserStats(
@@ -1019,10 +1011,6 @@ class User
             case SendUploadSpeed:
                 scope msg = new USendUploadSpeed(msg_buf, username);
                 calc_speed(msg.speed);
-                debug (user) writefln!(
-                    "User %s reports speed of %d B/s (~ %d B/s)")(
-                    blue ~ username ~ norm, msg.speed, speed
-                );
                 break;
 
             case UserPrivileged:

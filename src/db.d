@@ -127,6 +127,10 @@ class Sdb
             config_table
         );
         query(sql, [option, value]);
+
+        debug(db) writefln!("DB: Initialized config value %s to %s")(
+            option, value
+        );
     }
 
     private void init_config_option(string option, uint value)
@@ -136,6 +140,10 @@ class Sdb
             config_table
         );
         query(sql, [option, value.to!string]);
+
+        debug(db) writefln!("DB: Initialized config value %s to %d")(
+            option, value
+        );
     }
 
     void set_config_value(string option, string value)
@@ -145,6 +153,10 @@ class Sdb
             config_table
         );
         query(sql, [option, value]);
+
+        debug(db) writefln!("DB: Updated config value %s to %s")(
+            option, value
+        );
     }
 
     void set_config_value(string option, uint value)
@@ -154,6 +166,10 @@ class Sdb
             config_table
         );
         query(sql, [option, value.to!string]);
+
+        debug(db) writefln!("DB: Updated config value %s to %d")(
+            option, value
+        );
     }
 
     string get_config_value(string option)
@@ -171,6 +187,8 @@ class Sdb
             admins_table
         );
         query(sql, [username, level.to!string]);
+
+        debug(user) writefln!("Added new admin %s")(blue ~ username ~ norm);
     }
 
     void del_admin(string username)
@@ -179,6 +197,8 @@ class Sdb
             admins_table
         );
         query(sql, [username]);
+
+        debug(user) writefln!("Removed admin %s")(blue ~ username ~ norm);
     }
 
     string[] admins()
@@ -208,6 +228,8 @@ class Sdb
         );
         query(sql, [username, password]);
         query("PRAGMA optimize;");
+
+        debug(user) writefln!("Added new user %s")(blue ~ username ~ norm);
     }
 
     bool user_exists(string username)
@@ -323,6 +345,8 @@ class Sdb
                 Clock.currTime.toUnixTime + duration.total!"seconds");
 
         query(sql, [banned_until.to!string, username]);
+
+        debug(user) writefln!("Banned user %s")(blue ~ username ~ norm);
     }
 
     void unban_user(string username)
@@ -333,6 +357,8 @@ class Sdb
         );
         const banned_until = 0;
         query(sql, [banned_until.to!string, username]);
+
+        debug(user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
     }
 
     bool user_banned(string username)
@@ -376,6 +402,10 @@ class Sdb
             users_table
         );
         query(sql, [password, username]);
+
+        debug(user) writefln!("Set user %s's password")(
+            blue ~ username ~ norm
+        );
     }
 
     SdbUserStats user_stats(string username)
