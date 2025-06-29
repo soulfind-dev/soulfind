@@ -14,6 +14,8 @@ import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
+import std.digest : digest, LetterCase, toHexString;
+import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writefln, writeln;
 import std.string : chomp, format, strip;
 import std.system : endian, instructionSetArchitecture, os;
@@ -79,7 +81,8 @@ class Setup
                 MenuItem("1", "Listen port",       &listen_port),
                 MenuItem("2", "Max users allowed", &max_users),
                 MenuItem("3", "MOTD",              &motd),
-                MenuItem("4", "Banned users",      &banned_users),
+                MenuItem("4", "Registered users",  &registered_users),
+                MenuItem("5", "Banned users",      &banned_users),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -265,6 +268,131 @@ class Setup
                 MenuItem("q", "Return", &main_menu)
             ]
         );
+    }
+
+    private void registered_users()
+    {
+        show_menu(
+            format!("Registered users (%d)")(db.num_users),
+            [
+                MenuItem("1", "Show user info",        &user_info),
+                MenuItem("2", "Change user password",  &change_password),
+                MenuItem("3", "Remove user",           &remove_user),
+                MenuItem("4", "List registered users", &list_registered),
+                MenuItem("5", "List privileged users", &list_privileged),
+                MenuItem("q", "Return",                &main_menu)
+            ]
+        );
+    }
+
+    private void user_info()
+    {
+        write("Username : ");
+
+        const username = input.strip;
+        const now = Clock.currTime;
+        const admin = db.is_admin(username);
+        auto banned = "false";
+        const banned_until = db.user_banned_until(username);
+        auto privileged = "none";
+        const privileged_until = db.user_privileged_until(username);
+        const supporter = db.user_supporter(username);
+        const stats = db.user_stats(username);
+
+        if (banned_until == SysTime.fromUnixTime(long.max))
+            banned = "forever";
+
+        else if (banned_until > now)
+            banned = format!("until %s")(banned_until);
+
+        if (privileged_until > now)
+            privileged = format!("until %s")(privileged_until);
+
+        if (stats.exists) {
+            writefln!(
+                "\n%s"
+              ~ "\n\tadmin: %s"
+              ~ "\n\tbanned: %s"
+              ~ "\n\tprivileged: %s"
+              ~ "\n\tsupporter: %s"
+              ~ "\n\tfiles: %s"
+              ~ "\n\tdirs: %s"
+              ~ "\n\tupload speed: %s"
+              ~ "\n\tupload number: %s")(
+                username,
+                admin,
+                banned,
+                privileged,
+                supporter,
+                stats.shared_files,
+                stats.shared_folders,
+                stats.speed,
+                stats.upload_number
+            );
+        }
+        else
+            writefln!("\nUser %s is not registered")(username);
+
+        registered_users();
+    }
+
+    private void change_password()
+    {
+        write("User to change password of : ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            write("Enter new password : ");
+            const password = digest!MD5(input)
+                .toHexString!(LetterCase.lower)
+                .to!string;
+
+            db.set_user_password(username, password);
+        }
+        else
+            writefln!("\nUser %s is not registered")(username);
+
+        registered_users();
+    }
+
+    private void remove_user()
+    {
+        write("User to remove : ");
+        const username = input.strip;
+
+        if (db.user_exists(username))
+            db.del_user(username);
+        else
+            writefln!("\nUser %s is not registered")(username);
+
+        registered_users();
+    }
+
+    private void list_registered()
+    {
+        const users = db.usernames;
+
+        Appender!string output;
+        output ~= format!("\nRegistered users (%d)...")(users.length);
+        foreach (user ; users) output ~= format!("\t%s")(user);
+
+        writeln(output[]);
+        registered_users();
+    }
+
+    private void list_privileged()
+    {
+        const users = db.usernames("privileges", Clock.currTime.toUnixTime);
+
+        Appender!string output;
+        output ~= format!("\nPrivileged users (%d)...")(users.length);
+        foreach (user ; users) {
+            const privileged_until = db.user_privileged_until(user);
+            output ~= format!("\n\t%s (until %s)")(user, privileged_until);
+        }
+
+        writeln(output[]);
+        registered_users();
     }
 
     private void banned_users()

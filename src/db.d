@@ -232,6 +232,16 @@ class Sdb
         debug(user) writefln!("Added new user %s")(blue ~ username ~ norm);
     }
 
+    void del_user(string username)
+    {
+        const sql = format!("DELETE FROM %s WHERE username = ?;")(
+            users_table
+        );
+        query(sql, [username]);
+
+        debug(user) writefln!("Removed user %s")(blue ~ username ~ norm);
+    }
+
     bool user_exists(string username)
     {
         const sql = format!(
