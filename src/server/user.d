@@ -34,6 +34,7 @@ class User
 {
     string                  username;
     Socket                  sock;
+    InternetAddress         address;
 
     uint                    speed;                // in B/s
     uint                    upload_number;
@@ -51,8 +52,6 @@ class User
 
     private uint            major_version;
     private uint            minor_version;
-    private uint            ip_address;
-    private ushort          port;
 
     private string[string]  liked_items;
     private string[string]  hated_items;
@@ -66,11 +65,11 @@ class User
     private ubyte[]         out_buf;
 
 
-    this(Server serv, Socket sock, uint ip_address)
+    this(Server serv, Socket sock, InternetAddress address)
     {
         this.server        = serv;
         this.sock          = sock;
-        this.ip_address    = ip_address;
+        this.address       = address;
         this.connected_at  = Clock.currTime;
     }
 
@@ -80,16 +79,6 @@ class User
     string h_client_version()
     {
         return format!("%d.%d")(major_version, minor_version);
-    }
-
-    string h_ip_address()
-    {
-        return InternetAddress.addrToString(ip_address);
-    }
-
-    string h_address()
-    {
-        return format!("%s:%d")(h_ip_address, port);
     }
 
     bool login_timed_out()
@@ -615,7 +604,7 @@ class User
                     writefln!(
                         "User %s @ %s already logged in with version %s")(
                         red ~ username ~ norm,
-                        bold ~ user.h_address ~ norm,
+                        bold ~ user.address.toAddrString ~ norm,
                         bold ~ user.h_client_version ~ norm
                     );
                     scope relogged_msg = new SRelogged();
@@ -637,7 +626,7 @@ class User
                 watch(username);
 
                 scope response_msg = new SLogin(
-                    true, server.get_motd(this), ip_address,
+                    true, server.get_motd(this), address.addr,
                     encode_password(msg.password), supporter
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
@@ -662,13 +651,14 @@ class User
 
             case SetWaitPort:
                 scope msg = new USetWaitPort(msg_buf, username);
-                port = cast(ushort) msg.port;
-
+                address = new InternetAddress(
+                    address.addr, cast(ushort) msg.port
+                );
                 writefln!(
                     "%s %s @ %s logged in and listening")(
                     server.db.is_admin(username) ? "Admin" : "User",
                     blue ~ username ~ norm,
-                    bold ~ h_address ~ norm,
+                    bold ~ address.toString ~ norm,
                 );
                 break;
 
@@ -679,8 +669,8 @@ class User
                 uint user_port;
 
                 if (user) {
-                    user_address = user.ip_address;
-                    user_port = user.port;
+                    user_address = user.address.addr;
+                    user_port = user.address.port;
                 }
 
                 scope response_msg = new SGetPeerAddress(
@@ -811,12 +801,14 @@ class User
 
                 debug (user) writefln!(
                     "User %s @ %s connecting indirectly to peer %s @ %s")(
-                    blue ~ username ~ norm, bold ~ h_address ~ norm,
-                    blue ~ msg.username ~ norm, bold ~ user.h_address ~ norm
+                    blue ~ username ~ norm, bold ~ address.toString ~ norm,
+                    blue ~ msg.username ~ norm,
+                    bold ~ user.address.toString ~ norm
                 );
 
                 scope response_msg = new SConnectToPeer(
-                    username, msg.type, ip_address, port, msg.token, privileged
+                    username, msg.type, address.addr, address.port, msg.token,
+                    privileged
                 );
                 user.send_message(response_msg);
                 break;
@@ -829,7 +821,7 @@ class User
                     break;
 
                 if (msg.username == server_username) {
-                    if (!port)
+                    if (!address.port)
                         break;
 
                     server.admin_message(this, msg.message);

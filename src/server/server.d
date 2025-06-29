@@ -127,7 +127,10 @@ class Server
                     );
                     user_socks[new_sock] = new User(
                         this, new_sock,
-                        (cast(InternetAddress) new_sock.remoteAddress).addr
+                        new InternetAddress(
+                            (cast(InternetAddress)new_sock.remoteAddress).addr,
+                            InternetAddress.PORT_ANY
+                        )
                     );
                 }
             }
@@ -369,7 +372,7 @@ class Server
         writefln!(
             "User %s @ %s logging in with version %s")(
             blue ~ user.username ~ norm,
-            bold ~ user.h_ip_address ~ norm,
+            bold ~ user.address.toAddrString ~ norm,
             bold ~ user.h_client_version ~ norm
         );
         users[user.username] = user;
@@ -409,7 +412,7 @@ class Server
             if (user.login_rejection) writefln!(
                 "User %s @ %s denied (%s)")(
                 red ~ username ~ norm,
-                bold ~ user.h_ip_address ~ norm,
+                bold ~ user.address.toAddrString ~ norm,
                 red ~ user.login_rejection ~ norm
             );
             return;
@@ -422,7 +425,7 @@ class Server
         writefln!(
             "User %s @ %s quit")(
             red ~ username ~ norm,
-            bold ~ user.h_address ~ norm
+            bold ~ user.address.toString ~ norm
         );
     }
 
@@ -778,7 +781,7 @@ class Server
         user = get_user(username);
         if (user) {
             client_version = user.h_client_version;
-            address = user.h_address;
+            address = user.address.toString;
             connected_at = user.connected_at.toString;
             status = (user.status == Status.away) ? "away" : "online";
             privileged_until = user.privileged_until;
