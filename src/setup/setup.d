@@ -18,7 +18,7 @@ import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writefln, writeln;
 import std.string : chomp, format, strip;
-import std.system : endian, instructionSetArchitecture, os;
+import std.system : endian, os;
 
 struct MenuItem
 {
@@ -255,14 +255,14 @@ class Setup
             format!(
                 "Soulfind %s"
               ~ "\n\tOS: %s"
-              ~ "\n\tArch: %s (%s)"
+              ~ "\n\tEndianness: %s"
               ~ "\n\tCompiled with %s %s.%s on %s"
               ~ "\n\nStats:"
               ~ "\n\t%d registered users"
               ~ "\n\t%d privileged users"
               ~ "\n\t%d banned users")(
-                VERSION, os, instructionSetArchitecture, endian, name,
-                version_major, version_minor, __DATE__,
+                VERSION, os, endian, name, version_major, version_minor,
+                __DATE__,
                 db.num_users,
                 db.num_users("privileges", Clock.currTime.toUnixTime),
                 db.num_users("banned", Clock.currTime.toUnixTime)
