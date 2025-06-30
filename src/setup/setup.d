@@ -279,14 +279,33 @@ class Setup
         show_menu(
             format!("Registered users (%d)")(db.num_users),
             [
-                MenuItem("1", "Show user info",        &user_info),
-                MenuItem("2", "Change user password",  &change_password),
-                MenuItem("3", "Remove user",           &remove_user),
-                MenuItem("4", "List registered users", &list_registered),
-                MenuItem("5", "List privileged users", &list_privileged),
+                MenuItem("1", "Add user",              &add_user),
+                MenuItem("2", "Show user info",        &user_info),
+                MenuItem("3", "Change user password",  &change_user_password),
+                MenuItem("4", "Remove user",           &remove_user),
+                MenuItem("5", "List registered users", &list_registered),
+                MenuItem("6", "List privileged users", &list_privileged),
                 MenuItem("q", "Return",                &main_menu)
             ]
         );
+    }
+
+    private void add_user()
+    {
+        write("Username : ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            writefln!("\nUser %s is already registered")(username);
+            registered_users();
+            return;
+        }
+
+        write("Password : ");
+        const password = input.strip;
+
+        db.add_user(username, password);
+        registered_users();
     }
 
     private void user_info()
@@ -340,7 +359,7 @@ class Setup
         registered_users();
     }
 
-    private void change_password()
+    private void change_user_password()
     {
         write("User to change password of : ");
         const username = input.strip;
