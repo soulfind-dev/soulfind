@@ -13,7 +13,6 @@ import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
-import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
 import std.string : format, fromStringz, join, replace, toStringz;
 
@@ -115,10 +114,6 @@ class Sdb
         db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
         query("PRAGMA secure_delete = ON;");
-
-        if (!exists(filename) || !isFile(filename))
-            throw new SdbException(
-                format!("Cannot create database file %s")(filename));
 
         const users_sql = format!(
             "CREATE TABLE IF NOT EXISTS %s("
