@@ -114,6 +114,8 @@ class Sdb
         db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
         db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
+        query("PRAGMA secure_delete = ON;");
+
         if (!exists(filename) || !isFile(filename))
             throw new SdbException(
                 format!("Cannot create database file %s")(filename));
