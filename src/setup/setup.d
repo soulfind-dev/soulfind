@@ -366,11 +366,9 @@ class Setup
 
         if (db.user_exists(username)) {
             write("Enter new password : ");
-            const password = digest!MD5(input)
-                .toHexString!(LetterCase.lower)
-                .to!string;
+            const password = input;
 
-            db.set_user_password(username, password);
+            db.user_update_password(username, password);
         }
         else
             writefln!("\nUser %s is not registered")(username);

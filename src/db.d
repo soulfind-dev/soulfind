@@ -11,6 +11,8 @@ import soulfind.defines : blue, default_max_users, default_port, norm;
 import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
+import std.digest : digest, LetterCase, secureEqual, toHexString;
+import std.digest.md : MD5;
 import std.file : exists, isFile;
 import std.stdio : writefln, writeln;
 import std.string : format, fromStringz, join, replace, toStringz;
@@ -270,13 +272,20 @@ class Sdb
         return query(sql, [username]).length > 0;
     }
 
+    private string hash_password(string password)
+    {
+        return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
+    }
+
     void add_user(string username, string password)
     {
         const sql = format!(
             "INSERT INTO %s(username, password) VALUES(?, ?);")(
             users_table
         );
-        query(sql, [username, password]);
+        const hash = hash_password(password);
+
+        query(sql, [username, hash]);
         query("PRAGMA optimize;");
 
         debug(user) writefln!("Added new user %s")(blue ~ username ~ norm);
@@ -290,6 +299,33 @@ class Sdb
         query(sql, [username]);
 
         debug(user) writefln!("Removed user %s")(blue ~ username ~ norm);
+    }
+
+    bool user_verify_password(string username, string password)
+    {
+        const sql = format!(
+            "SELECT password FROM %s WHERE username = ?;")(
+            users_table
+        );
+        const stored_hash = query(sql, [username])[0][0];
+        const current_hash = hash_password(password);
+
+        return secureEqual(current_hash, stored_hash);
+    }
+
+    void user_update_password(string username, string password)
+    {
+        const sql = format!(
+            "UPDATE %s SET password = ? WHERE username = ?;")(
+            users_table
+        );
+        const hash = hash_password(password);
+
+        query(sql, [hash, username]);
+
+        debug(user) writefln!("Set user %s's password")(
+            blue ~ username ~ norm
+        );
     }
 
     bool user_exists(string username)
@@ -444,28 +480,6 @@ class Sdb
             try banned_until = res[0][0].to!long; catch (ConvException) {}
 
         return SysTime.fromUnixTime(banned_until);
-    }
-
-    string get_user_password(string username)
-    {
-        const sql = format!(
-            "SELECT password FROM %s WHERE username = ?;")(
-            users_table
-        );
-        return query(sql, [username])[0][0];
-    }
-
-    void set_user_password(string username, string password)
-    {
-        const sql = format!(
-            "UPDATE %s SET password = ? WHERE username = ?;")(
-            users_table
-        );
-        query(sql, [password, username]);
-
-        debug(user) writefln!("Set user %s's password")(
-            blue ~ username ~ norm
-        );
     }
 
     SdbUserStats user_stats(string username)

@@ -127,11 +127,6 @@ class User
         return true;
     }
 
-    private string encode_password(string password)
-    {
-        return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
-    }
-
     private string verify_login(string username, string password)
     {
         ulong max_users;
@@ -147,16 +142,14 @@ class User
             return "INVALIDUSERNAME";
 
         if (!server.db.user_exists(username)) {
-            server.db.add_user(username, encode_password(password));
+            server.db.add_user(username, password);
             return null;
         }
         debug (user) writefln!("User %s is registered")(
             blue ~ username ~ norm
         );
 
-        if (!secureEqual(
-                server.db.get_user_password(username),
-                encode_password(password)))
+        if (!server.db.user_verify_password(username, password))
             return "INVALIDPASS";
 
         return null;
@@ -634,9 +627,11 @@ class User
                 server.add_user(this);
                 watch(username);
 
+                const md5_hash = digest!MD5(msg.password)
+                    .toHexString!(LetterCase.lower)
+                    .to!string;
                 scope response_msg = new SLogin(
-                    true, motd, address.addr, encode_password(msg.password),
-                    supporter
+                    true, motd, address.addr, md5_hash, supporter
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
                 scope wish_interval_msg = new SWishlistInterval(
@@ -1053,9 +1048,7 @@ class User
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
 
-                server.db.set_user_password(
-                    username, encode_password(msg.password)
-                );
+                server.db.user_update_password(username, msg.password);
 
                 scope response_msg = new SChangePassword(msg.password);
                 send_message(response_msg);

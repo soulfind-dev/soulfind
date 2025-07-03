@@ -698,7 +698,7 @@ class SMessage
 class SLogin : SMessage
 {
     this(bool success, string message, uint ip_address = 0,
-         string password = null, bool supporter = false) scope
+         string md5_hash = null, bool supporter = false) scope
     {
         super(Login);
 
@@ -707,7 +707,7 @@ class SLogin : SMessage
 
         if (success) {
             write!uint(ip_address);
-            write!string(password);
+            write!string(md5_hash);
             write!bool(supporter);
         }
     }
