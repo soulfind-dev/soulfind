@@ -161,7 +161,7 @@ class Server
                     if (send_ready)
                         write_socks.remove(user_sock);
 
-                    if (user.login_rejection || user.login_timed_out)
+                    if (user.login_rejection.reason || user.login_timed_out)
                         recv_success = send_success = false;
                 }
                 else if (!send_ready) {
@@ -400,11 +400,11 @@ class Server
             users.remove(username);
 
         if (user.status == Status.offline) {
-            if (user.login_rejection) writefln!(
+            if (user.login_rejection.reason) writefln!(
                 "User %s @ %s denied (%s)")(
                 red ~ username ~ norm,
                 bold ~ user.address.toAddrString ~ norm,
-                red ~ user.login_rejection ~ norm
+                red ~ user.login_rejection.reason ~ norm
             );
             return;
         }

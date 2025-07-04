@@ -19,7 +19,7 @@ import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.algorithm : canFind, clamp;
 import std.array : Appender, array;
-import std.ascii : isASCII, isPunctuation;
+import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
@@ -39,7 +39,7 @@ class User
     uint                    status;
     string                  client_version;
     SysTime                 connected_at;
-    string                  login_rejection;
+    LoginRejection          login_rejection;
     SysTime                 privileged_until;
     bool                    supporter;
 
@@ -96,62 +96,64 @@ class User
         return (MonoTime.currTime - connected_monotime) > login_timeout;
     }
 
-    private bool check_name(string text, uint max_length)
+    private string check_name(string text, uint max_length)
     {
-        if (text.length == 0 || text.length > max_length) {
-            return false;
-        }
-        foreach (c ; text) if (!c.isASCII) {
-            // non-ASCII control chars, etc
-            return false;
-        }
-        if (text.length == 1 && isPunctuation(text[0])) {
-            // only character is a symbol
-            return false;
-        }
-        if (text.strip != text) {
-            // leading/trailing whitespace
-            return false;
-        }
+        if (text.length == 0)
+            return "Nick empty.";
+
+        if (text.length > max_length)
+            return "Nick too long.";
+
+        foreach (c ; text) if (!c.isPrintable)
+            // Only printable ASCII characters allowed
+            return "Invalid characters in nick.";
+
+        if (text.strip != text)
+            return "No leading and trailing spaces allowed in nick.";
 
         static immutable forbidden_names = [server_username];
-        static immutable forbidden_words = ["  "];
 
-        foreach (name ; forbidden_names) if (name == text) {
-            return false;
-        }
-        foreach (word ; forbidden_words) if (text.canFind(word)) {
-            return false;
-        }
-        return true;
+        foreach (name ; forbidden_names) if (name == text)
+            // Official server returns empty detail
+            return "";
+
+        return null;
     }
 
-    private string verify_login(string username, string password)
+    private LoginRejection verify_login(string username, string password)
     {
+        auto login_rejection = LoginRejection();
         ulong max_users;
         try
             max_users = server.db.get_config_value("max_users").to!uint;
         catch (ConvException)
             max_users = default_max_users;
 
-        if (server.users.length >= max_users)
-            return "SVRFULL";
+        if (server.users.length >= max_users) {
+            login_rejection.reason = LoginRejectionReason.server_full;
+            return login_rejection;
+        }
 
-        if (!check_name(username, max_username_length))
-            return "INVALIDUSERNAME";
+        const invalid_name_reason = check_name(username, max_username_length);
+        if (invalid_name_reason) {
+            login_rejection.reason = LoginRejectionReason.username;
+            login_rejection.detail = invalid_name_reason;
+            return login_rejection;
+        }
 
         if (!server.db.user_exists(username)) {
             server.db.add_user(username, password);
-            return null;
+            return login_rejection;
         }
         debug (user) writefln!("User %s is registered")(
             blue ~ username ~ norm
         );
 
-        if (!server.db.user_verify_password(username, password))
-            return "INVALIDPASS";
-
-        return null;
+        if (!server.db.user_verify_password(username, password)) {
+            login_rejection.reason = LoginRejectionReason.password;
+            return login_rejection;
+        }
+        return login_rejection;
     }
 
 
@@ -450,15 +452,14 @@ class User
                 name
             );
         else
-            foreach (c ; name) {
-                if (!c.isASCII) {
-                    fail_message = format!(
-                        "Could not create room. Reason: Room name %s contains "
-                      ~ "invalid characters.")(
-                        name
-                    );
-                    break;
-                }
+            foreach (c ; name) if (!c.isPrintable) {
+                // Only printable ASCII characters allowed
+                fail_message = format!(
+                    "Could not create room. Reason: Room name %s contains "
+                  ~ "invalid characters.")(
+                    name
+                );
+                break;
             }
 
         if (fail_message) {
@@ -593,7 +594,7 @@ class User
                 login_rejection = verify_login(username, msg.password);
                 server.db.unban_user(username);
 
-                if (login_rejection) {
+                if (login_rejection.reason) {
                     scope response_msg = new SLogin(false, login_rejection);
                     send_message(response_msg);
                     break;
@@ -630,7 +631,8 @@ class User
                     .toHexString!(LetterCase.lower)
                     .to!string;
                 scope response_msg = new SLogin(
-                    true, motd, address.addr, md5_hash, supporter
+                    true, login_rejection, motd, address.addr, md5_hash,
+                    supporter
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
                 scope wish_interval_msg = new SWishlistInterval(

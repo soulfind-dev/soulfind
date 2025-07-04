@@ -19,11 +19,27 @@ import std.string : representation;
 
 // Constants
 
+const enum LoginRejectionReason
+{
+    username     = "INVALIDUSERNAME",
+    password     = "INVALIDPASS",
+    server_full  = "SRVFULL"
+}
+
 const enum Status
 {
     offline  = 0,
     away     = 1,
     online   = 2
+}
+
+
+// Structs
+
+struct LoginRejection
+{
+    string  reason;
+    string  detail;
 }
 
 
@@ -697,19 +713,27 @@ class SMessage
 
 class SLogin : SMessage
 {
-    this(bool success, string message, uint ip_address = 0,
-         string md5_hash = null, bool supporter = false) scope
+    this(bool success, LoginRejection rejection = LoginRejection(),
+         string motd = null, uint ip_address = 0, string md5_hash = null,
+         bool supporter = false) scope
     {
         super(Login);
 
         write!bool(success);
-        write!string(message);
 
-        if (success) {
-            write!uint(ip_address);
-            write!string(md5_hash);
-            write!bool(supporter);
+        if (!success) {
+            write!string(rejection.reason);
+
+            if (rejection.detail)
+                write!string(rejection.detail);
+
+            return;
         }
+
+        write!string(motd);
+        write!uint(ip_address);
+        write!string(md5_hash);
+        write!bool(supporter);
     }
 }
 
