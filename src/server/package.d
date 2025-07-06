@@ -6,53 +6,54 @@
 module soulfind.server;
 @safe:
 
-import soulfind.defines : default_db_filename;
+import soulfind.defines : default_db_filename, exit_message;
 import soulfind.server.server : Server;
-import std.stdio : writefln, writeln;
+import std.array : appender;
+import std.getopt : config, defaultGetoptFormatter, getopt, GetoptResult;
+import std.stdio : write, writefln, writeln;
 import std.string : format;
+
+@trusted
+GetoptResult parse_args(ref string[] args, ref string db_filename)
+{
+    return getopt(
+        args,
+        config.passThrough,
+        "d|database", format!("Path to database (default: %s).")(db_filename),
+                      &db_filename
+    );
+}
 
 int run(string[] args)
 {
-    bool daemon;
+    GetoptResult result;
     string db_filename = default_db_filename;
 
-    if (args.length > 3) help(args);
-
-    foreach (arg ; args[1 .. $]) {
-        switch (arg) {
-            case "-h":
-            case "--help":
-                help(args);
-                return 0;
-            case "-d":
-            case "--daemon":
-                daemon = true;
-                break;
-            default:
-                db_filename = arg;
-                break;
-        }
+    try {
+        result = parse_args(args, db_filename);
+    }
+    catch (Exception e) {
+        writeln(e.msg);
+        return 1;
     }
 
-    version (Posix) {
-        import core.sys.posix.unistd : fork;
+    if (result.helpWanted) {
+        auto output = appender!string;
+        output.defaultGetoptFormatter(
+            format!("Usage: %s [options]")(args[0]), result.options
+        );
+        write(output[]);
+        return 0;
+    }
 
-        if (daemon && fork())
-            return 0;
+    if (args.length > 1) {
+        writeln("Unrecognized option ", args[1]);
+        return 1;
     }
 
     auto server = new Server(db_filename);
-    return server.listen();
-}
+    const exit_code = server.listen();
 
-private void help(string[] args)
-{
-    auto usage = format!("Usage: %s [database_file]")(args[0]);
-    version (Posix) usage ~= " [-d|--daemon]";
-
-    writeln(usage);
-    writefln!("\tdatabase_file: path to the sqlite3 database (default: %s)")(
-        default_db_filename
-    );
-    version (Posix) writeln("\t-d, --daemon : fork in the background");
+    writefln!("\n%s")(exit_message);
+    return exit_code;
 }

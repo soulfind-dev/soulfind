@@ -7,7 +7,6 @@ module soulfind.main;
 @safe:
 
 import core.atomic : atomicStore;
-import soulfind.defines : exit_message;
 import std.stdio : writefln;
 
 version (Have_soulfind_server) import soulfind.server : run;
@@ -57,7 +56,5 @@ private int main(string[] args)
     set_console_code_page();
     setup_signal_handler();
 
-    const exit_code = run(args);
-    writefln!("\n%s")(exit_message);
-    return exit_code;
+    return run(args);
 }

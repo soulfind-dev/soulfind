@@ -6,27 +6,54 @@
 module soulfind.setup;
 @safe:
 
-import soulfind.defines : default_db_filename;
+import soulfind.defines : default_db_filename, exit_message;
 import soulfind.setup.setup : Setup;
-import std.stdio : writefln;
+import std.array : appender;
+import std.getopt : config, defaultGetoptFormatter, getopt, GetoptResult;
+import std.stdio : write, writefln, writeln;
+import std.string : format;
+
+@trusted
+GetoptResult parse_args(ref string[] args, ref string db_filename)
+{
+    return getopt(
+        args,
+        config.passThrough,
+        "d|database", format!("Path to database (default: %s).")(db_filename),
+                      &db_filename
+    );
+}
 
 int run(string[] args)
 {
+    GetoptResult result;
     string db_filename = default_db_filename;
 
+    try {
+        result = parse_args(args, db_filename);
+    }
+    catch (Exception e) {
+        writeln(e.msg);
+        return 1;
+    }
+
+    if (result.helpWanted) {
+        auto output = appender!string;
+        output.defaultGetoptFormatter(
+            format!("Usage: %s [options]")(args[0]), result.options
+        );
+        write(output[]);
+        return 0;
+    }
+
     if (args.length > 1) {
-        if (args[1] == "--help" || args[1] == "-h") {
-            writefln!("Usage: %s [database_file]")(args[0]);
-            writefln!(
-                "\tdatabase_file: path to Soulfind's database (default: %s)")(
-                default_db_filename
-            );
-            return 0;
-        }
-        db_filename = args[1];
+        writeln("Unrecognized option ", args[1]);
+        return 1;
     }
 
     auto setup = new Setup(db_filename);
-    setup.show();
-    return 0;
+    const exit_code = setup.show();
+
+    writefln!("\n%s")(exit_message);
+    return exit_code;
 }

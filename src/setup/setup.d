@@ -37,9 +37,10 @@ class Setup
         this.db  = new Sdb(db_filename);
     }
 
-    void show()
+    int show()
     {
         try main_menu(); catch (StdioException) {}
+        return 0;
     }
 
     @trusted
