@@ -17,7 +17,7 @@ import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writefln, writeln;
-import std.string : chomp, format, strip;
+import std.string : chomp, format, strip, toLower;
 import std.system : endian, os;
 
 struct MenuItem
@@ -84,6 +84,8 @@ class Setup
                 MenuItem("3", "MOTD",              &motd),
                 MenuItem("4", "Registered users",  &registered_users),
                 MenuItem("5", "Banned users",      &banned_users),
+                MenuItem("6", "Filtered search phrases",
+                         &filtered_search_phrases),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -509,5 +511,54 @@ class Setup
 
         writeln(output[]);
         banned_users();
+    }
+
+    private void filtered_search_phrases()
+    {
+        show_menu(
+            format!(
+                "Filtered search phrases"
+              ~ "\n\tClient: %d")(
+                db.client_search_phrases.length
+            ),
+            [
+                MenuItem("1", "Add client phrase",    &add_client_phrase),
+                MenuItem("2", "Remove client phrase", &del_client_phrase),
+                MenuItem("3", "List client phrases",  &list_client_phrases),
+                MenuItem("q", "Return",               &main_menu)
+            ]
+        );
+    }
+
+    private void add_client_phrase()
+    {
+        write("Client phrase to add : ");
+        db.add_client_search_phrase(input.strip.toLower);
+        filtered_search_phrases();
+    }
+
+    private void del_client_phrase()
+    {
+        write("Client phrase to remove : ");
+        const phrase = input.strip.toLower;
+
+        if (db.is_client_search_phrase(phrase))
+            db.del_client_search_phrase(phrase);
+        else
+            writefln!("\nClient phrase %s does not exist")(phrase);
+
+        filtered_search_phrases();
+    }
+
+    private void list_client_phrases()
+    {
+        const phrases = db.client_search_phrases;
+
+        Appender!string output;
+        output ~= format!("\nClient phrases (%d)...")(phrases.length);
+        foreach (phrase ; phrases) output ~= format!("\n\t%s")(phrase);
+
+        writeln(output[]);
+        filtered_search_phrases();
     }
 }

@@ -638,9 +638,13 @@ class User
                 scope wish_interval_msg = new SWishlistInterval(
                     privileged ? 120 : 720  // in seconds
                 );
+                scope excluded_phrases_msg = new SExcludedSearchPhrases(
+                    server.db.client_search_phrases
+                );
                 send_message(response_msg);
                 send_message(room_list_msg);
                 send_message(wish_interval_msg);
+                send_message(excluded_phrases_msg);
 
                 update_status(Status.online);
 
