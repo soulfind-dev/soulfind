@@ -7,7 +7,8 @@ module soulfind.db;
 @safe:
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
-                          default_private_mode, log_db, log_user, norm;
+                          default_private_mode, log_db, log_user, norm,
+                          SearchFilterType;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
@@ -91,8 +92,10 @@ final class Sdb
 {
     private sqlite3* db;
 
-    private const users_table   = "users";
-    private const config_table  = "config";
+    private const users_table           = "users";
+    private const config_table          = "config";
+    private const search_filters_table  = "search_filters";
+    private const search_query_table    = "temp.search_query";
 
 
     this(string filename)
@@ -127,11 +130,26 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
+        const search_filters_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", search_filters_table,
+            "(type INTEGER,",
+            " phrase TEXT,",
+            " PRIMARY KEY (type, phrase)",
+            ") WITHOUT ROWID;"
+        );
+
+        const search_query_sql = text(
+            "CREATE VIRTUAL TABLE ", search_query_table,
+            " USING fts5(query);"
+        );
+
         foreach (ref problem ; query("PRAGMA integrity_check;"))
             if (log_db) writeln("DB: Check [", problem[0], "]");
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
+        query(search_filters_sql);
+        query(search_query_sql);
         add_new_columns();
         init_config();
     }
@@ -277,6 +295,93 @@ final class Sdb
     void set_server_motd(string motd)
     {
         set_config_value("motd", motd);
+    }
+
+    void filter_search_phrase(SearchFilterType type)(string phrase)
+    {
+        const sql = text(
+            "REPLACE INTO ",
+            search_filters_table, "(type, phrase) VALUES(?, ?);"
+        );
+        query(sql, [text(cast(uint) type), phrase]);
+
+        if (log_db) writeln(
+            "DB: Filtered search phrase ", phrase, " ",
+            type == SearchFilterType.server ? "server" : "client", "-side"
+        );
+    }
+
+    void unfilter_search_phrase(SearchFilterType type)(string phrase)
+    {
+        const sql = text(
+            "DELETE FROM ", search_filters_table,
+            " WHERE type = ? AND phrase = ?;"
+        );
+        query(sql, [text(cast(uint) type), phrase]);
+
+        if (log_db) writeln(
+            "DB: Unfiltered search phrase ", phrase, " ",
+            type == SearchFilterType.server ? "server" : "client", "-side"
+        );
+    }
+
+    string[] search_filters(SearchFilterType type)()
+    {
+        const sql = text(
+            "SELECT phrase FROM ", search_filters_table, " WHERE type = ?;"
+        );
+
+        Appender!(string[]) phrases;
+        foreach (record ; query(sql, [text(cast(uint) type)]))
+            phrases ~= record[0];
+
+        return phrases[];
+    }
+
+    size_t num_search_filters(SearchFilterType type)()
+    {
+        auto sql = text(
+            "SELECT COUNT(1) FROM ", search_filters_table, " WHERE type = ?;"
+        );
+        return query(sql, [(cast(uint) type).text])[0][0].to!size_t;
+    }
+
+    bool is_search_phrase_filtered(SearchFilterType type)(string phrase)
+    {
+        const sql = text(
+            "SELECT 1",
+            " FROM ", search_filters_table, " WHERE type = ? AND phrase = ?;"
+        );
+        return query(sql, [text(cast(uint) type), phrase]).length > 0;
+    }
+
+    bool is_search_query_filtered(string search_query)
+    {
+    	// For each filtered phrase, check if its words are present anywhere
+    	// in the search query
+        const insert_sql = text(
+            "REPLACE INTO ", search_query_table, "(rowid, query) VALUES (1, ?)"
+        );
+        const query_sql = text(
+            "SELECT 1",
+            " FROM ", search_filters_table,
+            " WHERE type = ? AND phrase NOT LIKE '%  %' AND EXISTS(",
+            "  SELECT 1",
+            "  FROM ", search_query_table,
+            "  WHERE query MATCH",
+            "  '\"' ||",
+            "   REPLACE(",
+            "    REPLACE(", search_filters_table, ".phrase, '\"', '\"\"'),",
+            "    ' ',",
+            "    '\" AND \"'",
+            "   )",
+            "  || '\"'",
+            " );"
+        );
+        const type = SearchFilterType.server;
+
+        query(insert_sql, [search_query]);
+        return query(query_sql, [text(cast(uint) type)]).length > 0;
     }
 
     void add_user(string username, string hash)
