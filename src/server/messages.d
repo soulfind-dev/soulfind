@@ -731,8 +731,7 @@ class SGetPeerAddress : SMessage
 class SWatchUser : SMessage
 {
     this(string username, bool exists, uint status, uint speed,
-         uint upload_number, uint shared_files, uint shared_folders,
-         string country_code) scope
+         uint upload_number, uint shared_files, uint shared_folders) scope
     {
         super(WatchUser);
 
@@ -747,7 +746,7 @@ class SWatchUser : SMessage
         write!uint(0);  // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);
-        if (status > 0) write!string(country_code);
+        if (status > 0) write!string("");  // country_code, obsolete
     }
 }
 
@@ -824,7 +823,7 @@ class SJoinRoom : SMessage
         foreach (user ; users) write!uint(0);  // slots_full, obsolete
 
         write!uint(n);
-        foreach (user ; users) write!string(user.country_code);
+        foreach (user ; users) write!string("");  // country_code, obsolete
     }
 }
 
@@ -842,7 +841,7 @@ class SUserJoinedRoom : SMessage
 {
     this(string room_name, string username, uint status,
          uint speed, uint upload_number, uint shared_files,
-         uint shared_folders, string country_code) scope
+         uint shared_folders) scope
     {
         super(UserJoinedRoom);
 
@@ -855,7 +854,7 @@ class SUserJoinedRoom : SMessage
         write!uint(shared_files);
         write!uint(shared_folders);
         write!uint(0);  // slots_full, obsolete
-        write!string(country_code);
+        write!string("");  // country_code, obsolete
     }
 }
 

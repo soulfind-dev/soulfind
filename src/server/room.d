@@ -51,7 +51,7 @@ class Room
 
         scope joined_room_msg = new SUserJoinedRoom(
             name, user.username, user.status, user.speed, user.upload_number,
-            user.shared_files, user.shared_folders, user.country_code
+            user.shared_files, user.shared_folders
         );
         scope join_room_msg = new SJoinRoom(name, users);
         scope tickers_msg = new SRoomTicker(name, tickers.byValue.array);

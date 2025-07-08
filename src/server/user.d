@@ -47,7 +47,6 @@ class User
     uint                    upload_number;
     uint                    shared_files;
     uint                    shared_folders;
-    string                  country_code;
 
     private Server          server;
     private MonoTime        connected_monotime;
@@ -691,7 +690,6 @@ class User
                 uint user_status = Status.offline;
                 uint user_speed, user_upload_number;
                 uint user_shared_files, user_shared_folders;
-                string user_country_code;
 
                 if (msg.username == server_username) {
                     user_exists = true;
@@ -705,7 +703,6 @@ class User
                     user_upload_number = user.upload_number;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
-                    user_country_code = user.country_code;
                 }
                 else {
                     const user_stats = server.db.user_stats(msg.username);
@@ -720,8 +717,7 @@ class User
 
                 scope response_msg = new SWatchUser(
                     msg.username, user_exists, user_status, user_speed,
-                    user_upload_number, user_shared_files, user_shared_folders,
-                    user_country_code
+                    user_upload_number, user_shared_files, user_shared_folders
                 );
                 send_message(response_msg);
                 break;
