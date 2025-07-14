@@ -97,7 +97,7 @@ jobs:
 
       - name: Set up D (Linux)
         if: runner.os == 'Linux'
-        run: apk add ${{ matrix.package }} dub gcc musl-dev sqlite-static
+        run: apk add ${{ matrix.package }} dub gcc lld20 musl-dev sqlite-static
 
       - name: Set up D (Other)
         if: runner.os != 'Linux'
