@@ -7,7 +7,6 @@ module soulfind.server.messages;
 @safe:
 
 import soulfind.defines : blue, log_msg, norm;
-import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
@@ -38,12 +37,6 @@ const enum UserStatus : uint
     offline  = 0,
     away     = 1,
     online   = 2
-}
-
-const enum RoomType : uint
-{
-    public_room   = 0,
-    private_room  = 1
 }
 
 
@@ -1085,7 +1078,8 @@ final class SRoomList : SMessage
 
 final class SJoinRoom : SMessage
 {
-    this(string room_name, User[string] users) scope
+    this(string room_name, User[string] users, string owner = null,
+         string[] operators = null) scope
     {
         super(JoinRoom);
 
@@ -1113,6 +1107,14 @@ final class SJoinRoom : SMessage
 
         write!uint(n);
         foreach (ref user ; users) write!string("");  // country_code, obsolete
+
+        if (owner is null)
+            return;
+
+        write!string(owner);
+
+        write!uint(cast(uint) operators.length);
+        foreach (ref username ; operators) write!string(username);
     }
 }
 
@@ -1432,7 +1434,7 @@ final class SItemSimilarUsers : SMessage
 
 final class SRoomTicker : SMessage
 {
-    this(string room_name, Ticker[] tickers) scope
+    this(string room_name, string[][] tickers) scope
     {
         super(RoomTicker);
 
@@ -1440,8 +1442,9 @@ final class SRoomTicker : SMessage
         write!uint(cast(uint) tickers.length);
         foreach (ref ticker ; tickers)
         {
-            write!string(ticker.username);
-            write!string(ticker.content);
+            const username = ticker[0], content = ticker[1];
+            write!string(username);
+            write!string(content);
         }
     }
 }

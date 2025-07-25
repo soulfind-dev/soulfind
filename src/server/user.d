@@ -11,8 +11,9 @@ import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
                           max_username_length, norm, pbkdf2_iterations, red,
-                          SearchFilterType, server_username, speed_weight,
-                          VERSION, wish_interval, wish_interval_privileged;
+                          RoomType, SearchFilterType, server_username,
+                          speed_weight, VERSION, wish_interval,
+                          wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.select : SelectEvent;
@@ -246,9 +247,6 @@ final class User
             true, login_rejection, motd, address.addr, md5_hash,
             supporter
         );
-        scope room_list_msg = new SRoomList(
-            server.room_stats, null, null, null
-        );
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? wish_interval_privileged : wish_interval
         );
@@ -260,7 +258,7 @@ final class User
             server.db.search_filters!type
         );
         send_message(response_msg);
-        send_message(room_list_msg);
+        send_room_list();
         send_message(wish_interval_msg);
         send_message(privileged_users_msg);
         send_message(excluded_phrases_msg);
@@ -464,33 +462,61 @@ final class User
 
     // Rooms
 
-    void join_room(string name)
+    void join_room(RoomType type)(string room_name)
     {
-        string fail_message = check_room_name(name);
+        string fail_message = check_room_name(room_name);
         if (fail_message) {
             server.server_pm(username, fail_message);
             return;
         }
 
-        auto room = server.get_room(name);
-        if (room is null) room = server.add_room(name);
+        const existing_type = server.db.get_room_type(room_name);
+        if (existing_type == RoomType.non_existent) {
+            const owner = (type == RoomType._private) ? username : null;
+            server.db.add_room!type(room_name, owner);
+            send_room_list();
+        }
+        else if (existing_type == RoomType._public
+                && type == RoomType._private) {
+            server.server_pm(
+                username,
+                text("Room (", room_name, ") is registered as public.")
+            );
+            return;
+        }
+        else if (!server.db.has_room_access(room_name, username)) {
+            scope response_msg = new SCantCreateRoom(room_name);
+            send_message(response_msg);
+            server.server_pm(
+                username,
+                text(
+                    "The room you are trying to enter (", room_name,
+                    ") is registered as private."
+                )
+            );
+            return;
+        }
 
-        joined_rooms[name] = room;
+        auto room = server.get_room(room_name);
+        if (room is null)
+            room = server.add_room(room_name);
+
+        joined_rooms[room_name] = room;
         room.add_user(this);
     }
 
-    bool leave_room(string name)
+    bool leave_room(string room_name)
     {
-        if (name !in joined_rooms)
+        if (room_name !in joined_rooms)
             return false;
 
-        auto room = server.get_room(name);
+        auto room = server.get_room(room_name);
 
         room.remove_user(username);
-        joined_rooms.remove(name);
+        joined_rooms.remove(room_name);
 
         if (room.num_users == 0)
-            server.del_room(name);
+            server.del_room(room_name);
 
         return true;
     }
@@ -553,6 +579,30 @@ final class User
             found_space = true;
         }
         return null;
+    }
+
+    private void send_room_list()
+    {
+        auto owned_rooms = server.room_stats!(RoomType._private)(username);
+        scope list_response_msg = new SRoomList(
+            server.room_stats!(RoomType._public),
+            owned_rooms,
+            null,
+            null
+        );
+        send_message(list_response_msg);
+
+        foreach (ref room_name, _users ; owned_rooms) {
+            scope users_response_msg = new SPrivateRoomUsers(room_name, null);
+            send_message(users_response_msg);
+        }
+
+        foreach (ref room_name, _users ; owned_rooms) {
+            scope operators_response_msg = new SPrivateRoomOperators(
+                room_name, null
+            );
+            send_message(operators_response_msg);
+        }
     }
 
 
@@ -824,7 +874,10 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                join_room(msg.room_name);
+                if (msg.room_type == RoomType._private)
+                    join_room!(RoomType._private)(msg.room_name);
+                else
+                    join_room!(RoomType._public)(msg.room_name);
                 break;
 
             case LeaveRoom:
@@ -1093,10 +1146,7 @@ final class User
 
             case RoomList:
                 scope msg = new URoomList(msg_buf, username);
-                scope response_msg = new SRoomList(
-                    server.room_stats, null, null, null
-                );
-                send_message(response_msg);
+                send_room_list();
                 break;
 
             case GlobalUserList:
@@ -1243,6 +1293,13 @@ final class User
                 scope msg = new UPrivateRoomDisown(msg_buf, username);
                 if (!msg.is_valid)
                     break;
+
+                if (server.db.get_room_owner(msg.room_name) != username)
+                    break;
+
+                server.db.del_room(msg.room_name);
+                server.db.add_room!(RoomType._public)(msg.room_name);
+                send_room_list();
                 break;
 
             case PrivateRoomToggle:
