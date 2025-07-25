@@ -10,7 +10,8 @@ import soulfind.db : Sdb;
 import soulfind.defines : blue, kick_duration, log_msg, log_user,
                           max_chat_message_length, max_global_recommendations,
                           max_search_query_length, max_user_recommendations,
-                          norm, red, SearchFilterType, server_username;
+                          norm, red, RoomType, SearchFilterType,
+                          server_username;
 import soulfind.server.cmdhandler : CommandHandler;
 import soulfind.server.conns : Logging, UserConnection, UserConnections;
 import soulfind.server.messages;
@@ -102,6 +103,9 @@ final class Server
 
         auto room = get_room(room_name);
         if (room is null)
+            return;
+
+        if (!db.has_room_access(room_name, username))
             return;
 
         if (db.is_search_query_filtered(query))
@@ -355,29 +359,42 @@ final class Server
 
     // Rooms
 
-    Room add_room(string name)
+    Room add_room(RoomType type)(string room_name)
     {
-        auto room = new Room(name, global_room);
-        rooms[name] = room;
+        if (type < 0)
+            return null;
+
+        auto room = new Room(room_name, type, db, global_room);
+        rooms[room_name] = room;
         return room;
     }
 
-    void del_room(string name)
+    void del_room(string room_name)
     {
-        if (name in rooms) rooms.remove(name);
+        if (room_name in rooms)
+            rooms.remove(room_name);
     }
 
-    void del_user_tickers(string username)
+    void del_user_tickers(RoomType type)(string username)
     {
-        foreach (ref room ; rooms) room.del_ticker(username);
+        // Joined rooms
+        foreach (ref room ; rooms)
+            if (type == RoomType.any || room.type == type)
+                room.del_ticker(username);
+
+        // Stored rooms
+        foreach (ref ticker ; db.user_tickers!type(username)) {
+            const room_name = ticker[0];
+            db.del_ticker(room_name, username);
+        }
     }
 
-    Room get_room(string name)
+    Room get_room(string room_name)
     {
-        if (name !in rooms)
+        if (room_name !in rooms)
             return null;
 
-        return rooms[name];
+        return rooms[room_name];
     }
 
     auto joined_rooms()
@@ -405,12 +422,32 @@ final class Server
         return global_room.is_joined(username);
     }
 
-    uint[string] room_stats()
+    void send_room_list(string username)
     {
-        uint[string] stats;
-        foreach (ref room ; rooms)
-            stats[room.name] = cast(uint) room.num_users;
-        return stats;
+        auto user = get_user(username);
+        if (user is null)
+            return;
+
+        auto owned_rooms = room_stats!(RoomType._private)(username);
+        scope list_response_msg = new SRoomList(
+            room_stats!(RoomType._public),
+            owned_rooms,
+            null,
+            null
+        );
+        user.send_message(list_response_msg);
+
+        foreach (ref room_name, _users ; owned_rooms) {
+            scope users_response_msg = new SPrivateRoomUsers(room_name, null);
+            user.send_message(users_response_msg);
+        }
+
+        foreach (ref room_name, _users ; owned_rooms) {
+            scope operators_response_msg = new SPrivateRoomOperators(
+                room_name, null
+            );
+            user.send_message(operators_response_msg);
+        }
     }
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)
@@ -422,6 +459,25 @@ final class Server
         foreach (ref user ; users)
             if (user.joined_same_room(sender_username))
                 user.send_message!(Logging.disabled)(msg);
+    }
+
+    private uint[string] room_stats(RoomType type)(string owner = null)
+    {
+        Room room;
+        uint[string] stats;
+
+        foreach (ref room_name ; db.rooms!type(owner)) {
+            uint num_users;
+            room = get_room(room_name);
+
+            if (room !is null)
+                num_users = cast(uint) room.num_users;
+            else if (type == RoomType._public)
+                continue;
+
+            stats[room_name] = num_users;
+        }
+        return stats;
     }
 
 

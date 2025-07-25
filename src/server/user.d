@@ -10,7 +10,7 @@ import soulfind.db : Sdb, SdbUserStats;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_user_interests, max_username_length, norm,
-                          pbkdf2_iterations, red, server_username,
+                          pbkdf2_iterations, red, RoomType, server_username,
                           speed_weight, VERSION, wish_interval,
                           wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
@@ -20,6 +20,7 @@ import soulfind.server.messages;
 import soulfind.server.msghandler : MessageHandler;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
+import std.array : Appender;
 import std.ascii : isPrintable;
 import std.conv : text;
 import std.datetime : Clock, Duration, MonoTime, seconds, SysTime;
@@ -217,7 +218,7 @@ final class User
 
         const include_received = true;
         server.del_user_pms(username, include_received);
-        server.del_user_tickers(username);
+        server.del_user_tickers!(RoomType.any)(username);
 
         scope relogged_msg = new SRelogged();
         send_message(relogged_msg);
@@ -252,7 +253,7 @@ final class User
             return false;
 
         server.del_user_pms(username);
-        server.del_user_tickers(username);
+        server.del_user_tickers!(RoomType.any)(username);
         disconnect();
         return true;
     }
@@ -332,20 +333,17 @@ final class User
             true, login_rejection, motd, address.addr, md5_hash,
             supporter
         );
-        scope room_list_msg = new SRoomList(
-            server.room_stats, null, null, null
-        );
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? wish_interval_privileged : wish_interval
         );
         scope privileged_users_msg = new SPrivilegedUsers(
             privileged_users
         );
+
         send_message(response_msg);
-        send_message(room_list_msg);
+        server.send_room_list(username);
         send_message(wish_interval_msg);
         send_message(privileged_users_msg);
-
         server.send_search_filters(username);
         server.deliver_queued_pms(username);
     }
@@ -555,40 +553,74 @@ final class User
 
     // Rooms
 
-    void join_room(string name)
+    void join_room(RoomType type)(string room_name)
     {
-        string fail_message = check_room_name(name);
+        if (type < 0)
+            return;
+
+        string fail_message = check_room_name(room_name);
         if (fail_message) {
             server.send_pm(server_username, username, fail_message);
             return;
         }
 
-        auto room = server.get_room(name);
-        if (room is null) room = server.add_room(name);
+        const existing_type = server.db.get_room_type(room_name);
+        if (existing_type == RoomType.non_existent) {
+            const owner = (type == RoomType._private) ? username : null;
+            server.db.add_room!type(room_name, owner);
+            server.send_room_list(username);
+        }
+        else if (existing_type == RoomType._public
+                && type == RoomType._private) {
+            server.send_pm(
+            	server_username, username,
+                text("Room (", room_name, ") is registered as public.")
+            );
+            return;
+        }
+        else if (!server.db.has_room_access(room_name, username)) {
+            scope response_msg = new SCantCreateRoom(room_name);
+            send_message(response_msg);
+            server.send_pm(
+                server_username, username,
+                text(
+                    "The room you are trying to enter (", room_name,
+                    ") is registered as private."
+                )
+            );
+            return;
+        }
 
-        joined_rooms[name] = room;
+        auto room = server.get_room(room_name);
+        if (room is null) room = server.add_room!type(room_name);
+
+        joined_rooms[room_name] = room;
         room.add_user(this);
     }
 
-    bool leave_room(string name)
+    bool leave_room(string room_name)
     {
-        if (name !in joined_rooms)
+        if (room_name !in joined_rooms)
             return false;
 
-        auto room = server.get_room(name);
+        auto room = server.get_room(room_name);
 
         room.remove_user(username);
-        joined_rooms.remove(name);
+        joined_rooms.remove(room_name);
 
         if (room.num_users == 0)
-            server.del_room(name);
+            server.del_room(room_name);
 
         return true;
     }
 
-    const joined_room_names()
+    string[] joined_room_names(RoomType type)()
     {
-        return joined_rooms.byKey;
+        Appender!(string[]) room_names;
+        foreach (ref name, ref room ; joined_rooms)
+            if (type == RoomType.any || room.type == type)
+                room_names ~= name;
+        return room_names[];
     }
 
     bool joined_same_room(string target_username)
