@@ -71,15 +71,11 @@ DC=gdc dub build
 
 ## Configuration
 
-Soulfind stores all its configuration in a SQLite database. When starting, it
-will look for the file `soulfind.db`, and create it with the following tables
-if it doesn't exist:
+Soulfind stores all its configuration in a SQLite database. On startup,
+Soulfind will look for the file `soulfind.db` by default, unless provided a
+different path with the `--database` flag.
 
- - users
- - admins
- - config
-
-Only the `config` table is filled with some default values:
+The default config values are:
 
  - port: `2242`
  - max_users: `65535`
@@ -100,7 +96,7 @@ Only an owner can register the user in the `Registered users` section in the
 
 ## Missing Features
 
- - Anti-spam measures
+ - Rate limits
  - Private rooms
  - Distributed search network
 
