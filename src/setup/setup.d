@@ -17,7 +17,7 @@ import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writefln, writeln;
-import std.string : chomp, format, strip;
+import std.string : chomp, format, strip, toLower;
 import std.system : endian, os;
 
 struct MenuItem
@@ -108,7 +108,24 @@ class Setup
     private void add_admin()
     {
         write("Admin to add : ");
-        db.add_admin(input.strip);
+
+        const username = input.strip;
+        if (!db.user_exists(username)) {
+            do {
+                writefln(
+                    "User %s is not registered. Do you really want to add "
+                  ~ "them to the admin list? [y/n]", username
+                );
+                const response = input.strip.toLower;
+                if (response == "y") {
+                    db.add_admin(username);
+                    break;
+                } else if (response == "n") {
+                    break;
+                }
+            }
+            while(true);
+        }
         admins();
     }
 
@@ -131,7 +148,11 @@ class Setup
 
         Appender!string output;
         output ~= format!("\nAdmins (%d)...")(names.length);
-        foreach (name ; names) output ~= format!("\n\t%s")(name);
+        foreach (name ; names)
+            output ~= format!(
+                "\n\t%s (registered: %s)")(
+                name, db.user_exists(name) ? "true" : "false"
+            );
 
         writeln(output[]);
         admins();

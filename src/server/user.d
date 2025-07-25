@@ -142,7 +142,12 @@ class User
         }
 
         if (!server.db.user_exists(username)) {
-            server.db.add_user(username, password);
+            if (server.db.is_admin(username))
+                // For security reasons, non-existent admins cannot register
+                // through the client
+                login_rejection.reason = LoginRejectionReason.password;
+            else
+                server.db.add_user(username, password);
             return login_rejection;
         }
         debug (user) writefln!("User %s is registered")(
