@@ -10,7 +10,7 @@ import core.time : days, Duration;
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
-import std.algorithm : clamp, sort;
+import std.algorithm : clamp;
 import std.array : Appender, array;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : to;
@@ -1153,7 +1153,7 @@ class SRoomTicker : SMessage
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ticker ; tickers.sort)
+        foreach (ticker ; tickers)
         {
             write!string(ticker.username);
             write!string(ticker.content);

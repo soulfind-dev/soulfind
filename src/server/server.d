@@ -363,6 +363,23 @@ class Server
         return stats;
     }
 
+    private string room_info(string name)
+    {
+        Appender!string output;
+        auto room = rooms[name];
+
+        output ~= name;
+        output ~= format!("\nUsers (%d):")(room.num_users);
+        foreach (username ; room.usernames)
+            output ~= format!("\n\t%s")(username);
+
+        output ~= format!("\nTickers (%d):")(room.num_tickers);
+        foreach (ticker ; room.tickers_by_order)
+            output ~= format!("\n\t[%s] %s")(ticker.username, ticker.content);
+
+        return output[];
+    }
+
 
     // Users
 
@@ -426,6 +443,56 @@ class Server
             return users[username];
 
         return null;
+    }
+
+    private string user_list(string type = null)
+    {
+        Appender!string output;
+        switch (type)
+        {
+            case "connected":
+                output ~= format!("%d connected users.")(users.length);
+                foreach (user ; users)
+                    output ~= format!("\n\t%s (client version: %s)")(
+                        user.username, user.client_version
+                    );
+                break;
+
+            case "privileged":
+                const users = db.usernames(
+                    "privileges", Clock.currTime.toUnixTime
+                );
+                output ~= format!("%d privileged users.")(users.length);
+                foreach (user ; users) {
+                    const privileged_until = db.user_privileged_until(user);
+                    output ~= format!("\n\t%s (until %s)")(
+                        user, privileged_until.toSimpleString
+                    );
+                }
+                break;
+
+            case "banned":
+                const users = db.usernames(
+                    "banned", Clock.currTime.toUnixTime
+                );
+                output ~= format!("\nBanned users (%d)...")(users.length);
+                foreach (user ; users) {
+                    const banned_until = db.user_banned_until(user);
+                    if (banned_until == SysTime.fromUnixTime(long.max))
+                        output ~= format!("\n\t%s (forever)")(user);
+                    else
+                        output ~= format!("\n\t%s (until %s)")(
+                            user, banned_until.toSimpleString);
+                }
+                break;
+
+            default:
+                const usernames = db.usernames;
+                output ~= format!("%d total users.")(usernames.length);
+                foreach (username ; db.usernames)
+                    output ~= format!("\n\t%s")(username);
+        }
+        return output[];
     }
 
     private string user_info(string username)
@@ -543,16 +610,17 @@ class Server
                     admin,
                     format!(
                         "Available commands :"
-                      ~ "\n\nusers\n\tList connected users"
-                      ~ "\n\ninfo <user>\n\tShow info about user"
-                      ~ "\n\nkickall [minutes]\n\tDisconnect active users for"
-                      ~ " [%d] minutes"
-                      ~ "\n\nkick [minutes] <user>\n\tDisconnect user for"
-                      ~ " [%d] minutes"
+                      ~ "\n\nadmins\n\tList admins"
+                      ~ "\n\nusers [connected|banned|privileged]\n\tList users"
+                      ~ "\n\nrooms\n\tList public rooms"
+                      ~ "\n\nuserinfo <user>\n\tShow info about user"
+                      ~ "\n\nroominfo <room>\n\tShow info about public room"
                       ~ "\n\nban [days] <user>\n\tBan user"
                       ~ "\n\nunban <user>\n\tUnban user"
-                      ~ "\n\nadmins\n\tList admins"
-                      ~ "\n\nrooms\n\tList rooms and number of users"
+                      ~ "\n\nkick [minutes] <user>\n\tDisconnect user for"
+                      ~ " [%d] minutes"
+                      ~ "\n\nkickall [minutes]\n\tDisconnect active users for"
+                      ~ " [%d] minutes"
                       ~ "\n\naddprivileges <days> <user>\n\tAdd privileges to"
                       ~ " user"
                       ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
@@ -563,6 +631,191 @@ class Server
                         kick_duration.total!"minutes"
                     )
                 );
+                break;
+
+            case "admins":
+                Appender!string output;
+                const names = db.admins;
+                output ~= format!("%d admins.")(names.length);
+                foreach (name ; names) {
+                    const status = (name in users) ? "online" : "offline";
+                    output ~= format!("\n\t%s (%s)")(name, status);
+                }
+
+                server_pm(admin, output[]);
+                break;
+
+            case "users":
+                const type = (command.length > 1) ? command[1] : null;
+                server_pm(admin, user_list(type));
+                break;
+
+            case "rooms":
+                Appender!string output;
+                output ~= format!("%d public rooms.")(rooms.length);
+                foreach (room ; rooms)
+                    output ~= format!("\n\t%s (users: %d, tickers: %d)")(
+                        room.name, room.num_users, room.num_tickers
+                    );
+                server_pm(admin, output[]);
+                break;
+
+            case "userinfo":
+                if (command.length < 2) {
+                    server_pm(admin, "Syntax is : userinfo <user>");
+                    break;
+                }
+                const username = command[1 .. $].join(" ");
+
+                if (!db.user_exists(username)) {
+                    server_pm(admin, format!(
+                        "User %s is not registered")(username)
+                    );
+                    break;
+                }
+
+                server_pm(admin, user_info(username));
+                break;
+
+            case "roominfo":
+                if (command.length < 2) {
+                    server_pm(admin, "Syntax is : roominfo <user>");
+                    break;
+                }
+                const name = command[1 .. $].join(" ");
+
+                if (name !in rooms) {
+                    server_pm(admin, format!(
+                        "Room %s is not registered")(name)
+                    );
+                    break;
+                }
+                server_pm(admin, room_info(name));
+                break;
+
+            case "ban":
+                if (command.length < 2) {
+                    server_pm(admin, "Syntax is : ban [days] <user>");
+                    break;
+                }
+
+                Duration duration;
+                string username;
+                try {
+                    duration = command[1]
+                        .to!ulong
+                        .clamp(0, ushort.max)
+                        .days;
+                    username = command[2 .. $].join(" ");
+                }
+                catch (ConvException) {
+                    duration = Duration.max;
+                    username = command[1 .. $].join(" ");
+                }
+
+                if (!db.user_exists(username)) {
+                    server_pm(admin, format!(
+                        "User %s is not registered")(username)
+                    );
+                    break;
+                }
+
+                db.ban_user(username, duration);
+
+                auto user = get_user(username);
+                if (user) del_user(user);
+
+                string response;
+                if (duration == Duration.max)
+                    response = format!("Banned user %s forever")(username);
+                else
+                    response = format!("Banned user %s for %s")(
+                        username, duration.total!"days".days
+                    );
+
+                server_pm(admin, response);
+                break;
+
+            case "unban":
+                if (command.length < 2) {
+                    server_pm(admin, "Syntax is : unban <user>");
+                    break;
+                }
+                const username = command[1 .. $].join(" ");
+                db.unban_user(username);
+                server_pm(admin, format!("Unbanned user %s")(username));
+                break;
+
+            case "kick":
+                if (command.length < 2) {
+                    server_pm(admin, "Syntax is : kick [minutes] <user>");
+                    break;
+                }
+
+                Duration duration;
+                string username;
+                try {
+                    duration = command[1]
+                        .to!ulong
+                        .clamp(0, ushort.max)
+                        .minutes;
+                    username = command[2 .. $].join(" ");
+                }
+                catch (ConvException) {
+                    duration = kick_duration;
+                    username = command[1 .. $].join(" ");
+                }
+
+                if (!db.user_exists(username)) {
+                    server_pm(
+                        admin, format!("User %s is not registered")(username)
+                    );
+                    break;
+                }
+
+                db.ban_user(username, duration);
+
+                auto user = get_user(username);
+                if (user) del_user(user);
+
+                server_pm(admin, format!("Kicked user %s for %s")(
+                    username, duration.total!"minutes".minutes
+                ));
+                break;
+
+            case "kickall":
+                Duration duration = kick_duration;
+                if (command.length > 1) {
+                    try {
+                        duration = command[1]
+                            .to!ulong
+                            .clamp(0, ushort.max)
+                            .minutes;
+                    }
+                    catch (ConvException) {
+                        server_pm(admin, "Syntax is : kickall [minutes]");
+                        break;
+                    }
+                }
+                Appender!(User[]) users_to_kick;
+                foreach (user ; users)
+                    if (user.username != admin.username)
+                        users_to_kick ~= user;
+
+                foreach (user ; users_to_kick) {
+                    db.ban_user(user.username, duration);
+                    del_user(user);
+                }
+
+                debug (user) writefln!(
+                    "Admin %s kicked ALL %d users for %s!")(
+                    blue ~ admin.username ~ norm, users_to_kick[].length,
+                    duration
+                );
+                server_pm(admin, format!(
+                    "Kicked all %d users for %s")(
+                    users_to_kick[].length, duration.total!"minutes".minutes
+                ));
                 break;
 
             case "addprivileges":
@@ -648,181 +901,6 @@ class Server
                     );
 
                 server_pm(admin, response);
-                break;
-
-            case "users":
-                Appender!string output;
-                output ~= format!("%d connected users.")(users.length);
-                foreach (user ; users)
-                    output ~= format!("\n\t%s (client version: %s)")(
-                        user.username, user.client_version
-                    );
-
-                server_pm(admin, output[]);
-                break;
-
-            case "info":
-                if (command.length < 2) {
-                    server_pm(admin, "Syntax is : info <user>");
-                    break;
-                }
-                const username = command[1 .. $].join(" ");
-
-                if (!db.user_exists(username)) {
-                    server_pm(admin, format!(
-                        "User %s is not registered")(username)
-                    );
-                    break;
-                }
-
-                server_pm(admin, user_info(username));
-                break;
-
-            case "kickall":
-                Duration duration = kick_duration;
-                if (command.length > 1) {
-                    try {
-                        duration = command[1]
-                            .to!ulong
-                            .clamp(0, ushort.max)
-                            .minutes;
-                    }
-                    catch (ConvException) {
-                        server_pm(admin, "Syntax is : kickall [minutes]");
-                        break;
-                    }
-                }
-                Appender!(User[]) users_to_kick;
-                foreach (user ; users)
-                    if (user.username != admin.username)
-                        users_to_kick ~= user;
-
-                foreach (user ; users_to_kick) {
-                    db.ban_user(user.username, duration);
-                    del_user(user);
-                }
-
-                debug (user) writefln!(
-                    "Admin %s kicked ALL %d users for %s!")(
-                    blue ~ admin.username ~ norm, users_to_kick[].length,
-                    duration
-                );
-                server_pm(admin, format!(
-                    "Kicked all %d users for %s")(
-                    users_to_kick[].length, duration.total!"minutes".minutes
-                ));
-                break;
-
-            case "kick":
-                if (command.length < 2) {
-                    server_pm(admin, "Syntax is : kick [minutes] <user>");
-                    break;
-                }
-
-                Duration duration;
-                string username;
-                try {
-                    duration = command[1]
-                        .to!ulong
-                        .clamp(0, ushort.max)
-                        .minutes;
-                    username = command[2 .. $].join(" ");
-                }
-                catch (ConvException) {
-                    duration = kick_duration;
-                    username = command[1 .. $].join(" ");
-                }
-
-                if (!db.user_exists(username)) {
-                    server_pm(
-                        admin, format!("User %s is not registered")(username)
-                    );
-                    break;
-                }
-
-                db.ban_user(username, duration);
-
-                auto user = get_user(username);
-                if (user) del_user(user);
-
-                server_pm(admin, format!("Kicked user %s for %s")(
-                    username, duration.total!"minutes".minutes
-                ));
-                break;
-
-            case "ban":
-                if (command.length < 2) {
-                    server_pm(admin, "Syntax is : ban [days] <user>");
-                    break;
-                }
-
-                Duration duration;
-                string username;
-                try {
-                    duration = command[1]
-                        .to!ulong
-                        .clamp(0, ushort.max)
-                        .days;
-                    username = command[2 .. $].join(" ");
-                }
-                catch (ConvException) {
-                    duration = Duration.max;
-                    username = command[1 .. $].join(" ");
-                }
-
-                if (!db.user_exists(username)) {
-                    server_pm(admin, format!(
-                        "User %s is not registered")(username)
-                    );
-                    break;
-                }
-
-                db.ban_user(username, duration);
-
-                auto user = get_user(username);
-                if (user) del_user(user);
-
-                string response;
-                if (duration == Duration.max)
-                    response = format!("Banned user %s forever")(username);
-                else
-                    response = format!("Banned user %s for %s")(
-                        username, duration.total!"days".days
-                    );
-
-                server_pm(admin, response);
-                break;
-
-            case "unban":
-                if (command.length < 2) {
-                    server_pm(admin, "Syntax is : unban <user>");
-                    break;
-                }
-                const username = command[1 .. $].join(" ");
-                db.unban_user(username);
-                server_pm(admin, format!("Unbanned user %s")(username));
-                break;
-
-            case "admins":
-                Appender!string output;
-                const names = db.admins;
-                output ~= format!("%d registered admins.")(names.length);
-                foreach (name ; names) {
-                    const status = (name in users) ? "online" : "offline";
-                    output ~= format!("\n\t%s (%s)")(name, status);
-                }
-
-                server_pm(admin, output[]);
-                break;
-
-            case "rooms":
-                Appender!string output;
-                output ~= format!("%d registered rooms.")(rooms.length);
-                foreach (room ; rooms)
-                    output ~= format!("\n\t%s (users: %d, tickers: %d)")(
-                        room.name, room.num_users, room.num_tickers);
-
-                server_pm(admin, output[]);
                 break;
 
             case "message":
