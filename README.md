@@ -89,7 +89,7 @@ Server owners can configure the server and add admins with the `soulsetup`
 utility.
 
 Admins can interact with the server by sending commands in a private
-chat with the server user (`help` to see all commands).
+chat with the `server` user (`help` to see all commands).
 
 
 ## Missing Features

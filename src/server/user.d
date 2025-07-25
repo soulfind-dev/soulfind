@@ -693,11 +693,7 @@ class User
                 uint user_speed, user_upload_number;
                 uint user_shared_files, user_shared_folders;
 
-                if (msg.username == server_username) {
-                    user_exists = true;
-                    user_status = Status.online;
-                }
-                else if (user)
+                if (user)
                 {
                     user_exists = true;
                     user_status = user.status;
@@ -706,7 +702,7 @@ class User
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                 }
-                else {
+                else if (msg.username != server_username) {
                     const user_stats = server.db.user_stats(msg.username);
                     user_exists = user_stats.exists;
                     user_speed = user_stats.speed;
@@ -735,14 +731,7 @@ class User
                 uint user_status = Status.offline;
                 bool user_privileged;
 
-                if (msg.username == server_username) {
-                    debug (user) writefln!(
-                        "Telling user %s that host %s is online")(
-                        blue ~ username ~ norm, blue ~ server_username ~ norm
-                    );
-                    user_status = Status.online;
-                }
-                else if (user) {
+                if (user) {
                     debug (user) writefln!(
                         "Telling user %s that user %s is online")(
                         blue ~ username ~ norm, blue ~ msg.username ~ norm
@@ -750,7 +739,8 @@ class User
                     user_status = user.status;
                     user_privileged = user.privileged;
                 }
-                else if (server.db.user_exists(msg.username)) {
+                else if (msg.username != server_username
+                         && server.db.user_exists(msg.username)) {
                     debug (user) writefln!(
                         "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
