@@ -94,6 +94,7 @@ const MessageUsers           = 149;
 const JoinGlobalRoom         = 150;
 const LeaveGlobalRoom        = 151;
 const GlobalRoomMessage      = 152;
+const ExcludedSearchPhrases  = 160;
 const CantConnectToPeer      = 1001;
 
 
@@ -1176,6 +1177,17 @@ class SGlobalRoomMessage : SMessage
         write!string(room_name);
         write!string(username);
         write!string(message);
+    }
+}
+
+class SExcludedSearchPhrases : SMessage
+{
+    this(string[] phrases) scope
+    {
+        super(ExcludedSearchPhrases);
+
+        write!uint(cast(uint) phrases.length);
+        foreach (phrase ; phrases) write!string(phrase);
     }
 }
 

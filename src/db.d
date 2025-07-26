@@ -91,9 +91,10 @@ class Sdb
 {
     sqlite3* db;
 
-    const users_table   = "users";
-    const admins_table  = "admins";
-    const config_table  = "config";
+    const config_table                 = "config";
+    const users_table                  = "users";
+    const admins_table                 = "admins";
+    const search_phrases_client_table  = "search_phrases_client";
 
 
     this(string filename)
@@ -137,12 +138,20 @@ class Sdb
             admins_table
         );
 
+        const search_phrases_client_sql = format!(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " phrase TEXT PRIMARY KEY"
+          ~ ") WITHOUT ROWID;")(
+            search_phrases_client_table
+        );
+
         foreach (problem ; query("PRAGMA integrity_check;"))
             debug(db) writefln!("DB: Check [%s]")(problem[0]);
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(admins_sql);
+        query(search_phrases_client_sql);
         init_config();
     }
 
@@ -227,6 +236,46 @@ class Sdb
             config_table
         );
         return query(sql, [option])[0][0];
+    }
+
+    void add_client_search_phrase(string phrase)
+    {
+        const sql = format!(
+            "REPLACE INTO %s(phrase) VALUES(?);")(
+            search_phrases_client_table
+        );
+        query(sql, [phrase]);
+
+        debug(db) writefln!("DB: Added client phrase %s")(phrase);
+    }
+
+    void del_client_search_phrase(string phrase)
+    {
+        const sql = format!("DELETE FROM %s WHERE phrase = ?;")(
+            search_phrases_client_table
+        );
+        query(sql, [phrase]);
+
+        debug(db) writefln!("DB: Removed client phrase %s")(phrase);
+    }
+
+    string[] client_search_phrases()
+    {
+        const sql = format!("SELECT phrase FROM %s;")(
+            search_phrases_client_table
+        );
+        Appender!(string[]) phrases;
+        foreach (record ; query(sql)) phrases ~= record[0];
+        return phrases[];
+    }
+
+    bool is_client_search_phrase(string phrase)
+    {
+        const sql = format!(
+            "SELECT 1 FROM %s WHERE phrase = ?;")(
+            search_phrases_client_table
+        );
+        return query(sql, [phrase]).length > 0;
     }
 
     void add_admin(string username, uint level = 0)
