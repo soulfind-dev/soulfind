@@ -6,13 +6,15 @@
 module soulfind.server.messages;
 @safe:
 
+import core.time : days, Duration;
 import soulfind.defines : blue, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
-import std.algorithm : sort;
+import std.algorithm : clamp, sort;
 import std.array : Appender, array;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : to;
+import std.datetime : SysTime;
 import std.encoding : isValid;
 import std.stdio : writefln;
 import std.string : representation;
@@ -602,15 +604,15 @@ class UUserPrivileged : UMessage
 
 class UGivePrivileges : UMessage
 {
-    string  username;
-    uint    days;
+    string    username;
+    Duration  duration;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         username = read!string();
-        days     = read!uint();
+        duration = read!uint().days;
     }
 }
 
@@ -914,13 +916,17 @@ class SConnectToPeer : SMessage
 
 class SMessageUser : SMessage
 {
-    this(uint id, uint timestamp, string username, string message,
+    this(uint id, SysTime timestamp, string username, string message,
          bool new_message) scope
     {
         super(MessageUser);
 
         write!uint(id);
-        write!uint(timestamp);
+        write!uint(
+            cast(uint) timestamp
+                .toUnixTime
+                .clamp(0, uint.max)
+        );
         write!string(username);
         write!string(message);
         write!bool(new_message);
@@ -1033,21 +1039,25 @@ class SAdminMessage : SMessage
 
 class SCheckPrivileges : SMessage
 {
-    this(uint seconds) scope
+    this(Duration duration) scope
     {
         super(CheckPrivileges);
 
-        write!uint(seconds);
+        write!uint(
+            cast(uint) duration
+                .total!"seconds"
+                .clamp(0, uint.max)
+        );
     }
 }
 
 class SWishlistInterval : SMessage
 {
-    this(uint interval) scope
+    this(Duration interval) scope
     {
         super(WishlistInterval);
 
-        write!uint(interval);
+        write!uint(cast(uint) interval.total!"seconds");
     }
 }
 

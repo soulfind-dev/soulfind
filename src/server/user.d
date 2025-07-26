@@ -6,18 +6,18 @@
 module soulfind.server.user;
 @safe:
 
-import core.time : days, Duration, MonoTime, seconds;
+import core.time : Duration, MonoTime, seconds;
 import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
                           max_username_length, norm, red, server_username,
-                          VERSION;
+                          VERSION, wish_interval, wish_interval_privileged;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
-import std.algorithm : canFind, clamp;
+import std.algorithm : canFind;
 import std.array : Appender, array;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
@@ -232,11 +232,7 @@ class User
         if (!notify_user)
             return;
 
-        scope msg = new SCheckPrivileges(
-            cast(uint) privileges
-                .total!"seconds"
-                .clamp(0, uint.max)
-        );
+        scope msg = new SCheckPrivileges(privileges);
         send_message(msg);
     }
 
@@ -424,8 +420,7 @@ class User
     void send_pm(const PM pm, bool new_message)
     {
         scope msg = new SMessageUser(
-            pm.id, cast(uint) pm.time.toUnixTime.clamp(0, uint.max),
-            pm.from_username, pm.message, new_message
+            pm.id, pm.time, pm.from_username, pm.message, new_message
         );
         send_message(msg);
     }
@@ -641,7 +636,7 @@ class User
                 );
                 scope room_list_msg = new SRoomList(server.room_stats);
                 scope wish_interval_msg = new SWishlistInterval(
-                    privileged ? 120 : 720  // in seconds
+                    privileged ? wish_interval_privileged : wish_interval
                 );
                 send_message(response_msg);
                 send_message(room_list_msg);
@@ -1021,7 +1016,7 @@ class User
                 scope msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.username);
                 const admin = server.db.is_admin(msg.username);
-                const duration = msg.days.days;
+                const duration = msg.duration;
 
                 if (!user)
                     break;
