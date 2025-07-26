@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: 2025 Soulfind Contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Container
+on:
+  push:
+    branches: [master]
+
+permissions:
+  packages: write
+  contents: read
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            image: ubuntu-latest
+
+          - arch: arm64
+            image: ubuntu-24.04-arm
+    runs-on: ${{ matrix.image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log into GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: docker build -t $IMAGE_NAME:latest-${{ matrix.arch }} .
+
+      - name: Push image
+        run: docker push $IMAGE_NAME:latest-${{ matrix.arch }}
+
+  manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log into GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Create manifest
+        run: docker buildx imagetools create --tag $IMAGE_NAME:latest $IMAGE_NAME:latest-amd64 $IMAGE_NAME:latest-arm64
