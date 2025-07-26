@@ -53,17 +53,22 @@ class Server
     private Room[string]  rooms;
 
 
-    this(string db_filename)
+    this(string db_filename, ushort port)
     {
         this.db                = new Sdb(db_filename);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
 
-        try
-            this.port = db.get_config_value("port").to!ushort;
-        catch (ConvException)
-            this.port = cast(ushort) default_port;
+        if (!port) {
+            try
+                this.port = db.get_config_value("port").to!ushort;
+            catch (ConvException)
+                this.port = cast(ushort) default_port;
+        }
+        else {
+            this.port = port;
+        }
     }
 
 

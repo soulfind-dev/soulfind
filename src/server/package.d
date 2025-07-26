@@ -17,13 +17,14 @@ import std.system : os;
 
 @trusted
 GetoptResult parse_args(ref string[] args, ref string db_filename,
-                        ref bool show_version)
+                        ref ushort port, ref bool show_version)
 {
     return getopt(
         args,
         config.passThrough,
         "d|database", format!("Path to database (default: %s).")(db_filename),
                       &db_filename,
+        "p|port", "Listening port.", &port,
         "v|version", "Show version.", &show_version
     );
 }
@@ -32,10 +33,11 @@ int run(string[] args)
 {
     GetoptResult result;
     string db_filename = default_db_filename;
+    ushort port;
     bool show_version;
 
     try {
-        result = parse_args(args, db_filename, show_version);
+        result = parse_args(args, db_filename, port, show_version);
     }
     catch (Exception e) {
         writeln(e.msg);
@@ -65,7 +67,7 @@ int run(string[] args)
         return 0;
     }
 
-    auto server = new Server(db_filename);
+    auto server = new Server(db_filename, port);
     const exit_code = server.listen();
 
     writefln!("\n%s")(exit_message);
