@@ -640,6 +640,9 @@ class User
                 server.add_user(this);
                 watch(username);
 
+                // Empty list of users for privacy reasons. Clients can use
+                // other server messages to know if a user is privileged.
+                string[] privileged_users;
                 const md5_hash = digest!MD5(msg.password)
                     .toHexString!(LetterCase.lower)
                     .to!string;
@@ -651,9 +654,13 @@ class User
                 scope wish_interval_msg = new SWishlistInterval(
                     privileged ? wish_interval_privileged : wish_interval
                 );
+                scope privileged_users_msg = new SPrivilegedUsers(
+                    privileged_users
+                );
                 send_message(response_msg);
                 send_message(room_list_msg);
                 send_message(wish_interval_msg);
+                send_message(privileged_users_msg);
 
                 update_status(Status.online);
 
@@ -911,6 +918,19 @@ class User
                 );
                 break;
 
+            case SimilarRecommendations:
+                scope msg = new USimilarRecommendations(msg_buf, username);
+                if (!msg.recommendation)
+                    return;
+
+                // No longer used, send empty response
+                string[] recommendations;
+                scope response_msg = new SSimilarRecommendations(
+                    msg.recommendation, recommendations
+                );
+                send_message(response_msg);
+                break;
+
             case AddThingILike:
                 scope msg = new UAddThingILike(msg_buf, username);
                 add_liked_item(msg.item);
@@ -1082,6 +1102,19 @@ class User
             case LeaveGlobalRoom:
                 scope msg = new ULeaveGlobalRoom(msg_buf, username);
                 server.global_room.remove_user(username);
+                break;
+
+            case RelatedSearch:
+                scope msg = new URelatedSearch(msg_buf, username);
+                if (!msg.query)
+                    return;
+
+                // No longer used, send empty response
+                uint[string] terms;
+                scope response_msg = new SRelatedSearch(
+                    msg.query, terms
+                );
+                send_message(response_msg);
                 break;
 
             case CantConnectToPeer:

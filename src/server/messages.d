@@ -68,6 +68,7 @@ const SharedFoldersFiles     = 35;
 const GetUserStats           = 36;
 const Relogged               = 41;
 const UserSearch             = 42;
+const SimilarRecommendations = 50;
 const AddThingILike          = 51;
 const RemoveThingILike       = 52;
 const GetRecommendations     = 54;
@@ -75,6 +76,7 @@ const GlobalRecommendations  = 56;
 const UserInterests          = 57;
 const RoomList               = 64;
 const AdminMessage           = 66;
+const PrivilegedUsers        = 69;
 const CheckPrivileges        = 92;
 const WishlistSearch         = 103;
 const WishlistInterval       = 104;
@@ -96,6 +98,7 @@ const MessageUsers           = 149;
 const JoinGlobalRoom         = 150;
 const LeaveGlobalRoom        = 151;
 const GlobalRoomMessage      = 152;
+const RelatedSearch          = 153;
 const CantConnectToPeer      = 1001;
 
 
@@ -444,6 +447,18 @@ class UUserSearch : UMessage
     }
 }
 
+class USimilarRecommendations : UMessage
+{
+    string recommendation;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        recommendation = read!string();
+    }
+}
+
 class UAddThingILike : UMessage
 {
     string item;
@@ -655,6 +670,18 @@ class ULeaveGlobalRoom : UMessage
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
+    }
+}
+
+class URelatedSearch : UMessage
+{
+    string query;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        query = read!string();
     }
 }
 
@@ -1014,6 +1041,19 @@ class SRelogged : SMessage
     }
 }
 
+class SSimilarRecommendations : SMessage
+{
+    this(string recommendation, string[] recommendations) scope
+    {
+        super(SimilarRecommendations);
+
+        write!string(recommendation);
+        write!uint(cast(uint) recommendations.length);
+        foreach (srecommendation ; recommendations)
+            write!string(srecommendation);
+    }
+}
+
 class SAdminMessage : SMessage
 {
     this(string message) scope
@@ -1021,6 +1061,18 @@ class SAdminMessage : SMessage
         super(AdminMessage);
 
         write!string(message);
+    }
+}
+
+class SPrivilegedUsers : SMessage
+{
+    this(string[] users) scope
+    {
+        super(PrivilegedUsers);
+
+        write!uint(cast(uint) users.length);
+        foreach (username ; users)
+            write!string(username);
     }
 }
 
@@ -1163,6 +1215,22 @@ class SGlobalRoomMessage : SMessage
         write!string(room_name);
         write!string(username);
         write!string(message);
+    }
+}
+
+class SRelatedSearch : SMessage
+{
+    this(string query, uint[string] terms) scope
+    {
+        super(RelatedSearch);
+
+        write!string(query);
+        write!uint(cast(uint) terms.length);
+        foreach (term, score ; terms)
+        {
+            write!string(term);
+            write!uint(score);
+        }
     }
 }
 
