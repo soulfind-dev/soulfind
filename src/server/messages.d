@@ -922,10 +922,9 @@ class SMessageUser : SMessage
         super(MessageUser);
 
         write!uint(id);
-        write!uint(
-            cast(uint) timestamp
-                .toUnixTime
-                .clamp(0, uint.max)
+        write!uint(cast(uint) timestamp
+            .toUnixTime
+            .clamp(0, uint.max)
         );
         write!string(username);
         write!string(message);
@@ -1043,10 +1042,9 @@ class SCheckPrivileges : SMessage
     {
         super(CheckPrivileges);
 
-        write!uint(
-            cast(uint) duration
-                .total!"seconds"
-                .clamp(0, uint.max)
+        write!uint(cast(uint) duration
+            .total!"seconds"
+            .clamp(0, uint.max)
         );
     }
 }
@@ -1057,7 +1055,10 @@ class SWishlistInterval : SMessage
     {
         super(WishlistInterval);
 
-        write!uint(cast(uint) interval.total!"seconds");
+        write!uint(cast(uint) interval
+            .total!"seconds"
+            .clamp(0, uint.max)
+        );
     }
 }
 

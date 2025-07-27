@@ -521,17 +521,28 @@ class User
     void send_message(scope SMessage msg)
     {
         const msg_buf = msg.bytes;
-        const msg_len = cast(uint) msg_buf.length;
+        const msg_len = msg_buf.length;
         const offset = out_buf.length;
-
-        out_buf.length += (uint.sizeof + msg_len);
-        out_buf[offset .. offset + uint.sizeof] = msg_len.nativeToLittleEndian;
-        out_buf[offset + uint.sizeof .. $] = msg_buf;
 
         debug (msg) writefln!(
             "Sending -> %s (code %d) of %d bytes -> to user %s")(
             blue ~ msg.name ~ norm, msg.code, msg_len, blue ~ username ~ norm
         );
+
+        if (msg_len > uint.max) {
+            writefln!(
+                "Message %s (code %d) of %d bytes to user %s is too large, "
+              ~ "not sending")(
+                blue ~ msg.name ~ norm, msg.code, msg_len,
+                blue ~ username ~ norm
+            );
+            return;
+        }
+
+        out_buf.length += (uint.sizeof + msg_len);
+        out_buf[offset .. offset + uint.sizeof] = (cast(uint) msg_len)
+            .nativeToLittleEndian;
+        out_buf[offset + uint.sizeof .. $] = msg_buf;
     }
 
     bool recv_buffer()
@@ -542,25 +553,27 @@ class User
             return false;
 
         in_buf ~= receive_buf[0 .. receive_len];
-
-        while (recv_message()) {
-            // disconnect the user if message is incorrect/bogus
-            if (in_msg_size < 0 || in_msg_size > max_msg_size)
+        do {
+            if (in_msg_size == -1) {
+                if (in_buf.length < uint.sizeof)
+                    break;
+                in_msg_size = in_buf.read!(uint, Endian.littleEndian);
+            }
+            if (in_msg_size < 0 || in_msg_size > max_msg_size) {
+                debug (msg) writefln!(
+                    "Received unexpected message size %d from user %s, "
+                  ~ "disconnecting them")(
+                    in_msg_size, blue ~ username ~ norm
+                );
                 return false;
+            }
+            if (in_buf.length < in_msg_size)
+                break;
             proc_message();
         }
+        while (true);
 
         return true;
-    }
-
-    private bool recv_message()
-    {
-        if (in_msg_size == -1) {
-            if (in_buf.length < uint.sizeof)
-                return false;
-            in_msg_size = in_buf.read!(uint, Endian.littleEndian);
-        }
-        return in_buf.length >= in_msg_size;
     }
 
     private void proc_message()
