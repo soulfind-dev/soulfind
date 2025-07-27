@@ -1014,18 +1014,6 @@ class SRelogged : SMessage
     }
 }
 
-class SUserSearch : SMessage
-{
-    this(string username, uint token, string query) scope
-    {
-        super(UserSearch);
-
-        write!string(username);
-        write!uint(token);
-        write!string(query);
-    }
-}
-
 class SAdminMessage : SMessage
 {
     this(string message) scope
@@ -1142,18 +1130,6 @@ class SRoomTickerRemove : SMessage
 
         write!string(room_name);
         write!string(username);
-    }
-}
-
-class SRoomSearch : SMessage
-{
-    this(string username, uint token, string query) scope
-    {
-        super(RoomSearch);
-
-        write!string(username);
-        write!uint(token);
-        write!string(query);
     }
 }
 
