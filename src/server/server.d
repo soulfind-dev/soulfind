@@ -440,7 +440,7 @@ class Server
         auto privileged = "false";
         SysTime privileged_until;
         bool supporter;
-        uint speed, upload_number;
+        uint upload_speed;
         uint shared_files, shared_folders;
         string joined_rooms;
 
@@ -451,8 +451,7 @@ class Server
             status = (user.status == Status.away) ? "away" : "online";
             privileged_until = user.privileged_until;
             supporter = user.supporter;
-            speed = user.speed;
-            upload_number = user.upload_number;
+            upload_speed = user.upload_speed;
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
             joined_rooms = user.joined_room_names.join(", ");
@@ -461,8 +460,7 @@ class Server
             const user_stats = db.user_stats(username);
             privileged_until = db.user_privileged_until(username);
             supporter = db.user_supporter(username);
-            speed = user_stats.speed;
-            upload_number = user_stats.upload_number;
+            upload_speed = user_stats.upload_speed;
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;
         }
@@ -489,7 +487,6 @@ class Server
           ~ "\n\tfiles: %s"
           ~ "\n\tdirs: %s"
           ~ "\n\tupload speed: %s"
-          ~ "\n\tupload number: %s"
           ~ "\n\tjoined rooms: %s")(
             username,
             client_version,
@@ -501,8 +498,7 @@ class Server
             supporter,
             shared_files,
             shared_folders,
-            speed,
-            upload_number,
+            upload_speed,
             joined_rooms
         );
     }

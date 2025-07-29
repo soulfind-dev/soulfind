@@ -783,8 +783,8 @@ class SGetPeerAddress : SMessage
 
 class SWatchUser : SMessage
 {
-    this(string username, bool exists, uint status, uint speed,
-         uint upload_number, uint shared_files, uint shared_folders) scope
+    this(string username, bool exists, uint status, uint upload_speed,
+         uint shared_files, uint shared_folders) scope
     {
         super(WatchUser);
 
@@ -794,8 +794,8 @@ class SWatchUser : SMessage
             return;
 
         write!uint(status);
-        write!uint(speed);
-        write!uint(upload_number);
+        write!uint(upload_speed);
+        write!uint(0);  // upload_number, obsolete
         write!uint(0);  // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);
@@ -865,8 +865,8 @@ class SJoinRoom : SMessage
         write!uint(n);
         foreach (user ; users)
         {
-            write!uint(user.speed);
-            write!uint(user.upload_number);
+            write!uint(user.upload_speed);
+            write!uint(0);  // upload_number, obsolete
             write!uint(0);  // unknown, obsolete
             write!uint(user.shared_files);
             write!uint(user.shared_folders);
@@ -893,20 +893,19 @@ class SLeaveRoom : SMessage
 class SUserJoinedRoom : SMessage
 {
     this(string room_name, string username, uint status,
-         uint speed, uint upload_number, uint shared_files,
-         uint shared_folders) scope
+         uint upload_speed, uint shared_files, uint shared_folders) scope
     {
         super(UserJoinedRoom);
 
         write!string(room_name);
         write!string(username);
         write!uint(status);
-        write!uint(speed);
-        write!uint(upload_number);
-        write!uint(0);  // unknown, obsolete
+        write!uint(upload_speed);
+        write!uint(0);     // upload_number, obsolete
+        write!uint(0);     // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);
-        write!uint(0);  // slots_full, obsolete
+        write!uint(0);     // slots_full, obsolete
         write!string("");  // country_code, obsolete
     }
 }
@@ -973,14 +972,14 @@ class SFileSearch : SMessage
 
 class SGetUserStats : SMessage
 {
-    this(string username, uint speed, uint upload_number, uint shared_files,
+    this(string username, uint upload_speed, uint shared_files,
          uint shared_folders) scope
     {
         super(GetUserStats);
 
         write!string(username);
-        write!uint(speed);
-        write!uint(upload_number);
+        write!uint(upload_speed);
+        write!uint(0);  // upload_number, obsolete
         write!uint(0);  // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);

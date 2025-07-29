@@ -71,8 +71,7 @@ struct SdbUserStats
 {
     string  username;
     bool    exists;
-    uint    speed;
-    uint    upload_number;
+    uint    upload_speed;
     uint    shared_files;
     uint    shared_folders;
 
@@ -120,7 +119,6 @@ class Sdb
           ~ " username TEXT PRIMARY KEY,"
           ~ " password TEXT,"
           ~ " speed INTEGER,"
-          ~ " ulnum INTEGER,"
           ~ " files INTEGER,"
           ~ " folders INTEGER,"
           ~ " banned INTEGER,"
@@ -482,7 +480,7 @@ class Sdb
     SdbUserStats user_stats(string username)
     {
         const sql = format!(
-            "SELECT speed,ulnum,files,folders"
+            "SELECT speed,files,folders"
           ~ " FROM %s"
           ~ " WHERE username = ?;")(
             users_table
@@ -494,16 +492,13 @@ class Sdb
             const record                   = res[0];
             user_stats.exists              = true;
 
-            try user_stats.speed           = record[0].to!uint;
+            try user_stats.upload_speed    = record[0].to!uint;
             catch (ConvException) {}
 
-            try user_stats.upload_number   = record[1].to!uint;
+            try user_stats.shared_files    = record[1].to!uint;
             catch (ConvException) {}
 
-            try user_stats.shared_files    = record[2].to!uint;
-            catch (ConvException) {}
-
-            try user_stats.shared_folders  = record[3].to!uint;
+            try user_stats.shared_folders  = record[2].to!uint;
             catch (ConvException) {}
         }
         return user_stats;
@@ -516,7 +511,7 @@ class Sdb
 
         if (stats.updating_speed) {
             fields ~= "speed = ?";
-            parameters ~= stats.speed.to!string;
+            parameters ~= stats.upload_speed.to!string;
         }
 
         if (stats.updating_shared) {

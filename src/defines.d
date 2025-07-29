@@ -26,6 +26,7 @@ const max_room_ticker_length   = 1024;
 const max_search_query_length  = 256;
 const max_username_length      = 30;
 const max_room_tickers         = 200;
+const speed_weight             = 50;
 const server_username          = "server";
 const exit_message             = "A la prochaine...";
 

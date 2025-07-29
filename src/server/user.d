@@ -12,7 +12,8 @@ import soulfind.defines : blue, bold, default_max_users, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
                           max_username_length, norm, red, server_username,
-                          VERSION, wish_interval, wish_interval_privileged;
+                          speed_weight, VERSION, wish_interval,
+                          wish_interval_privileged;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -42,8 +43,7 @@ class User
     SysTime                 privileged_until;
     bool                    supporter;
 
-    uint                    speed;                // in B/s
-    uint                    upload_number;
+    uint                    upload_speed;  // in B/s
     uint                    shared_files;
     uint                    shared_folders;
 
@@ -183,24 +183,22 @@ class User
 
     // Stats
 
-    private void calc_speed(uint new_speed)
+    private void update_upload_speed(uint new_speed)
     {
-        if (upload_number == 0) {
-            upload_number = 1;
-            speed = new_speed;
-        }
-        else {
-            speed = (speed * upload_number + new_speed) / (upload_number + 1);
-            upload_number++;
-        }
+        if (upload_speed > 0)
+            upload_speed = (
+                (upload_speed * speed_weight + new_speed) / (speed_weight + 1)
+            );
+        else
+            upload_speed = new_speed;
 
         scope msg = new SGetUserStats(
-            username, speed, upload_number, shared_files, shared_folders
+            username, upload_speed, shared_files, shared_folders
         );
         send_to_watching(msg);
 
         auto stats = SdbUserStats();
-        stats.speed = speed;
+        stats.upload_speed = upload_speed;
         stats.updating_speed = true;
 
         server.db.user_update_stats(username, stats);
@@ -629,8 +627,7 @@ class User
                     msg.major_version, msg.minor_version);
 
                 const user_stats = server.db.user_stats(username);
-                speed = user_stats.speed;
-                upload_number = user_stats.upload_number;
+                upload_speed = user_stats.upload_speed;
                 shared_files = user_stats.shared_files;
                 shared_folders = user_stats.shared_folders;
 
@@ -708,23 +705,21 @@ class User
 
                 bool user_exists;
                 uint user_status = Status.offline;
-                uint user_speed, user_upload_number;
+                uint user_upload_speed;
                 uint user_shared_files, user_shared_folders;
 
                 if (user)
                 {
                     user_exists = true;
                     user_status = user.status;
-                    user_speed = user.speed;
-                    user_upload_number = user.upload_number;
+                    user_upload_speed = user.upload_speed;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                 }
                 else if (msg.username != server_username) {
                     const user_stats = server.db.user_stats(msg.username);
                     user_exists = user_stats.exists;
-                    user_speed = user_stats.speed;
-                    user_upload_number = user_stats.upload_number;
+                    user_upload_speed = user_stats.upload_speed;
                     user_shared_files = user_stats.shared_files;
                     user_shared_folders = user_stats.shared_folders;
                 }
@@ -732,8 +727,8 @@ class User
                 watch(msg.username);
 
                 scope response_msg = new SWatchUser(
-                    msg.username, user_exists, user_status, user_speed,
-                    user_upload_number, user_shared_files, user_shared_folders
+                    msg.username, user_exists, user_status, user_upload_speed,
+                    user_shared_files, user_shared_folders
                 );
                 send_message(response_msg);
                 break;
@@ -875,8 +870,7 @@ class User
                 update_shared_stats(msg.shared_files, msg.shared_folders);
 
                 scope response_msg = new SGetUserStats(
-                    username, speed, upload_number, shared_files,
-                    shared_folders
+                    username, upload_speed, shared_files, shared_folders
                 );
                 send_to_watching(response_msg);
                 break;
@@ -885,26 +879,24 @@ class User
                 scope msg = new UGetUserStats(msg_buf, username);
                 auto user = server.get_user(msg.username);
 
-                uint user_speed, user_upload_number;
+                uint user_upload_speed;
                 uint user_shared_files, user_shared_folders;
 
                 if (user) {
-                    user_speed = user.speed;
-                    user_upload_number = user.upload_number;
+                    user_upload_speed = user.upload_speed;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                 }
                 else {
                     const user_stats = server.db.user_stats(msg.username);
-                    user_speed = user_stats.speed;
-                    user_upload_number = user_stats.upload_number;
+                    user_upload_speed = user_stats.upload_speed;
                     user_shared_files = user_stats.shared_files;
                     user_shared_folders = user_stats.shared_folders;
                 }
 
                 scope response_msg = new SGetUserStats(
-                    msg.username, user_speed, user_upload_number,
-                    user_shared_files, user_shared_folders
+                    msg.username, user_upload_speed, user_shared_files,
+                    user_shared_folders
                 );
                 send_message(response_msg);
                 break;
@@ -1028,7 +1020,7 @@ class User
 
             case SendUploadSpeed:
                 scope msg = new USendUploadSpeed(msg_buf, username);
-                calc_speed(msg.speed);
+                update_upload_speed(msg.speed);
                 break;
 
             case UserPrivileged:

@@ -362,8 +362,7 @@ class Setup
               ~ "\n\tsupporter: %s"
               ~ "\n\tfiles: %s"
               ~ "\n\tdirs: %s"
-              ~ "\n\tupload speed: %s"
-              ~ "\n\tupload number: %s")(
+              ~ "\n\tupload speed: %s")(
                 username,
                 admin,
                 banned,
@@ -371,8 +370,7 @@ class Setup
                 supporter,
                 stats.shared_files,
                 stats.shared_folders,
-                stats.speed,
-                stats.upload_number
+                stats.upload_speed
             );
         }
         else
