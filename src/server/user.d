@@ -38,7 +38,6 @@ class User
 
     uint                    status;
     string                  client_version;
-    SysTime                 connected_at;
     LoginRejection          login_rejection;
     SysTime                 privileged_until;
     bool                    supporter;
@@ -68,7 +67,6 @@ class User
         this.server              = serv;
         this.sock                = sock;
         this.address             = address;
-        this.connected_at        = Clock.currTime;
         this.connected_monotime  = MonoTime.currTime;
     }
 

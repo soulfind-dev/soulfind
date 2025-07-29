@@ -434,7 +434,6 @@ class Server
         const now = Clock.currTime;
         auto client_version = "none";
         auto address = "none";
-        auto connected_at = "none";
         auto status = "offline";
         const admin = db.is_admin(username);
         auto banned = "false";
@@ -449,7 +448,6 @@ class Server
         if (user) {
             client_version = user.client_version;
             address = user.address.toString;
-            connected_at = user.connected_at.toSimpleString;
             status = (user.status == Status.away) ? "away" : "online";
             privileged_until = user.privileged_until;
             supporter = user.supporter;
@@ -483,7 +481,6 @@ class Server
             "%s"
           ~ "\n\tclient version: %s"
           ~ "\n\taddress: %s"
-          ~ "\n\tconnected at: %s"
           ~ "\n\tstatus: %s"
           ~ "\n\tadmin: %s"
           ~ "\n\tbanned: %s"
@@ -497,7 +494,6 @@ class Server
             username,
             client_version,
             address,
-            connected_at,
             status,
             admin,
             banned,
@@ -643,10 +639,8 @@ class Server
                 Appender!string output;
                 output ~= format!("%d connected users.")(users.length);
                 foreach (user ; users)
-                    output ~= format!(
-                        "\n\t%s (client version: %s, connected at: %s)")(
-                        user.username, user.client_version,
-                        user.connected_at.toSimpleString
+                    output ~= format!("\n\t%s (client version: %s)")(
+                        user.username, user.client_version
                     );
 
                 server_pm(admin, output[]);
