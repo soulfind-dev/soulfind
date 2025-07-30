@@ -125,6 +125,8 @@ class Setup
                 }
             }
             while(true);
+        } else {
+            db.add_admin(username);
         }
         admins();
     }
