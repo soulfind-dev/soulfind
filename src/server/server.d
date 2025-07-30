@@ -636,7 +636,10 @@ class Server
                       ~ " user"
                       ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
                       ~ " privileges from user"
-                      ~ "\n\nmessage <message>\n\tSend global message"
+                      ~ "\n\nannouncement <message>\n\tSend announcement to"
+                      ~ " online users"
+                      ~ "\n\nmessage <message>\n\tSend private message to"
+                      ~ " all registered users"
                       ~ "\n\nuptime\n\tShow server uptime")(
                         kick_duration.total!"minutes",
                         kick_duration.total!"minutes"
@@ -929,13 +932,24 @@ class Server
                 server_pm(admin_username, response);
                 break;
 
+            case "announcement":
+                if (command.length < 2) {
+                    server_pm(
+                        admin_username, "Syntax is : announcement <message>"
+                    );
+                    break;
+                }
+                const msg = command[1 .. $].join(" ");
+                server_announcement(msg);
+                break;
+
             case "message":
                 if (command.length < 2) {
                     server_pm(admin_username, "Syntax is : message <message>");
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
-                global_message(msg);
+                foreach (username ; db.usernames) server_pm(username, msg);
                 break;
 
             case "uptime":
@@ -964,7 +978,7 @@ class Server
         send_pm(pm, new_message);
     }
 
-    private void global_message(string message)
+    private void server_announcement(string message)
     {
         scope msg = new SAdminMessage(message);
         foreach (user ; users) user.send_message(msg);
