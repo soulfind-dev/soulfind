@@ -309,27 +309,38 @@ class Server
 
     void del_pm(uint id)
     {
-        if (find_pm(id))
+        if (id in pms)
             pms.remove(id);
-    }
-
-    PM[] user_pms(string username)
-    {
-        Appender!(PM[]) user_pms;
-        foreach (pm ; pms) if (pm.to_username == username) user_pms ~= pm;
-        return user_pms[];
-    }
-
-    private bool find_pm(uint id)
-    {
-        return(id in pms) ? true : false;
     }
 
     private uint new_pm_id()
     {
         uint id = cast(uint) pms.length;
-        while (find_pm(id)) id++;
+        while (id in pms) id++;
         return id;
+    }
+
+    void send_pm(const PM pm, bool new_message)
+    {
+        auto user = get_user(pm.to_username);
+        if (!user)
+            return;
+
+        scope msg = new SMessageUser(
+            pm.id, pm.time, pm.from_username, pm.message, new_message
+        );
+        user.send_message(msg);
+    }
+
+    void send_queued_pms(string username)
+    {
+        foreach (pm ; pms) {
+            if (pm.to_username != username)
+                continue;
+
+            const new_message = false;
+            send_pm(pm, new_message);
+        }
     }
 
 
@@ -597,9 +608,9 @@ class Server
         foreach (user ; users) user.send_message(msg);
     }
 
-    void admin_message(User admin, string message)
+    void admin_message(string admin_username, string message)
     {
-        if (!db.is_admin(admin.username))
+        if (!db.is_admin(admin_username))
             return;
 
         const command = message.split(" ");
@@ -607,7 +618,7 @@ class Server
         {
             case "help":
                 server_pm(
-                    admin,
+                    admin_username,
                     format!(
                         "Available commands :"
                       ~ "\n\nadmins\n\tList admins"
@@ -642,12 +653,12 @@ class Server
                     output ~= format!("\n\t%s (%s)")(name, status);
                 }
 
-                server_pm(admin, output[]);
+                server_pm(admin_username, output[]);
                 break;
 
             case "users":
                 const type = (command.length > 1) ? command[1] : null;
-                server_pm(admin, user_list(type));
+                server_pm(admin_username, user_list(type));
                 break;
 
             case "rooms":
@@ -657,45 +668,47 @@ class Server
                     output ~= format!("\n\t%s (users: %d, tickers: %d)")(
                         room.name, room.num_users, room.num_tickers
                     );
-                server_pm(admin, output[]);
+                server_pm(admin_username, output[]);
                 break;
 
             case "userinfo":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : userinfo <user>");
+                    server_pm(admin_username, "Syntax is : userinfo <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
 
                 if (!db.user_exists(username)) {
-                    server_pm(admin, format!(
-                        "User %s is not registered")(username)
+                    server_pm(
+                        admin_username,
+                        format!("User %s is not registered")(username)
                     );
                     break;
                 }
 
-                server_pm(admin, user_info(username));
+                server_pm(admin_username, user_info(username));
                 break;
 
             case "roominfo":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : roominfo <user>");
+                    server_pm(admin_username, "Syntax is : roominfo <user>");
                     break;
                 }
                 const name = command[1 .. $].join(" ");
 
                 if (name !in rooms) {
-                    server_pm(admin, format!(
-                        "Room %s is not registered")(name)
+                    server_pm(
+                        admin_username,
+                        format!("Room %s is not registered")(name)
                     );
                     break;
                 }
-                server_pm(admin, room_info(name));
+                server_pm(admin_username, room_info(name));
                 break;
 
             case "ban":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : ban [days] <user>");
+                    server_pm(admin_username, "Syntax is : ban [days] <user>");
                     break;
                 }
 
@@ -714,8 +727,9 @@ class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    server_pm(admin, format!(
-                        "User %s is not registered")(username)
+                    server_pm(
+                        admin_username,
+                        format!("User %s is not registered")(username)
                     );
                     break;
                 }
@@ -733,22 +747,27 @@ class Server
                         username, duration.total!"days".days
                     );
 
-                server_pm(admin, response);
+                server_pm(admin_username, response);
                 break;
 
             case "unban":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : unban <user>");
+                    server_pm(admin_username, "Syntax is : unban <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
                 db.unban_user(username);
-                server_pm(admin, format!("Unbanned user %s")(username));
+                server_pm(
+                    admin_username,
+                    format!("Unbanned user %s")(username)
+                );
                 break;
 
             case "kick":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : kick [minutes] <user>");
+                    server_pm(
+                        admin_username, "Syntax is : kick [minutes] <user>"
+                    );
                     break;
                 }
 
@@ -768,7 +787,8 @@ class Server
 
                 if (!db.user_exists(username)) {
                     server_pm(
-                        admin, format!("User %s is not registered")(username)
+                        admin_username,
+                        format!("User %s is not registered")(username)
                     );
                     break;
                 }
@@ -778,7 +798,7 @@ class Server
                 auto user = get_user(username);
                 if (user) del_user(user);
 
-                server_pm(admin, format!("Kicked user %s for %s")(
+                server_pm(admin_username, format!("Kicked user %s for %s")(
                     username, duration.total!"minutes".minutes
                 ));
                 break;
@@ -793,13 +813,15 @@ class Server
                             .minutes;
                     }
                     catch (ConvException) {
-                        server_pm(admin, "Syntax is : kickall [minutes]");
+                        server_pm(
+                            admin_username, "Syntax is : kickall [minutes]"
+                        );
                         break;
                     }
                 }
                 Appender!(User[]) users_to_kick;
                 foreach (user ; users)
-                    if (user.username != admin.username)
+                    if (user.username != admin_username)
                         users_to_kick ~= user;
 
                 foreach (user ; users_to_kick) {
@@ -809,10 +831,10 @@ class Server
 
                 debug (user) writefln!(
                     "Admin %s kicked ALL %d users for %s!")(
-                    blue ~ admin.username ~ norm, users_to_kick[].length,
+                    blue ~ admin_username ~ norm, users_to_kick[].length,
                     duration
                 );
-                server_pm(admin, format!(
+                server_pm(admin_username, format!(
                     "Kicked all %d users for %s")(
                     users_to_kick[].length, duration.total!"minutes".minutes
                 ));
@@ -821,7 +843,8 @@ class Server
             case "addprivileges":
                 if (command.length < 3) {
                     server_pm(
-                        admin, "Syntax is : addprivileges <days> <user>"
+                        admin_username,
+                        "Syntax is : addprivileges <days> <user>"
                     );
                     break;
                 }
@@ -834,15 +857,17 @@ class Server
                         .days;
                 }
                 catch (ConvException) {
-                    server_pm(admin, "Invalid number or too many days");
+                    server_pm(
+                        admin_username, "Invalid number or too many days"
+                    );
                     break;
                 }
 
                 const username = command[2 .. $].join(" ");
                 if (!db.user_exists(username)) {
                     server_pm(
-                        admin, format!("User %s is not registered")(
-                        username)
+                        admin_username,
+                        format!("User %s is not registered")(username)
                     );
                     break;
                 }
@@ -852,7 +877,7 @@ class Server
                 auto user = get_user(username);
                 if (user) user.refresh_privileges();
 
-                server_pm(admin, format!(
+                server_pm(admin_username, format!(
                     "Added %s of privileges to user %s")(
                     duration.total!"days".days, username)
                 );
@@ -861,7 +886,8 @@ class Server
             case "removeprivileges":
                 if (command.length < 2) {
                     server_pm(
-                        admin, "Syntax is : removeprivileges [days] <user>"
+                        admin_username,
+                        "Syntax is : removeprivileges [days] <user>"
                     );
                     break;
                 }
@@ -879,7 +905,7 @@ class Server
 
                 if (!db.user_exists(username)) {
                     server_pm(
-                        admin, format!("User %s is not registered")(
+                        admin_username, format!("User %s is not registered")(
                         username)
                     );
                     break;
@@ -900,12 +926,12 @@ class Server
                         duration.total!"days".days, username
                     );
 
-                server_pm(admin, response);
+                server_pm(admin_username, response);
                 break;
 
             case "message":
                 if (command.length < 2) {
-                    server_pm(admin, "Syntax is : message <message>");
+                    server_pm(admin_username, "Syntax is : message <message>");
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
@@ -918,12 +944,12 @@ class Server
                     duration.total!"seconds".seconds,
                     started_at.toSimpleString
                 );
-                server_pm(admin, response);
+                server_pm(admin_username, response);
                 break;
 
             default:
                 server_pm(
-                    admin,
+                    admin_username,
                     "Don't expect me to understand what you want if you don't "
                   ~ "use a correct command..."
                 );
@@ -931,11 +957,11 @@ class Server
         }
     }
 
-    void server_pm(User user, string message)
+    void server_pm(string username, string message)
     {
-        const pm = add_pm(message, server_username, user.username);
+        const pm = add_pm(message, server_username, username);
         const new_message = true;
-        user.send_pm(pm, new_message);
+        send_pm(pm, new_message);
     }
 
     private void global_message(string message)

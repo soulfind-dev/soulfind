@@ -426,17 +426,6 @@ class User
     }
 
 
-    // Private Messages
-
-    void send_pm(const PM pm, bool new_message)
-    {
-        scope msg = new SMessageUser(
-            pm.id, pm.time, pm.from_username, pm.message, new_message
-        );
-        send_message(msg);
-    }
-
-
     // Rooms
 
     void join_room(string name)
@@ -474,7 +463,7 @@ class User
             }
 
         if (fail_message) {
-            server.server_pm(this, fail_message);
+            server.server_pm(username, fail_message);
             return;
         }
 
@@ -673,15 +662,7 @@ class User
                 send_message(privileged_users_msg);
 
                 update_status(Status.online);
-
-                foreach (pm ; server.user_pms(username)) {
-                    const new_message = false;
-                    debug (user) writefln!(
-                        "Sending offline PM (id %d) from %s to %s")(
-                        pm.id, pm.from_username, blue ~ username ~ norm
-                    );
-                    send_pm(pm, new_message);
-                }
+                server.send_queued_pms(username);
                 break;
 
             case SetWaitPort:
@@ -844,7 +825,7 @@ class User
                     if (!address.port)
                         break;
 
-                    server.admin_message(this, msg.message);
+                    server.admin_message(username, msg.message);
                 }
                 else if (user) {
                     // user is connected
@@ -852,8 +833,7 @@ class User
                         msg.message, username, msg.username
                     );
                     const new_message = true;
-
-                    user.send_pm(pm, new_message);
+                    server.send_pm(pm, new_message);
                 }
                 else if (server.db.user_exists(msg.username)) {
                     // user exists but not connected
@@ -1088,14 +1068,14 @@ class User
                     break;
 
                 foreach (target_username ; msg.usernames) {
-                    auto user = server.get_user(target_username);
+                    const user = server.get_user(target_username);
                     if (!user)
                         continue;
 
                     const pm = server.add_pm(
                         msg.message, username, target_username
                     );
-                    user.send_pm(pm, new_message);
+                    server.send_pm(pm, new_message);
                 }
                 break;
 
