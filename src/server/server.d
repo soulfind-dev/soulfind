@@ -435,6 +435,10 @@ class Server
         auto client_version = "none";
         auto address = "none";
         auto status = "offline";
+        ulong watched_users;
+        string liked_items, hated_items;
+        string joined_rooms;
+        auto joined_global_room = "false";
         const admin = db.is_admin(username);
         auto banned = "false";
         auto privileged = "false";
@@ -442,19 +446,22 @@ class Server
         bool supporter;
         uint upload_speed;
         uint shared_files, shared_folders;
-        string joined_rooms;
 
         user = get_user(username);
         if (user) {
             client_version = user.client_version;
             address = user.address.toString;
             status = (user.status == Status.away) ? "away" : "online";
+            watched_users = user.num_watched_users;
+            liked_items = user.liked_item_names.join(", ");
+            hated_items = user.hated_item_names.join(", ");
+            joined_rooms = user.joined_room_names.join(", ");
+            if (global_room.is_joined(username)) joined_global_room = "true";
             privileged_until = user.privileged_until;
             supporter = user.supporter;
             upload_speed = user.upload_speed;
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
-            joined_rooms = user.joined_room_names.join(", ");
         }
         else {
             const user_stats = db.user_stats(username);
@@ -477,29 +484,41 @@ class Server
 
         return format!(
             "%s"
+          ~ "\n"
+          ~ "\nSession info:"
           ~ "\n\tclient version: %s"
           ~ "\n\taddress: %s"
           ~ "\n\tstatus: %s"
+          ~ "\n\twatched users: %s"
+          ~ "\n\tliked items: %s"
+          ~ "\n\thated items: %s"
+          ~ "\n\tjoined rooms: %s"
+          ~ "\n\tjoined global room: %s"
+          ~ "\n"
+          ~ "\nPresistent info:"
           ~ "\n\tadmin: %s"
           ~ "\n\tbanned: %s"
           ~ "\n\tprivileged: %s"
           ~ "\n\tsupporter: %s"
-          ~ "\n\tfiles: %s"
-          ~ "\n\tdirs: %s"
           ~ "\n\tupload speed: %s"
-          ~ "\n\tjoined rooms: %s")(
+          ~ "\n\tfiles: %s"
+          ~ "\n\tdirs: %s")(
             username,
             client_version,
             address,
             status,
+            watched_users,
+            liked_items,
+            hated_items,
+            joined_rooms,
+            joined_global_room,
             admin,
             banned,
             privileged,
             supporter,
-            shared_files,
-            shared_folders,
             upload_speed,
-            joined_rooms
+            shared_files,
+            shared_folders
         );
     }
 

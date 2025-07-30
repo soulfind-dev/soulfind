@@ -276,6 +276,11 @@ class User
         return false;
     }
 
+    ulong num_watched_users()
+    {
+        return watched_users.length;
+    }
+
     private void send_to_watching(scope SMessage msg)
     {
         debug (msg) writefln!(
@@ -329,6 +334,16 @@ class User
     private bool hates(string item)
     {
         return item in hated_items ? true : false;
+    }
+
+    string[] liked_item_names()
+    {
+        return liked_items.byKey.array;
+    }
+
+    string[] hated_item_names()
+    {
+        return hated_items.byKey.array;
     }
 
     private uint[string] global_recommendations()

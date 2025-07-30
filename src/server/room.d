@@ -177,6 +177,11 @@ class GlobalRoom
              users.remove(username);
     }
 
+    bool is_joined(string username)
+    {
+        return (username in users) ? true : false;
+    }
+
     void say(string room_name, string username, string message)
     {
         scope msg = new SGlobalRoomMessage(room_name, username, message);
