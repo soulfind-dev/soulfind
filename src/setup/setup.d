@@ -83,7 +83,6 @@ class Setup
                 MenuItem("2", "Max users allowed", &max_users),
                 MenuItem("3", "MOTD",              &motd),
                 MenuItem("4", "Registered users",  &registered_users),
-                MenuItem("5", "Banned users",      &banned_users),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -306,9 +305,11 @@ class Setup
                 MenuItem("1", "Add user",              &add_user),
                 MenuItem("2", "Show user info",        &user_info),
                 MenuItem("3", "Change user password",  &change_user_password),
-                MenuItem("4", "Remove user",           &remove_user),
-                MenuItem("5", "List registered users", &list_registered),
-                MenuItem("6", "List privileged users", &list_privileged),
+                MenuItem("4", "Unban user",            &unban_user),
+                MenuItem("5", "Remove user",           &remove_user),
+                MenuItem("6", "List registered users", &list_registered),
+                MenuItem("7", "List privileged users", &list_privileged),
+                MenuItem("8", "List banned users",     &list_banned),
                 MenuItem("q", "Return",                &main_menu)
             ]
         );
@@ -398,6 +399,19 @@ class Setup
         registered_users();
     }
 
+    private void unban_user()
+    {
+        write("User to unban : ");
+        const username = input.strip;
+
+        if (db.user_banned(username))
+            db.unban_user(username);
+        else
+            writefln!("\nUser %s is not banned")(username);
+
+        registered_users();
+    }
+
     private void remove_user()
     {
         write("User to remove : ");
@@ -440,79 +454,6 @@ class Setup
         registered_users();
     }
 
-    private void banned_users()
-    {
-        show_menu(
-            format!("Banned users (%d)")(
-                db.num_users("banned", Clock.currTime.toUnixTime)
-            ),
-            [
-                MenuItem("1", "Ban user",          &ban_user),
-                MenuItem("2", "Unban user",        &unban_user),
-                MenuItem("3", "List banned users", &list_banned),
-                MenuItem("q", "Return",            &main_menu)
-            ]
-        );
-    }
-
-    private void ban_user()
-    {
-        write("User to ban : ");
-        const username = input.strip;
-
-        if (!db.user_exists(username)) {
-            writefln!("\nUser %s is not registered")(username);
-            banned_users();
-            return;
-        }
-
-        Duration banned_until;
-
-        do {
-            write("Number of days to ban user (empty = forever) : ");
-            const duration = input.strip;
-
-            if (duration.length == 0) {
-                banned_until = Duration.max;
-                break;
-            }
-
-            try {
-                banned_until = duration.to!uint.days;
-                break;
-            }
-            catch (ConvException) {
-                writeln("Please enter a valid number");
-            }
-        }
-        while(true);
-
-        db.ban_user(username, banned_until);
-
-        if (banned_until == Duration.max)
-            writefln!("\nBanned user %s forever")(username);
-        else
-            writefln!(
-                "\nBanned user %s until %s")(
-                username, banned_until
-            );
-
-        banned_users();
-    }
-
-    private void unban_user()
-    {
-        write("User to unban : ");
-        const username = input.strip;
-
-        if (db.user_banned(username))
-            db.unban_user(username);
-        else
-            writefln!("\nUser %s is not banned")(username);
-
-        banned_users();
-    }
-
     private void list_banned()
     {
         const users = db.usernames("banned", Clock.currTime.toUnixTime);
@@ -529,6 +470,6 @@ class Setup
         }
 
         writeln(output[]);
-        banned_users();
+        registered_users();
     }
 }
