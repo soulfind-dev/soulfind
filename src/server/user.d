@@ -36,6 +36,7 @@ class User
     string                  username;
     Socket                  sock;
     InternetAddress         address;
+    bool                    removed;
 
     uint                    status;
     string                  client_version;

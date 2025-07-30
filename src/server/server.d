@@ -8,9 +8,10 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, default_port, kick_duration,
-                          max_room_name_length, max_search_query_length, norm,
-                          red, server_username, VERSION;
+import soulfind.defines : blue, bold, default_port, delete_user_interval,
+                          kick_duration, max_room_name_length,
+                          max_search_query_length, norm, red, server_username,
+                          VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -41,6 +42,7 @@ class Server
 
     private SysTime       started_at;
     private MonoTime      started_monotime;
+    private MonoTime      last_delete_user_check;
     private ushort        port;
 
     private User[Socket]  user_socks;
@@ -135,7 +137,14 @@ class Server
                 }
             }
 
-            Appender!(User[]) users_to_remove;
+            Appender!(User[]) users_to_disconnect;
+
+            const curr_time = MonoTime.currTime;
+            const check_user_deleted = (
+                (curr_time - last_delete_user_check) >= delete_user_interval
+            );
+            if (check_user_deleted)
+                last_delete_user_check = curr_time;
 
             foreach (user_sock, user ; user_socks) {
                 const recv_ready = read_socks.isSet(user_sock);
@@ -143,16 +152,10 @@ class Server
                 bool recv_success = true;
                 bool send_success = true;
 
-                if (recv_ready) {
+                if (recv_ready)
                     recv_success = user.recv_buffer();
-
-                    if (!user.sock)
-                        // User was kicked
-                        continue;
-                }
-                else {
+                else
                     read_socks.add(user_sock);
-                }
 
                 if (send_ready)
                     send_success = user.send_buffer();
@@ -161,18 +164,54 @@ class Server
                     if (send_ready)
                         write_socks.remove(user_sock);
 
-                    if (user.login_rejection.reason || user.login_timed_out)
+                    if (check_user_deleted && user.username in users) {
+                        // If the user was removed from the database, perform
+                        // server-side removal and disconnection of deleted
+                        // users. Send a Relogged message first to prevent the
+                        // user's client from automatically reconnecting and
+                        // registering again.
+                        const deleted = !db.user_exists(user.username);
+                        if (deleted) {
+                            scope relogged_msg = new SRelogged();
+                            user.send_message(relogged_msg);
+                            del_user(user, deleted);
+                        }
+                        last_delete_user_check = curr_time;
+                    }
+                    else if (user.removed) {
+                        // In order to avoid closing connections early before
+                        // delivering e.g. a Relogged message, we disconnect
+                        // the user here after the output buffer is sent
+                        users_to_disconnect ~= user;
+                    }
+                    else if (user.login_rejection.reason
+                            || user.login_timed_out) {
                         recv_success = send_success = false;
+                    }
                 }
                 else if (!send_ready) {
                     write_socks.add(user_sock);
                 }
 
-                if (!running || !recv_success || !send_success)
-                    users_to_remove ~= user;
+                if (!running || !recv_success || !send_success) {
+                    del_user(user);
+                    users_to_disconnect ~= user;
+                }
             }
 
-            foreach (user ; users_to_remove) del_user(user);
+            foreach (user ; users_to_disconnect) {
+                read_socks.remove(user.sock);
+                write_socks.remove(user.sock);
+                user_socks.remove(user.sock);
+
+                user.sock.shutdown(SocketShutdown.BOTH);
+                user.sock.close();
+
+                debug (user) writefln!("Closed connection to %s")(
+                    user.address.toAddrString
+                );
+                user.sock = null;
+            }
         }
 
         sock.close();
@@ -309,8 +348,18 @@ class Server
 
     void del_pm(uint id)
     {
-        if (id in pms)
-            pms.remove(id);
+        if (id in pms) pms.remove(id);
+    }
+
+    void del_user_pms(string username, bool include_received = false)
+    {
+        Appender!(PM[]) pms_to_remove;
+        foreach (pm ; pms) {
+            if (pm.from_username == username
+                    || (include_received && pm.to_username == username))
+                pms_to_remove ~= pm;
+        }
+        foreach (pm ; pms_to_remove) del_pm(pm.id);
     }
 
     private uint new_pm_id()
@@ -359,6 +408,11 @@ class Server
             rooms.remove(name);
     }
 
+    void del_user_tickers(string username)
+    {
+        foreach (room ; rooms) room.del_ticker(username);
+    }
+
     Room get_room(string name)
     {
         if (name !in rooms)
@@ -405,27 +459,22 @@ class Server
         users[user.username] = user;
     }
 
-    void del_user(User user)
+    void del_user(User user, bool delete_messages = false)
     {
+        if (user.removed)
+            return;
+
+        user.removed = true;
         const username = user.username;
-        auto sock = user.sock;
-
-        if (sock in user_socks) {
-            read_socks.remove(sock);
-            write_socks.remove(sock);
-            user_socks.remove(sock);
-
-            sock.shutdown(SocketShutdown.BOTH);
-            sock.close();
-
-            debug (user) writefln!("Closed connection to %s")(
-                user.address.toAddrString
-            );
-            user.sock = null;
-        }
 
         if (username in users)
             users.remove(username);
+
+        if (delete_messages) {
+            const include_received = true;
+            del_user_pms(username, include_received);
+            del_user_tickers(username);
+        }
 
         if (user.status == Status.offline) {
             if (user.login_rejection.reason) writefln!(
@@ -738,6 +787,8 @@ class Server
                 }
 
                 db.ban_user(username, duration);
+                del_user_pms(username);
+                del_user_tickers(username);
 
                 auto user = get_user(username);
                 if (user) del_user(user);

@@ -142,7 +142,7 @@ class Room
         send_to_all(msg);
     }
 
-    private void del_ticker(string username)
+    void del_ticker(string username)
     {
         if (username !in tickers)
             return;

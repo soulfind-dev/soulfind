@@ -6,7 +6,7 @@
 module soulfind.defines;
 @safe:
 
-import core.time : minutes;
+import core.time : minutes, seconds;
 
 // Constants
 
@@ -16,6 +16,7 @@ const default_port             = 2242;
 const default_max_users        = 65535;
 const login_timeout            = 1.minutes;
 const kick_duration            = 2.minutes;
+const delete_user_interval     = 10.seconds;
 const wish_interval            = 12.minutes;
 const wish_interval_privileged = 2.minutes;
 const max_msg_size             = 16384;
