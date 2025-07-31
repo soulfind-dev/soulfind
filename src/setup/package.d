@@ -58,9 +58,9 @@ int run(string[] args)
 
     if (show_version) {
         writefln(
-            "Soulfind %s (%s)"
-          ~ "\nCompiled with %s %s.%s on %s",
-            VERSION, os, name, version_major, version_minor, __DATE__
+            "Soulfind %s"
+          ~ "\nCompiled with %s %s.%s for %s",
+            VERSION, name, version_major, version_minor, os
         );
         return 0;
     }

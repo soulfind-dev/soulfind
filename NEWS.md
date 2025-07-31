@@ -6,6 +6,11 @@
 
 # News
 
+Historical release notes predating the switch to rolling builds. See the
+[commit log](https://github.com/soulfind-dev/soulfind/commits/HEAD/) for recent
+changes.
+
+
 ## 0.5.0-dev (Unstable)
 
  - Relicenced to GNU General Public License v3.0 or later
