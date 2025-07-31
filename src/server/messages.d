@@ -7,7 +7,7 @@ module soulfind.server.messages;
 @safe:
 
 import core.time : days, Duration;
-import soulfind.defines : blue, norm;
+import soulfind.defines : blue, log_msg, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.algorithm : clamp;
@@ -115,7 +115,7 @@ class UMessage
         this.in_buf = in_buf;
         code = read!uint();
 
-        debug (msg) writefln!(
+        if (log_msg) writefln!(
             "Receive <- %s (code %d) of %d bytes <- from user %s")(
             blue ~ this.name ~ norm, code, in_buf.length,
             blue ~ in_username ~ norm

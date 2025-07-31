@@ -7,7 +7,8 @@ module soulfind.db;
 @safe:
 
 import core.time : days, Duration;
-import soulfind.defines : blue, default_max_users, default_port, norm;
+import soulfind.defines : blue, default_max_users, default_port, log_db,
+                          log_user, norm;
 import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
@@ -97,7 +98,7 @@ class Sdb
 
     this(string filename)
     {
-        debug(db) writefln!("DB: Using database: %s")(filename);
+        if (log_db) writefln!("DB: Using database: %s")(filename);
 
         // Soulfind is single-threaded. Disable SQLite mutexes for a slight
         // performance improvement.
@@ -136,7 +137,7 @@ class Sdb
         );
 
         foreach (problem ; query("PRAGMA integrity_check;"))
-            debug(db) writefln!("DB: Check [%s]")(problem[0]);
+            if (log_db) writefln!("DB: Check [%s]")(problem[0]);
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
@@ -146,7 +147,7 @@ class Sdb
 
     ~this()
     {
-        debug(db) writeln("DB: Shutting down...");
+        if (log_db) writeln("DB: Shutting down...");
         close();
         shutdown();
     }
@@ -175,7 +176,7 @@ class Sdb
         );
         query(sql, [option, value]);
 
-        debug(db) writefln!("DB: Initialized config value %s to %s")(
+        if (log_db) writefln!("DB: Initialized config value %s to %s")(
             option, value
         );
     }
@@ -188,7 +189,7 @@ class Sdb
         );
         query(sql, [option, value.to!string]);
 
-        debug(db) writefln!("DB: Initialized config value %s to %d")(
+        if (log_db) writefln!("DB: Initialized config value %s to %d")(
             option, value
         );
     }
@@ -201,7 +202,7 @@ class Sdb
         );
         query(sql, [option, value]);
 
-        debug(db) writefln!("DB: Updated config value %s to %s")(
+        if (log_db) writefln!("DB: Updated config value %s to %s")(
             option, value
         );
     }
@@ -214,7 +215,7 @@ class Sdb
         );
         query(sql, [option, value.to!string]);
 
-        debug(db) writefln!("DB: Updated config value %s to %d")(
+        if (log_db) writefln!("DB: Updated config value %s to %d")(
             option, value
         );
     }
@@ -235,7 +236,7 @@ class Sdb
         );
         query(sql, [username, level.to!string]);
 
-        debug(user) writefln!("Added new admin %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Added new admin %s")(blue ~ username ~ norm);
     }
 
     void del_admin(string username)
@@ -245,7 +246,7 @@ class Sdb
         );
         query(sql, [username]);
 
-        debug(user) writefln!("Removed admin %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Removed admin %s")(blue ~ username ~ norm);
     }
 
     string[] admins()
@@ -283,7 +284,7 @@ class Sdb
         query(sql, [username, hash]);
         query("PRAGMA optimize;");
 
-        debug(user) writefln!("Added new user %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Added new user %s")(blue ~ username ~ norm);
     }
 
     void del_user(string username)
@@ -293,7 +294,7 @@ class Sdb
         );
         query(sql, [username]);
 
-        debug(user) writefln!("Removed user %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Removed user %s")(blue ~ username ~ norm);
     }
 
     bool user_verify_password(string username, string password)
@@ -318,7 +319,7 @@ class Sdb
 
         query(sql, [hash, username]);
 
-        debug(user) writefln!("Set user %s's password")(
+        if (log_user) writefln!("Set user %s's password")(
             blue ~ username ~ norm
         );
     }
@@ -346,7 +347,7 @@ class Sdb
 
         query(sql, [privileged_until.to!string, username]);
 
-        debug (user) writefln!(
+        if (log_user) writefln!(
             "Added %s of privileges to user %s")(
             duration.total!"days".days, blue ~ username ~ norm,
         );
@@ -372,7 +373,7 @@ class Sdb
 
         query(sql, [privileged_until.to!string, username]);
 
-        debug (user) {
+        if (log_user) {
             if (duration == Duration.max)
                 writefln!(
                     "Removed all privileges from user %s")(
@@ -437,7 +438,7 @@ class Sdb
 
         query(sql, [banned_until.to!string, username]);
 
-        debug(user) writefln!("Banned user %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Banned user %s")(blue ~ username ~ norm);
     }
 
     void unban_user(string username)
@@ -449,7 +450,7 @@ class Sdb
         const banned_until = 0;
         query(sql, [banned_until.to!string, username]);
 
-        debug(user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
+        if (log_user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
     }
 
     bool user_banned(string username)
@@ -530,7 +531,7 @@ class Sdb
             users_table, fields.join(", ")
         );
 
-        debug(user) {
+        if (log_user) {
             string updated;
             foreach (i, field; fields)
             {

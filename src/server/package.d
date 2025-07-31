@@ -6,7 +6,8 @@
 module soulfind.server;
 @safe:
 
-import soulfind.defines : default_db_filename, exit_message, VERSION;
+import soulfind.defines : default_db_filename, exit_message, log_db, log_msg,
+                          log_user, VERSION;
 import soulfind.server.server : Server;
 import std.array : appender;
 import std.compiler : name, version_major, version_minor;
@@ -17,7 +18,8 @@ import std.system : os;
 
 @trusted
 GetoptResult parse_args(ref string[] args, ref string db_filename,
-                        ref ushort port, ref bool show_version)
+                        ref ushort port, ref bool enable_debug,
+                        ref bool show_version)
 {
     return getopt(
         args,
@@ -25,6 +27,7 @@ GetoptResult parse_args(ref string[] args, ref string db_filename,
         "d|database", format!("Path to database (default: %s).")(db_filename),
                       &db_filename,
         "p|port", "Listening port.", &port,
+        "debug", "Enable debug logging.", &enable_debug,
         "v|version", "Show version.", &show_version
     );
 }
@@ -34,10 +37,13 @@ int run(string[] args)
     GetoptResult result;
     string db_filename = default_db_filename;
     ushort port;
+    bool enable_debug;
     bool show_version;
 
     try {
-        result = parse_args(args, db_filename, port, show_version);
+        result = parse_args(
+            args, db_filename, port, enable_debug, show_version
+        );
     }
     catch (Exception e) {
         writeln(e.msg);
@@ -66,6 +72,8 @@ int run(string[] args)
         );
         return 0;
     }
+
+    if (enable_debug) log_db = log_msg = log_user = true;
 
     auto server = new Server(db_filename, port);
     const exit_code = server.listen();

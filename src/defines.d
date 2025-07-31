@@ -38,3 +38,10 @@ const norm                     = "\033[0m";        // reset to normal
 const bold                     = "\033[1m";        // bold intensity
 const blue                     = "\033[01;94m";    // foreground blue
 const red                      = "\033[01;91m";    // foreground red
+
+
+// Logging
+
+bool log_db;
+bool log_msg;
+bool log_user;

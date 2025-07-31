@@ -9,9 +9,9 @@ module soulfind.server.server;
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_port, delete_user_interval,
-                          kick_duration, max_room_name_length,
-                          max_search_query_length, norm, red, server_username,
-                          VERSION;
+                          kick_duration, log_msg, log_user,
+                          max_room_name_length, max_search_query_length, norm,
+                          red, server_username, VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -129,7 +129,7 @@ class Server
                     );
                     new_sock.blocking = false;
 
-                    debug (user) writefln!("Connection accepted from %s")(
+                    if (log_user) writefln!("Connection accepted from %s")(
                         new_sock.remoteAddress
                     );
                     user_socks[new_sock] = new User(
@@ -212,7 +212,7 @@ class Server
                 user.sock.shutdown(SocketShutdown.BOTH);
                 user.sock.close();
 
-                debug (user) writefln!("Closed connection to %s")(
+                if (log_user) writefln!("Closed connection to %s")(
                     user.address.toAddrString
                 );
                 user.sock = null;
@@ -656,7 +656,7 @@ class Server
 
     private void send_to_all(scope SMessage msg)
     {
-        debug (msg) writefln!("Transmit=> %s (code %d) to all users...")(
+        if (log_msg) writefln!("Transmit=> %s (code %d) to all users...")(
             blue ~ msg.name ~ norm, msg.code
         );
         foreach (user ; users) user.send_message(msg);
@@ -888,7 +888,7 @@ class Server
                     del_user(user);
                 }
 
-                debug (user) writefln!(
+                if (log_user) writefln!(
                     "Admin %s kicked ALL %d users for %s!")(
                     blue ~ admin_username ~ norm, users_to_kick[].length,
                     duration

@@ -8,12 +8,12 @@ module soulfind.server.user;
 
 import core.time : Duration, MonoTime, seconds;
 import soulfind.db : SdbUserStats;
-import soulfind.defines : blue, bold, default_max_users, login_timeout,
-                          max_chat_message_length, max_interest_length,
-                          max_msg_size, max_room_name_length,
-                          max_username_length, norm, red, server_username,
-                          speed_weight, VERSION, wish_interval,
-                          wish_interval_privileged;
+import soulfind.defines : blue, bold, default_max_users, log_msg, log_user,
+                          login_timeout, max_chat_message_length,
+                          max_interest_length, max_msg_size,
+                          max_room_name_length, max_username_length, norm, red,
+                          server_username, speed_weight, VERSION,
+                          wish_interval, wish_interval_privileged;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -149,7 +149,7 @@ class User
                 server.db.add_user(username, password);
             return login_rejection;
         }
-        debug (user) writefln!("User %s is registered")(
+        if (log_user) writefln!("User %s is registered")(
             blue ~ username ~ norm
         );
 
@@ -284,7 +284,7 @@ class User
 
     private void send_to_watching(scope SMessage msg)
     {
-        debug (msg) writefln!(
+        if (log_msg) writefln!(
             "Transmit=> %s (code %d) to users watching user %s...")(
             blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
@@ -525,7 +525,7 @@ class User
         const msg_len = msg_buf.length;
         const offset = out_buf.length;
 
-        debug (msg) writefln!(
+        if (log_msg) writefln!(
             "Sending -> %s (code %d) of %d bytes -> to user %s")(
             blue ~ msg.name ~ norm, msg.code, msg_len, blue ~ username ~ norm
         );
@@ -561,7 +561,7 @@ class User
                 in_msg_size = in_buf.read!(uint, Endian.littleEndian);
             }
             if (in_msg_size < 0 || in_msg_size > max_msg_size) {
-                debug (msg) writefln!(
+                if (log_msg) writefln!(
                     "Received unexpected message size %d from user %s, "
                   ~ "disconnecting them")(
                     in_msg_size, blue ~ username ~ norm
@@ -742,7 +742,7 @@ class User
                 bool user_privileged;
 
                 if (user) {
-                    debug (user) writefln!(
+                    if (log_user) writefln!(
                         "Telling user %s that user %s is online")(
                         blue ~ username ~ norm, blue ~ msg.username ~ norm
                     );
@@ -751,14 +751,14 @@ class User
                 }
                 else if (msg.username != server_username
                          && server.db.user_exists(msg.username)) {
-                    debug (user) writefln!(
+                    if (log_user) writefln!(
                         "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
                     user_privileged = server.db.user_privileged(msg.username);
                 }
                 else {
-                    debug (user) writefln!(
+                    if (log_user) writefln!(
                         "Telling user %s that non-existent user %s is "
                       ~ "offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
@@ -801,7 +801,7 @@ class User
                 if (!user)
                     break;
 
-                debug (user) writefln!(
+                if (log_user) writefln!(
                     "User %s @ %s connecting indirectly to peer %s @ %s")(
                     blue ~ username ~ norm, bold ~ address.toString ~ norm,
                     blue ~ msg.username ~ norm,
@@ -1114,7 +1114,7 @@ class User
                 break;
 
             default:
-                debug (msg) writefln!(
+                if (log_msg) writefln!(
                     "Unimplemented message code %s%d%s from user %s with "
                   ~ "length %d\n%s")(
                     red, code, norm, blue ~ username ~ norm, msg_buf.length,

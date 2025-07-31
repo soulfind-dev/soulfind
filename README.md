@@ -39,12 +39,6 @@ To compile Soulfind, run:
 dub build
 ```
 
-To compile Soulfind with debug logging enabled:
-
-```sh
-dub build --debug=db --debug=msg --debug=user
-```
-
 To compile a static binary on supported systems (mainly musl-based Linux
 distributions), run:
 
@@ -92,6 +86,39 @@ chat with the `server` user (`help` to see all commands).
 a password, it is no longer possible to register through the Soulseek client.
 Only an owner can register the user in the `Registered users` section in the
 `soulsetup` utility.
+
+
+## Runtime Options
+
+### Database File
+
+Use a different path for the database file by providing a `-d` or `--database`
+argument:
+
+```
+soulfind -d path/to/database.db
+```
+
+```
+soulsetup -d path/to/database.db
+```
+
+### Listening Port
+
+Always enforce a specific listening port by providing a `-p` or `--port`
+argument:
+
+```
+soulfind -p 1234
+```
+
+### Debug Logging
+
+Enable detailed debug logging by providing the `--debug` flag:
+
+```
+soulfind --debug
+```
 
 
 ## Missing Features
