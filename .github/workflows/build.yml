@@ -12,7 +12,6 @@ jobs:
       matrix:
         os: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64, windows-x86_64, windows-arm64]
         compiler: [ldc, dmd, gdc]
-        type: [release, debug]
         include:
           - config: default
 
@@ -106,11 +105,11 @@ jobs:
         if: matrix.os == 'windows-arm64'
         run: |
           $vsPath = vswhere -property installationPath
-          cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=x64 && dub build -v --build=${{ matrix.type }} --arch=aarch64-windows-msvc"
+          cmd /c "`"$vsPath\Common7\Tools\VsDevCmd.bat`" -arch=arm64 -host_arch=x64 && dub build -v --build=release-debug --arch=aarch64-windows-msvc"
 
       - name: Build (Other)
         if: matrix.os != 'windows-arm64'
-        run: dub build -v --build=${{ matrix.type }} --config=${{ matrix.config }}
+        run: dub build -v --build=release-debug --config=${{ matrix.config }}
 
       - name: Run tests
         run: dub test
@@ -123,7 +122,7 @@ jobs:
         if: matrix.compiler == 'ldc'
         uses: actions/upload-artifact@v4
         with:
-          name: soulfind-${{ matrix.os }}-${{ matrix.type }}
+          name: soulfind-${{ matrix.os }}
           path: |
             bin
             !bin/*test*
