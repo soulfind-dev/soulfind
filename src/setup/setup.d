@@ -320,8 +320,15 @@ class Setup
 
     private void add_user()
     {
-        write("Username : ");
-        const username = input.strip;
+        string username;
+        do {
+            write("Username : ");
+            username = input.strip;
+            if (username.length > 0)
+                break;
+            writeln("Please enter a username");
+        }
+        while(true);
 
         if (db.user_exists(username)) {
             writefln!("\nUser %s is already registered")(username);
@@ -329,8 +336,15 @@ class Setup
             return;
         }
 
-        write("Password : ");
-        const password = input.strip;
+        string password;
+        do {
+            write("Password : ");
+            password = input.chomp;
+            if (password.length > 0)
+                break;
+            writeln("Please enter a password");
+        }
+        while(true);
 
         db.add_user(username, password);
         registered_users();
@@ -391,8 +405,15 @@ class Setup
         const username = input.strip;
 
         if (db.user_exists(username)) {
-            write("Enter new password : ");
-            const password = input.chomp;
+            string password;
+            do {
+                write("Enter new password : ");
+                password = input.chomp;
+                if (password.length > 0)
+                    break;
+                writeln("Please enter a password");
+            }
+            while(true);
 
             db.user_update_password(username, password);
         }

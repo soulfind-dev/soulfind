@@ -141,7 +141,7 @@ class User
         }
 
         if (!server.db.user_exists(username)) {
-            if (server.db.is_admin(username))
+            if (password.length == 0 || server.db.is_admin(username))
                 // For security reasons, non-existent admins cannot register
                 // through the client
                 login_rejection.reason = LoginRejectionReason.password;
@@ -1060,6 +1060,8 @@ class User
 
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
+                if (!msg.password)
+                    break;
 
                 server.db.user_update_password(username, msg.password);
 
