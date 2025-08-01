@@ -144,18 +144,20 @@ class UMessage
 
         if (offset + size <= in_buf.length) {
             static if (is(T : string)) {
-                const bytes = in_buf[offset .. offset + size];
-                offset += size;
+                if (size > 0) {
+                    const bytes = in_buf[offset .. offset + size];
+                    offset += size;
 
-                if (bytes.isValid) {
-                    // UTF-8
-                    value = cast(T) bytes.idup;
-                }
-                else {
-                    // Latin-1 fallback
-                    auto wchars = new wchar[bytes.length];
-                    foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
-                    value = wchars.to!string;
+                    if (bytes.isValid) {
+                        // UTF-8
+                        value = cast(T) bytes.idup;
+                    }
+                    else {
+                        // Latin-1 fallback
+                        auto wchars = new wchar[bytes.length];
+                        foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
+                        value = wchars.to!string;
+                    }
                 }
             }
             else {
