@@ -835,7 +835,7 @@ class User
                     server.admin_message(username, msg.message);
                 }
                 else if (user) {
-                    // user is connected
+                    // User is connected
                     const pm = server.add_pm(
                         msg.message, username, msg.username
                     );
@@ -843,7 +843,7 @@ class User
                     server.send_pm(pm, new_message);
                 }
                 else if (server.db.user_exists(msg.username)) {
-                    // user exists but not connected
+                    // User exists but not connected
                     server.add_pm(msg.message, username, msg.username);
                 }
                 break;
@@ -911,12 +911,10 @@ class User
                 break;
 
             case SimilarRecommendations:
-                scope msg = new USimilarRecommendations(msg_buf, username);
-                if (!msg.recommendation)
-                    return;
-
                 // No longer used, send empty response
+                scope msg = new USimilarRecommendations(msg_buf, username);
                 string[] recommendations;
+
                 scope response_msg = new SSimilarRecommendations(
                     msg.recommendation, recommendations
                 );
@@ -966,11 +964,16 @@ class User
             case UserInterests:
                 scope msg = new UUserInterests(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                if (!user)
-                    break;
+                string[string] user_liked_items;
+                string[string] user_hated_items;
+
+                if (user) {
+                    user_liked_items = user.liked_items;
+                    user_hated_items = user.hated_items;
+                }
 
                 scope response_msg = new SUserInterests(
-                    user.username, user.liked_items, user.hated_items
+                    msg.username, user_liked_items, user_hated_items
                 );
                 send_message(response_msg);
                 break;
@@ -1028,11 +1031,10 @@ class User
             case UserPrivileged:
                 scope msg = new UUserPrivileged(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                if (!user)
-                    break;
+                const privileged = user ? user.privileged : false;
 
                 scope response_msg = new SUserPrivileged(
-                    user.username, user.privileged
+                    msg.username, privileged
                 );
                 send_message(response_msg);
                 break;
@@ -1068,7 +1070,7 @@ class User
 
             case MessageUsers:
                 scope msg = new UMessageUsers(msg_buf, username);
-                bool new_message = true;
+                const new_message = true;
 
                 if (msg.message.length > max_chat_message_length)
                     break;
@@ -1096,12 +1098,10 @@ class User
                 break;
 
             case RelatedSearch:
-                scope msg = new URelatedSearch(msg_buf, username);
-                if (!msg.query)
-                    return;
-
                 // No longer used, send empty response
+                scope msg = new URelatedSearch(msg_buf, username);
                 uint[string] terms;
+
                 scope response_msg = new SRelatedSearch(
                     msg.query, terms
                 );
