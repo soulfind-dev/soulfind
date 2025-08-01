@@ -64,6 +64,7 @@ const MessageAcked           = 23;
 const FileSearch             = 26;
 const SetStatus              = 28;
 const ServerPing             = 32;
+const SendConnectToken       = 33;
 const SharedFoldersFiles     = 35;
 const GetUserStats           = 36;
 const Relogged               = 41;
@@ -393,6 +394,20 @@ class UServerPing : UMessage
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
+    }
+}
+
+class USendConnectToken : UMessage
+{
+    string  username;
+    uint    token;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        username = read!string();
+        token    = read!uint();
     }
 }
 
@@ -978,6 +993,17 @@ class SFileSearch : SMessage
         write!string(username);
         write!uint(token);
         write!string(query);
+    }
+}
+
+class SSendConnectToken : SMessage
+{
+    this(string username, uint token) scope
+    {
+        super(SendConnectToken);
+
+        write!string(username);
+        write!uint(token);
     }
 }
 

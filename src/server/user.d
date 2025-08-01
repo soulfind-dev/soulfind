@@ -874,6 +874,18 @@ class User
                 scope msg = new UServerPing(msg_buf, username);
                 break;
 
+            case SendConnectToken:
+                scope msg = new USendConnectToken(msg_buf, username);
+                auto user = server.get_user(msg.username);
+                if (!user)
+                    break;
+
+                scope response_msg = new SSendConnectToken(
+                    username, msg.token
+                );
+                user.send_message(response_msg);
+                break;
+
             case SharedFoldersFiles:
                 scope msg = new USharedFoldersFiles(msg_buf, username);
                 update_shared_stats(msg.shared_files, msg.shared_folders);
