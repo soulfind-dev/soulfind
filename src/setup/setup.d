@@ -392,7 +392,7 @@ class Setup
 
         if (db.user_exists(username)) {
             write("Enter new password : ");
-            const password = input;
+            const password = input.chomp;
 
             db.user_update_password(username, password);
         }
