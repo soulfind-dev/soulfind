@@ -76,6 +76,7 @@ const GlobalRecommendations  = 56;
 const UserInterests          = 57;
 const RoomList               = 64;
 const AdminMessage           = 66;
+const GlobalUserList         = 67;
 const PrivilegedUsers        = 69;
 const CheckPrivileges        = 92;
 const WishlistSearch         = 103;
@@ -514,6 +515,14 @@ class UUserInterests : UMessage
 }
 
 class URoomList : UMessage
+{
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+    }
+}
+
+class UGlobalUserList : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {

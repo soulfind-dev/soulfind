@@ -991,6 +991,12 @@ class User
                 send_message(response_msg);
                 break;
 
+            case GlobalUserList:
+                // The official server disconnects the user
+                scope msg = new UGlobalUserList(msg_buf, username);
+                server.del_user(this);
+                break;
+
             case CheckPrivileges:
                 scope msg = new UCheckPrivileges(msg_buf, username);
                 refresh_privileges();
