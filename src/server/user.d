@@ -297,7 +297,7 @@ class User
 
     private void add_liked_item(string item)
     {
-        if (item.length > max_interest_length)
+        if (item.length == 0 || item.length > max_interest_length)
             return;
 
         if (likes(item))
@@ -313,7 +313,7 @@ class User
 
     private void add_hated_item(string item)
     {
-        if (item.length > max_interest_length)
+        if (item.length == 0 || item.length > max_interest_length)
             return;
 
         if (hates(item))
