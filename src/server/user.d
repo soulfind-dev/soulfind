@@ -674,6 +674,13 @@ class User
 
             case SetWaitPort:
                 scope msg = new USetWaitPort(msg_buf, username);
+
+                if (address.port != InternetAddress.PORT_ANY)
+                    // If port was already set, reject attempts to change it,
+                    // since they are not compatible with many clients that
+                    // cache user addresses.
+                    break;
+
                 address = new InternetAddress(
                     address.addr, cast(ushort) msg.port
                 );
