@@ -95,24 +95,24 @@ class User
         return (MonoTime.currTime - connected_monotime) > login_timeout;
     }
 
-    private string check_name(string text, uint max_length)
+    private string check_username(string username)
     {
-        if (text.length == 0)
+        if (username.length == 0)
             return "Nick empty.";
 
-        if (text.length > max_length)
+        if (username.length > max_username_length)
             return "Nick too long.";
 
-        foreach (c ; text) if (!c.isPrintable)
+        if (username.strip != username)
+            return "No leading and trailing spaces allowed in nick.";
+
+        foreach (c ; username) if (!c.isPrintable)
             // Only printable ASCII characters allowed
             return "Invalid characters in nick.";
 
-        if (text.strip != text)
-            return "No leading and trailing spaces allowed in nick.";
-
         static immutable forbidden_names = [server_username];
 
-        foreach (name ; forbidden_names) if (name == text)
+        foreach (name ; forbidden_names) if (name == username)
             // Official server returns empty detail
             return "";
 
@@ -133,7 +133,7 @@ class User
             return login_rejection;
         }
 
-        const invalid_name_reason = check_name(username, max_username_length);
+        const invalid_name_reason = check_username(username);
         if (invalid_name_reason) {
             login_rejection.reason = LoginRejectionReason.username;
             login_rejection.detail = invalid_name_reason;
@@ -431,38 +431,7 @@ class User
 
     void join_room(string name)
     {
-        string fail_message;
-        if (name.length == 0)
-            fail_message = "Could not create room. Reason: Room name empty.";
-        else if (name.length > max_room_name_length)
-            fail_message = format!(
-                "Could not create room. Reason: Room name %s longer than %d "
-              ~ "characters.")(
-                name, max_room_name_length
-            );
-        else if (name.strip != name)
-            fail_message = format!(
-                "Could not create room. Reason: Room name %s contains leading "
-              ~ "or trailing spaces.")(
-                name
-            );
-        else if (name.canFind("  "))
-            fail_message = format!(
-                "Could not create room. Reason: Room name %s contains "
-              ~ "multiple following spaces.")(
-                name
-            );
-        else
-            foreach (c ; name) if (!c.isPrintable) {
-                // Only printable ASCII characters allowed
-                fail_message = format!(
-                    "Could not create room. Reason: Room name %s contains "
-                  ~ "invalid characters.")(
-                    name
-                );
-                break;
-            }
-
+        string fail_message = check_room_name(name);
         if (fail_message) {
             server.server_pm(username, fail_message);
             return;
@@ -499,6 +468,43 @@ class User
     string[] joined_room_names()
     {
         return joined_rooms.byKey.array;
+    }
+
+    private string check_room_name(string room_name)
+    {
+        if (room_name.length == 0)
+            return "Could not create room. Reason: Room name empty.";
+
+        if (room_name.length > max_room_name_length)
+            return format!(
+                "Could not create room. Reason: Room name %s longer than %d "
+              ~ "characters.")(
+                room_name, max_room_name_length
+            );
+
+        if (room_name.strip != room_name)
+            return format!(
+                "Could not create room. Reason: Room name %s contains leading "
+              ~ "or trailing spaces.")(
+                room_name
+            );
+
+        if (room_name.canFind("  "))
+            return format!(
+                "Could not create room. Reason: Room name %s contains "
+              ~ "multiple following spaces.")(
+                room_name
+            );
+
+        foreach (c ; room_name) if (!c.isPrintable)
+            // Only printable ASCII characters allowed
+            return format!(
+                "Could not create room. Reason: Room name %s contains "
+              ~ "invalid characters.")(
+                room_name
+            );
+
+        return null;
     }
 
 
