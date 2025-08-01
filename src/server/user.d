@@ -1040,22 +1040,19 @@ class User
             case GivePrivileges:
                 scope msg = new UGivePrivileges(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                const admin = server.db.is_admin(msg.username);
                 const duration = msg.duration;
 
                 if (!user)
                     break;
 
-                if (duration > privileges && !admin)
+                if (duration > privileges)
                     break;
 
                 server.db.add_user_privileges(msg.username, duration);
                 user.refresh_privileges();
 
-                if (!admin) {
-                    server.db.remove_user_privileges(username, duration);
-                    refresh_privileges();
-                }
+                server.db.remove_user_privileges(username, duration);
+                refresh_privileges();
                 break;
 
             case ChangePassword:
