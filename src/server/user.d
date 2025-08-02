@@ -135,16 +135,18 @@ class User
 
         const invalid_name_reason = check_username(username);
         if (invalid_name_reason) {
-            login_rejection.reason = LoginRejectionReason.username;
+            login_rejection.reason = LoginRejectionReason.invalid_username;
             login_rejection.detail = invalid_name_reason;
             return login_rejection;
         }
 
         if (!server.db.user_exists(username)) {
-            if (password.length == 0 || server.db.is_admin(username))
+            if (password.length == 0)
+                login_rejection.reason = LoginRejectionReason.empty_password;
+            else if (server.db.is_admin(username))
                 // For security reasons, non-existent admins cannot register
                 // through the client
-                login_rejection.reason = LoginRejectionReason.password;
+                login_rejection.reason = LoginRejectionReason.invalid_password;
             else
                 server.db.add_user(username, password);
             return login_rejection;
@@ -154,7 +156,7 @@ class User
         );
 
         if (!server.db.user_verify_password(username, password)) {
-            login_rejection.reason = LoginRejectionReason.password;
+            login_rejection.reason = LoginRejectionReason.invalid_password;
             return login_rejection;
         }
         return login_rejection;

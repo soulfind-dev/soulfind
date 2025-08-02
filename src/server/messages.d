@@ -23,9 +23,10 @@ import std.string : representation;
 
 const enum LoginRejectionReason
 {
-    username     = "INVALIDUSERNAME",
-    password     = "INVALIDPASS",
-    server_full  = "SVRFULL"
+    invalid_username  = "INVALIDUSERNAME",
+    empty_password    = "EMPTYPASSWORD",
+    invalid_password  = "INVALIDPASS",
+    server_full       = "SVRFULL"
 }
 
 const enum Status
