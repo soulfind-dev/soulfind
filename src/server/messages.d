@@ -73,6 +73,7 @@ const SimilarRecommendations = 50;
 const AddThingILike          = 51;
 const RemoveThingILike       = 52;
 const GetRecommendations     = 54;
+const MyRecommendations      = 55;
 const GlobalRecommendations  = 56;
 const UserInterests          = 57;
 const RoomList               = 64;
@@ -502,6 +503,14 @@ class URemoveThingILike : UMessage
 }
 
 class UGetRecommendations : UMessage
+{
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+    }
+}
+
+class UMyRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -1034,6 +1043,20 @@ class SGetRecommendations : SMessage
         {
             write!string(item);
             write!int(level);
+        }
+    }
+}
+
+class SMyRecommendations : SMessage
+{
+    this(string[] recommendations) scope
+    {
+        super(MyRecommendations);
+
+        write!uint(cast(uint) recommendations.length);
+        foreach (item ; recommendations)
+        {
+            write!string(item);
         }
     }
 }

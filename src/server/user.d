@@ -966,6 +966,15 @@ class User
                 send_message(response_msg);
                 break;
 
+            case MyRecommendations:
+                // No longer used, send empty response
+                scope msg = new UMyRecommendations(msg_buf, username);
+                string[] recommendations;
+
+                scope response_msg = new SMyRecommendations(recommendations);
+                send_message(response_msg);
+                break;
+
             case GlobalRecommendations:
                 scope msg = new UGlobalRecommendations(msg_buf, username);
                 scope response_msg = new SGetGlobalRecommendations(
