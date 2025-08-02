@@ -351,9 +351,16 @@ class Server
         return pm;
     }
 
-    void del_pm(uint id)
+    void del_pm(uint id, string to_username)
     {
-        if (id in pms) pms.remove(id);
+        if (id !in pms)
+            return;
+
+        const pm = pms[id];
+        if (pm.to_username != to_username)
+            return;
+
+        pms.remove(id);
     }
 
     void del_user_pms(string username, bool include_received = false)
@@ -364,7 +371,7 @@ class Server
                     || (include_received && pm.to_username == username))
                 pms_to_remove ~= pm;
         }
-        foreach (pm ; pms_to_remove) del_pm(pm.id);
+        foreach (pm ; pms_to_remove) pms.remove(pm.id);
     }
 
     private uint new_pm_id()

@@ -857,7 +857,7 @@ class User
 
             case MessageAcked:
                 scope msg = new UMessageAcked(msg_buf, username);
-                server.del_pm(msg.id);
+                server.del_pm(msg.id, username);
                 break;
 
             case FileSearch:
