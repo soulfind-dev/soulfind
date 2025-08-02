@@ -25,7 +25,7 @@ const enum LoginRejectionReason
 {
     username     = "INVALIDUSERNAME",
     password     = "INVALIDPASS",
-    server_full  = "SRVFULL"
+    server_full  = "SVRFULL"
 }
 
 const enum Status
