@@ -1091,6 +1091,13 @@ class User
                 refresh_privileges();
                 break;
 
+            case NotifyPrivileges:
+                // No longer used, but official server still responds
+                scope msg = new UNotifyPrivileges(msg_buf, username);
+                scope response_msg = new SAckNotifyPrivileges(msg.token);
+                send_message(response_msg);
+                break;
+
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
                 if (!msg.password)

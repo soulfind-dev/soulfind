@@ -96,6 +96,8 @@ const RoomSearch             = 120;
 const SendUploadSpeed        = 121;
 const UserPrivileged         = 122;
 const GivePrivileges         = 123;
+const NotifyPrivileges       = 124;
+const AckNotifyPrivileges    = 125;
 const ChangePassword         = 142;
 const MessageUsers           = 149;
 const JoinGlobalRoom         = 150;
@@ -663,6 +665,20 @@ class UGivePrivileges : UMessage
 
         username = read!string();
         duration = read!uint().days;
+    }
+}
+
+class UNotifyPrivileges : UMessage
+{
+    uint    token;
+    string  username;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        token = read!uint();
+        username = read!string();
     }
 }
 
@@ -1252,6 +1268,16 @@ class SUserPrivileged : SMessage
 
         write!string(username);
         write!bool(privileged);
+    }
+}
+
+class SAckNotifyPrivileges : SMessage
+{
+    this(uint token) scope
+    {
+        super(AckNotifyPrivileges);
+
+        write!uint(token);
     }
 }
 
