@@ -73,6 +73,7 @@ The default config values are:
 
  - port: `2242`
  - max_users: `65535`
+ - private_mode: `false`
  - motd: `Soulfind <version>`
 
 Server owners can configure the server and add admins with the `soulsetup`
