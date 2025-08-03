@@ -15,6 +15,7 @@ EXPORTS
     sqlite3_errstr
 
     sqlite3_prepare_v2
+    sqlite3_bind_null
     sqlite3_bind_text
     sqlite3_column_count
     sqlite3_step

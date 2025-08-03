@@ -20,6 +20,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Remove old import libraries
+        run: Remove-Item -Path lib\*.lib
+
       - name: Generate import libraries
         run: |
           $vsPath = vswhere -property installationPath
