@@ -67,7 +67,7 @@ DC=gdc dub build
 
 Soulfind stores all its configuration in a SQLite database. On startup,
 Soulfind will look for the file `soulfind.db` by default, unless provided a
-different path with the `--database` flag.
+different path as a `--database` argument.
 
 The default config values are:
 
