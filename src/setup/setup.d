@@ -60,7 +60,7 @@ class Setup
             write("\nYour choice : ");
             const choice = input.strip;
 
-            if (!choice) {
+            if (choice is null) {
                 writeln("\nNo terminal input available, exiting...");
                 return;
             }

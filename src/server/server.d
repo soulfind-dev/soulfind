@@ -53,14 +53,14 @@ class Server
     private Room[string]  rooms;
 
 
-    this(string db_filename, ushort port)
+    this(string db_filename, ushort port = 0)
     {
         this.db                = new Sdb(db_filename);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
 
-        if (!port) {
+        if (port == 0) {
             try
                 this.port = db.get_config_value("port").to!ushort;
             catch (ConvException)
@@ -313,7 +313,7 @@ class Server
             return;
 
         auto user = get_user(to_username);
-        if (!user)
+        if (user is null)
             return;
 
         scope msg = new SFileSearch(from_username, token, query);
@@ -327,7 +327,7 @@ class Server
             return;
 
         auto room = get_room(room_name);
-        if (!room)
+        if (room is null)
             return;
 
         scope msg = new SFileSearch(username, token, query);
@@ -384,7 +384,7 @@ class Server
     void send_pm(const PM pm, bool new_message)
     {
         auto user = get_user(pm.to_username);
-        if (!user)
+        if (user is null)
             return;
 
         scope msg = new SMessageUser(

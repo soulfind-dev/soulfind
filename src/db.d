@@ -523,7 +523,7 @@ class Sdb
             parameters ~= stats.shared_folders.to!string;
         }
 
-        if (!fields)
+        if (fields.length == 0)
             return;
 
         const sql = format!(

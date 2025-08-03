@@ -440,7 +440,7 @@ class User
         }
 
         auto room = server.get_room(name);
-        if (!room) room = server.add_room(name);
+        if (room is null) room = server.add_room(name);
 
         joined_rooms[name] = room;
         room.add_user(this);
@@ -789,7 +789,7 @@ class User
             case SayChatroom:
                 scope msg = new USayChatroom(msg_buf, username);
                 auto room = server.get_room(msg.room_name);
-                if (!room)
+                if (room is null)
                     break;
 
                 room.say(username, msg.message);
@@ -813,7 +813,7 @@ class User
             case ConnectToPeer:
                 scope msg = new UConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                if (!user)
+                if (user is null)
                     break;
 
                 if (log_user) writefln!(
@@ -838,7 +838,7 @@ class User
                     break;
 
                 if (msg.username == server_username) {
-                    if (!address.port)
+                    if (address.port == InternetAddress.PORT_ANY)
                         break;
 
                     server.admin_message(username, msg.message);
@@ -879,7 +879,7 @@ class User
             case SendConnectToken:
                 scope msg = new USendConnectToken(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                if (!user)
+                if (user is null)
                     break;
 
                 scope response_msg = new SSendConnectToken(
@@ -1080,7 +1080,7 @@ class User
                 auto user = server.get_user(msg.username);
                 const duration = msg.duration;
 
-                if (!user)
+                if (user is null)
                     break;
 
                 if (duration > privileges)
@@ -1102,7 +1102,7 @@ class User
 
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
-                if (!msg.password)
+                if (msg.password.length == 0)
                     break;
 
                 server.db.user_update_password(username, msg.password);
@@ -1120,7 +1120,7 @@ class User
 
                 foreach (target_username ; msg.usernames) {
                     const user = server.get_user(target_username);
-                    if (!user)
+                    if (user is null)
                         continue;
 
                     const pm = server.add_pm(
@@ -1154,7 +1154,7 @@ class User
             case CantConnectToPeer:
                 scope msg = new UCantConnectToPeer(msg_buf, username);
                 auto user = server.get_user(msg.username);
-                if (!user)
+                if (user is null)
                     return;
 
                 scope response_msg = new SCantConnectToPeer(msg.token);

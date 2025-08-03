@@ -126,7 +126,7 @@ class Room
 
         del_ticker(username);
 
-        if (!content)
+        if (content.length == 0)
             return;
 
         tickers[username] = Ticker(
