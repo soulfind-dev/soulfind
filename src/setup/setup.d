@@ -8,8 +8,7 @@ module soulfind.setup.setup;
 
 import core.time : days, Duration;
 import soulfind.db : Sdb;
-import soulfind.defines : default_db_filename, default_max_users, default_port,
-                          VERSION;
+import soulfind.defines : VERSION;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;

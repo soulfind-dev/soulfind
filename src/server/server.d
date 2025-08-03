@@ -8,10 +8,10 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, default_port, delete_user_interval,
-                          kick_duration, log_msg, log_user,
-                          max_room_name_length, max_search_query_length, norm,
-                          red, server_username, VERSION;
+import soulfind.defines : blue, bold, delete_user_interval, kick_duration,
+                          log_msg, log_user, max_room_name_length,
+                          max_search_query_length, norm, red, server_username,
+                          VERSION;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;

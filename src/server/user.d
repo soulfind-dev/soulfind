@@ -8,12 +8,12 @@ module soulfind.server.user;
 
 import core.time : Duration, MonoTime, seconds;
 import soulfind.db : SdbUserStats;
-import soulfind.defines : blue, bold, default_max_users, log_msg, log_user,
-                          login_timeout, max_chat_message_length,
-                          max_interest_length, max_msg_size,
-                          max_room_name_length, max_username_length, norm, red,
-                          server_username, speed_weight, VERSION,
-                          wish_interval, wish_interval_privileged;
+import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
+                          max_chat_message_length, max_interest_length,
+                          max_msg_size, max_room_name_length,
+                          max_username_length, norm, red, server_username,
+                          speed_weight, VERSION, wish_interval,
+                          wish_interval_privileged;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
