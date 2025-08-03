@@ -4,6 +4,7 @@
 name: Libraries
 on:
   push:
+    branches: ['master']
     paths: ['lib/*.def']
   workflow_dispatch:
 
