@@ -677,6 +677,9 @@ class User
             case SetWaitPort:
                 scope msg = new USetWaitPort(msg_buf, username);
 
+                if (msg.port == 0)
+                    break;
+
                 if (address.port != InternetAddress.PORT_ANY)
                     // If port was already set, reject attempts to change it,
                     // since they are not compatible with many clients that
@@ -686,11 +689,8 @@ class User
                 address = new InternetAddress(
                     address.addr, cast(ushort) msg.port
                 );
-                writefln!(
-                    "%s %s @ %s logged in and listening")(
-                    server.db.is_admin(username) ? "Admin" : "User",
-                    blue ~ username ~ norm,
-                    bold ~ address.toString ~ norm,
+                writefln!("User %s listening on port %d")(
+                    blue ~ username ~ norm, msg.port,
                 );
                 break;
 

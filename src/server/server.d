@@ -463,7 +463,8 @@ class Server
     void add_user(User user)
     {
         writefln!(
-            "User %s @ %s logging in with version %s")(
+            "%s %s @ %s logged in with version %s")(
+            db.is_admin(user.username) ? "Admin" : "User",
             blue ~ user.username ~ norm,
             bold ~ user.address.toAddrString ~ norm,
             bold ~ user.client_version ~ norm
