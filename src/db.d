@@ -544,7 +544,7 @@ class Sdb
             );
         }
 
-        parameters ~= stats.username;
+        parameters ~= username;
         query(sql, parameters);
     }
 
