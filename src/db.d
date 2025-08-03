@@ -391,7 +391,10 @@ class Sdb
     bool user_privileged(string username)
     {
         const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ? AND privileges > ?;")(
+            "SELECT 1"
+          ~ " FROM %s"
+          ~ " WHERE username = ?"
+          ~ " AND CAST(privileges AS INTEGER) > ?;")(
             users_table
         );
         const now = Clock.currTime.toUnixTime;
@@ -401,7 +404,10 @@ class Sdb
     bool user_supporter(string username)
     {
         const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ? AND privileges > ?;")(
+            "SELECT 1"
+          ~ " FROM %s"
+          ~ " WHERE username = ?"
+          ~ " AND CAST(privileges AS INTEGER) > ?;")(
             users_table
         );
         const privileged_until = 0;
@@ -456,7 +462,10 @@ class Sdb
     bool user_banned(string username)
     {
         const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ? AND banned > ?;")(
+            "SELECT 1"
+          ~ " FROM %s"
+          ~ " WHERE username = ?"
+          ~ " AND CAST(banned AS INTEGER) > ?;")(
             users_table
         );
         const now = Clock.currTime.toUnixTime;
