@@ -59,6 +59,7 @@ extern (C) {
         sqlite3 *db, const(char)*zSql, int nByte, sqlite3_stmt **ppStmt,
         const(char*)*pzTail
     );
+    int sqlite3_bind_null(sqlite3_stmt*, int);
     int sqlite3_bind_text(
         sqlite3_stmt*, int, const char*, int n, void function (void*)
     );
@@ -447,8 +448,7 @@ class Sdb
             "UPDATE %s SET banned = ? WHERE username = ?;")(
             users_table
         );
-        const banned_until = 0;
-        query(sql, [banned_until.to!string, username]);
+        query(sql, [null, username]);
 
         if (log_user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
     }
@@ -511,16 +511,19 @@ class Sdb
         string[] parameters;
 
         if (stats.updating_speed) {
+            const upload_speed = stats.upload_speed;
             fields ~= "speed = ?";
-            parameters ~= stats.upload_speed.to!string;
+            parameters ~= upload_speed > 0 ? upload_speed.to!string : null;
         }
 
         if (stats.updating_shared) {
+            const shared_files = stats.shared_files;
             fields ~= "files = ?";
-            parameters ~= stats.shared_files.to!string;
+            parameters ~= shared_files > 0 ? shared_files.to!string : null;
 
+            const shared_folders = stats.shared_folders;
             fields ~= "folders = ?";
-            parameters ~= stats.shared_folders.to!string;
+            parameters ~= shared_folders > 0 ? shared_folders.to!string : null;
         }
 
         if (fields.length == 0)
@@ -610,7 +613,12 @@ class Sdb
         }
 
         foreach (i, parameter ; parameters) {
-            res = bind_text(stmt, cast(int) i + 1, parameter);
+            const index = cast(int) i + 1;
+            if (parameter !is null)
+                res = bind_text(stmt, index, parameter);
+            else
+                res = bind_null(stmt, index);
+
             if (res != SQLITE_OK) {
                 finalize(stmt);
                 raise_sql_error(query, parameters, res);
@@ -705,6 +713,12 @@ class Sdb
         return sqlite3_prepare_v2(
             db, query.toStringz, cast(int) query.length, &statement, null
         );
+    }
+
+    @trusted
+    private int bind_null(sqlite3_stmt* statement, int index)
+    {
+        return sqlite3_bind_null(statement, index);
     }
 
     @trusted
