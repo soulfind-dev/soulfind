@@ -26,7 +26,8 @@ const enum LoginRejectionReason
     invalid_username  = "INVALIDUSERNAME",
     empty_password    = "EMPTYPASSWORD",
     invalid_password  = "INVALIDPASS",
-    server_full       = "SVRFULL"
+    server_full       = "SVRFULL",
+    server_private    = "SVRPRIVATE"
 }
 
 const enum Status

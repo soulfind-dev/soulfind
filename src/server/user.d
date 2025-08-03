@@ -136,12 +136,17 @@ class User
         }
 
         if (!server.db.user_exists(username)) {
-            if (password.length == 0)
+            if (server.db.server_private_mode)
+                login_rejection.reason = LoginRejectionReason.server_private;
+
+            else if (password.length == 0)
                 login_rejection.reason = LoginRejectionReason.empty_password;
+
             else if (server.db.is_admin(username))
                 // For security reasons, non-existent admins cannot register
                 // through the client
                 login_rejection.reason = LoginRejectionReason.invalid_password;
+
             else
                 server.db.add_user(username, password);
 

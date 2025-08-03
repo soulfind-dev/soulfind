@@ -85,8 +85,9 @@ class Setup
                 MenuItem("0", "Admins",            &admins),
                 MenuItem("1", "Listen port",       &listen_port),
                 MenuItem("2", "Max users allowed", &max_users),
-                MenuItem("3", "MOTD",              &motd),
-                MenuItem("4", "Registered users",  &registered_users),
+                MenuItem("3", "Private mode",      &private_mode),
+                MenuItem("4", "MOTD",              &motd),
+                MenuItem("5", "Registered users",  &registered_users),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -192,6 +193,28 @@ class Setup
 
         db.set_server_port(port);
         listen_port();
+    }
+
+    private void private_mode()
+    {
+        show_menu(
+            format!(
+                "Private mode : %s"
+              ~ "\n\nPrivate mode disables new user registrations from the"
+              ~ " client.")(
+                db.server_private_mode ? "enabled" : "disabled"
+            ),
+            [
+                MenuItem("1", "Toggle private mode", &toggle_private_mode),
+                MenuItem("q", "Return",              &main_menu)
+            ]
+        );
+    }
+
+    private void toggle_private_mode()
+    {
+        db.set_server_private_mode(!db.server_private_mode);
+        private_mode();
     }
 
     private void max_users()
