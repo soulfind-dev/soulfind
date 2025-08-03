@@ -7,8 +7,8 @@ module soulfind.db;
 @safe:
 
 import core.time : days, Duration;
-import soulfind.defines : blue, default_max_users, default_port, log_db,
-                          log_user, norm;
+import soulfind.defines : blue, default_max_users, default_motd, default_port,
+                          log_db, log_user, norm;
 import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
@@ -164,38 +164,31 @@ class Sdb
         );
         query(sql);
 
-        init_config_option("port", default_port);
-        init_config_option("max_users", default_max_users);
-        init_config_option("motd", "Soulfind %sversion%");
+        if (get_config_value("port") is null)
+            set_server_port(default_port);
+
+        if (get_config_value("max_users") is null)
+            set_server_max_users(default_max_users);
+
+        if (get_config_value("motd") is null)
+            set_server_motd(default_motd);
     }
 
-    private void init_config_option(string option, string value)
+    private string get_config_value(string option)
     {
-        const sql = format!(
-            "INSERT OR IGNORE INTO %s(option, value) VALUES(?, ?);")(
+        const sql = format!("SELECT value FROM %s WHERE option = ?;")(
             config_table
         );
-        query(sql, [option, value]);
+        const res = query(sql, [option]);
+        string value;
 
-        if (log_db) writefln!("DB: Initialized config value %s to %s")(
-            option, value
-        );
+        if (res.length > 0)
+            value = res[0][0];
+
+        return value;
     }
 
-    private void init_config_option(string option, uint value)
-    {
-        const sql = format!(
-            "INSERT OR IGNORE INTO %s(option, value) VALUES(?, ?);")(
-            config_table
-        );
-        query(sql, [option, value.to!string]);
-
-        if (log_db) writefln!("DB: Initialized config value %s to %d")(
-            option, value
-        );
-    }
-
-    void set_config_value(string option, string value)
+    private void set_config_value(string option, string value)
     {
         const sql = format!(
             "REPLACE INTO %s(option, value) VALUES(?, ?);")(
@@ -208,25 +201,52 @@ class Sdb
         );
     }
 
-    void set_config_value(string option, uint value)
+    ushort server_port()
     {
-        const sql = format!(
-            "REPLACE INTO %s(option, value) VALUES(?, ?);")(
-            config_table
-        );
-        query(sql, [option, value.to!string]);
+        ushort port = default_port;
+        const config_value = get_config_value("port");
 
-        if (log_db) writefln!("DB: Updated config value %s to %d")(
-            option, value
-        );
+        if (config_value !is null)
+            try port = config_value.to!ushort; catch (ConvException) {}
+
+        return port;
     }
 
-    string get_config_value(string option)
+    void set_server_port(ushort port)
     {
-        const sql = format!("SELECT value FROM %s WHERE option = ?;")(
-            config_table
-        );
-        return query(sql, [option])[0][0];
+        set_config_value("port", port.to!string);
+    }
+
+    uint server_max_users()
+    {
+        uint max_users = default_max_users;
+        const config_value = get_config_value("max_users");
+
+        if (config_value !is null)
+            try max_users = config_value.to!uint; catch (ConvException) {}
+
+        return max_users;
+    }
+
+    void set_server_max_users(uint num_users)
+    {
+        set_config_value("max_users", num_users.to!string);
+    }
+
+    string server_motd()
+    {
+        string motd = default_motd;
+        const config_value = get_config_value("motd");
+
+        if (config_value !is null)
+            motd = config_value;
+
+        return motd;
+    }
+
+    void set_server_motd(string motd)
+    {
+        set_config_value("motd", motd);
     }
 
     void add_admin(string username, uint level = 0)

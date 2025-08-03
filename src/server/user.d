@@ -76,7 +76,7 @@ class User
 
     string motd()
     {
-        return server.db.get_config_value("motd")
+        return server.db.server_motd
             .replace("%sversion%", VERSION)
             .replace("%users%", server.users.length.to!string)
             .replace("%username%", username)
@@ -122,13 +122,8 @@ class User
     private LoginRejection verify_login(string username, string password)
     {
         auto login_rejection = LoginRejection();
-        ulong max_users;
-        try
-            max_users = server.db.get_config_value("max_users").to!uint;
-        catch (ConvException)
-            max_users = default_max_users;
 
-        if (server.users.length >= max_users) {
+        if (server.users.length >= server.db.server_max_users) {
             login_rejection.reason = LoginRejectionReason.server_full;
             return login_rejection;
         }
@@ -149,6 +144,7 @@ class User
                 login_rejection.reason = LoginRejectionReason.invalid_password;
             else
                 server.db.add_user(username, password);
+
             return login_rejection;
         }
         if (log_user) writefln!("User %s is registered")(

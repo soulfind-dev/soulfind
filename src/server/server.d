@@ -56,19 +56,10 @@ class Server
     this(string db_filename, ushort port = 0)
     {
         this.db                = new Sdb(db_filename);
+        this.port              = port > 0 ? port : db.server_port;
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
-
-        if (port == 0) {
-            try
-                this.port = db.get_config_value("port").to!ushort;
-            catch (ConvException)
-                this.port = cast(ushort) default_port;
-        }
-        else {
-            this.port = port;
-        }
     }
 
 

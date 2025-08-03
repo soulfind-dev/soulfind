@@ -167,14 +167,8 @@ class Setup
 
     private void listen_port()
     {
-        ulong port;
-        try
-            port = db.get_config_value("port").to!ushort;
-        catch (ConvException)
-            port = default_port;
-
         show_menu(
-            format!("Listen port : %d")(port),
+            format!("Listen port : %d")(db.server_port),
             [
                 MenuItem("1", "Change listen port", &set_listen_port),
                 MenuItem("q", "Return",             &main_menu)
@@ -197,20 +191,14 @@ class Setup
             return;
         }
 
-        db.set_config_value("port", port);
+        db.set_server_port(port);
         listen_port();
     }
 
     private void max_users()
     {
-        ulong max_users;
-        try
-            max_users = db.get_config_value("max_users").to!uint;
-        catch (ConvException)
-            max_users = default_max_users;
-
         show_menu(
-            format!("Max users allowed : %d")(max_users),
+            format!("Max users allowed : %d")(db.server_max_users),
             [
                 MenuItem("1", "Change max users", &set_max_users),
                 MenuItem("q", "Return",           &main_menu)
@@ -233,7 +221,7 @@ class Setup
             return;
         }
 
-        db.set_config_value("max_users", num_users);
+        db.set_server_max_users(num_users);
         max_users();
     }
 
@@ -241,7 +229,8 @@ class Setup
     {
         show_menu(
             format!("Current message of the day :\n--\n%s\n--")(
-                    db.get_config_value("motd")),
+                db.server_motd
+            ),
             [
                 MenuItem("1", "Change MOTD", &set_motd),
                 MenuItem("q", "Return",      &main_menu)
@@ -273,7 +262,7 @@ class Setup
         }
         while(true);
 
-        db.set_config_value("motd", motd_template[]);
+        db.set_server_motd(motd_template[]);
         motd();
     }
 
