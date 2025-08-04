@@ -270,14 +270,7 @@ class User
 
     private bool is_watching(string peer_username)
     {
-        if (peer_username in watched_users)
-            return true;
-
-        foreach (room ; joined_rooms)
-            if (room.is_joined(peer_username))
-                return true;
-
-        return false;
+        return peer_username in watched_users ? true : false;
     }
 
     ulong num_watched_users()
@@ -292,7 +285,8 @@ class User
             blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
         foreach (user ; server.users)
-            if (user.is_watching(username)) user.send_message(msg);
+            if (user.is_watching(username) || user.joined_same_room(username))
+                user.send_message(msg);
     }
 
 
@@ -508,6 +502,25 @@ class User
             );
 
         return null;
+    }
+
+    private bool joined_same_room(string peer_username)
+    {
+        foreach (room ; joined_rooms)
+            if (room.is_joined(peer_username))
+                return true;
+
+        return false;
+    }
+
+    private void send_to_joined_rooms(scope SMessage msg)
+    {
+        if (log_msg) writefln!(
+            "Transmit=> %s (code %d) to user %s's joined rooms...")(
+            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
+        );
+        foreach (user ; server.users)
+            if (user.joined_same_room(username)) user.send_message(msg);
     }
 
 
@@ -923,6 +936,14 @@ class User
                     user_shared_folders
                 );
                 send_message(response_msg);
+                break;
+
+            case QueuedDownloads:
+                scope msg = new UQueuedDownloads(msg_buf, username);
+                scope response_msg = new SQueuedDownloads(
+                    username, msg.slots_full
+                );
+                send_to_joined_rooms(response_msg);
                 break;
 
             case UserSearch:

@@ -69,6 +69,7 @@ const ServerPing             = 32;
 const SendConnectToken       = 33;    // Obsolete
 const SharedFoldersFiles     = 35;
 const GetUserStats           = 36;
+const QueuedDownloads        = 40;    // Obsolete
 const Relogged               = 41;
 const UserSearch             = 42;
 const SimilarRecommendations = 50;    // Obsolete
@@ -451,6 +452,18 @@ class UGetUserStats : UMessage
         super(in_buf, in_username);
 
         username = read!string();
+    }
+}
+
+class UQueuedDownloads : UMessage
+{
+    uint slots_full;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        slots_full = read!uint();
     }
 }
 
@@ -1047,6 +1060,17 @@ class SGetUserStats : SMessage
         write!uint(0);  // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);
+    }
+}
+
+class SQueuedDownloads : SMessage
+{
+    this(string username, uint slots_full) scope
+    {
+        super(QueuedDownloads);
+
+        write!string(username);
+        write!uint(slots_full);
     }
 }
 
