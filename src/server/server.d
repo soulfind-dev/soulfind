@@ -689,6 +689,8 @@ class Server
                       ~ " user"
                       ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
                       ~ " privileges from user"
+                      ~ "\n\nremovetickers <user>\n\tRemove user's public room"
+                      ~ " tickers"
                       ~ "\n\nannouncement <message>\n\tSend announcement to"
                       ~ " online users"
                       ~ "\n\nmessage <message>\n\tSend private message to"
@@ -985,6 +987,28 @@ class Server
                     );
 
                 server_pm(admin_username, response);
+                break;
+
+            case "removetickers":
+                if (command.length < 2) {
+                    server_pm(
+                        admin_username, "Syntax is : removetickers <user>"
+                    );
+                    break;
+                }
+                const username = command[1 .. $].join(" ");
+                if (!db.user_exists(username)) {
+                    server_pm(
+                        admin_username,
+                        format!("User %s is not registered")(username)
+                    );
+                    break;
+                }
+                del_user_tickers(username);
+                server_pm(
+                    admin_username,
+                    format!("Removed user %s's public room tickers")(username)
+                );
                 break;
 
             case "announcement":
