@@ -269,12 +269,13 @@ class Sdb
         set_config_value("motd", motd);
     }
 
-    void add_admin(string username, uint level = 0)
+    void add_admin(string username)
     {
         const sql = format!(
             "REPLACE INTO %s(username, level) VALUES(?, ?);")(
             admins_table
         );
+        const level = 0;
         query(sql, [username, level.to!string]);
 
         if (log_user) writefln!("Added new admin %s")(blue ~ username ~ norm);
