@@ -82,12 +82,6 @@ utility.
 Admins can interact with the server by sending commands in a private
 chat with the `server` user (`help` to see all commands).
 
-> [!IMPORTANT]
-> If an owner adds a username to the admin list before the user has registered
-a password, it is no longer possible to register through the Soulseek client.
-Only an owner can register the user in the `Registered users` section in the
-`soulsetup` utility.
-
 
 ## Runtime Options
 

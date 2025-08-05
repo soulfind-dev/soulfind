@@ -112,26 +112,13 @@ class Setup
     private void add_admin()
     {
         write("Admin to add : ");
-
         const username = input.strip;
-        if (!db.user_exists(username)) {
-            do {
-                writefln(
-                    "User %s is not registered. Do you really want to add "
-                  ~ "them to the admin list? [y/n]", username
-                );
-                const response = input.strip.toLower;
-                if (response == "y") {
-                    db.add_admin(username);
-                    break;
-                } else if (response == "n") {
-                    break;
-                }
-            }
-            while(true);
-        } else {
+
+        if (db.user_exists(username))
             db.add_admin(username);
-        }
+        else
+            writefln!("\nUser %s is not registered")(username);
+
         admins();
     }
 
