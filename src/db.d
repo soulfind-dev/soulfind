@@ -119,7 +119,7 @@ class Sdb
         const users_sql = format!(
             "CREATE TABLE IF NOT EXISTS %s("
           ~ " username TEXT PRIMARY KEY,"
-          ~ " password TEXT,"
+          ~ " password TEXT NOT NULL,"
           ~ " speed INTEGER,"
           ~ " files INTEGER,"
           ~ " folders INTEGER,"
@@ -132,7 +132,7 @@ class Sdb
         const admins_sql = format!(
             "CREATE TABLE IF NOT EXISTS %s("
           ~ " username TEXT PRIMARY KEY,"
-          ~ " level INTEGER"
+          ~ " level INTEGER NOT NULL"
           ~ ") WITHOUT ROWID;")(
             admins_table
         );
