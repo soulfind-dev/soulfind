@@ -676,7 +676,9 @@ class User
                     true, login_rejection, motd, address.addr, md5_hash,
                     supporter
                 );
-                scope room_list_msg = new SRoomList(server.room_stats);
+                scope room_list_msg = new SRoomList(
+                    server.room_stats, null, null, null
+                );
                 scope wish_interval_msg = new SWishlistInterval(
                     privileged ? wish_interval_privileged : wish_interval
                 );
@@ -1036,7 +1038,9 @@ class User
 
             case RoomList:
                 scope msg = new URoomList(msg_buf, username);
-                scope response_msg = new SRoomList(server.room_stats);
+                scope response_msg = new SRoomList(
+                    server.room_stats, null, null, null
+                );
                 send_message(response_msg);
                 break;
 
@@ -1126,6 +1130,30 @@ class User
                 send_message(response_msg);
                 break;
 
+            case PrivateRoomAddUser:
+                scope msg = new UPrivateRoomAddUser(msg_buf, username);
+                break;
+
+            case PrivateRoomRemoveUser:
+                scope msg = new UPrivateRoomRemoveUser(msg_buf, username);
+                break;
+
+            case PrivateRoomCancelMembership:
+                scope msg = new UPrivateRoomCancelMembership(
+                    msg_buf, username
+                );
+                break;
+
+            case PrivateRoomDisown:
+                scope msg = new UPrivateRoomDisown(msg_buf, username);
+                break;
+
+            case PrivateRoomToggle:
+                scope msg = new UPrivateRoomToggle(msg_buf, username);
+                scope response_msg = new SPrivateRoomToggle(msg.enabled);
+                send_message(response_msg);
+                break;
+
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
                 if (msg.password.length == 0)
@@ -1135,6 +1163,14 @@ class User
 
                 scope response_msg = new SChangePassword(msg.password);
                 send_message(response_msg);
+                break;
+
+            case PrivateRoomAddOperator:
+                scope msg = new UPrivateRoomAddOperator(msg_buf, username);
+                break;
+
+            case PrivateRoomRemoveOperator:
+                scope msg = new UPrivateRoomRemoveOperator(msg_buf, username);
                 break;
 
             case MessageUsers:

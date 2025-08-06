@@ -49,65 +49,78 @@ struct LoginRejection
 
 // Message Codes
 
-const Login                  = 1;
-const SetWaitPort            = 2;
-const GetPeerAddress         = 3;
-const WatchUser              = 5;
-const UnwatchUser            = 6;
-const GetUserStatus          = 7;
-const SayChatroom            = 13;
-const JoinRoom               = 14;
-const LeaveRoom              = 15;
-const UserJoinedRoom         = 16;
-const UserLeftRoom           = 17;
-const ConnectToPeer          = 18;
-const MessageUser            = 22;
-const MessageAcked           = 23;
-const FileSearch             = 26;
-const SetStatus              = 28;
-const ServerPing             = 32;
-const SendConnectToken       = 33;    // Obsolete
-const SharedFoldersFiles     = 35;
-const GetUserStats           = 36;
-const QueuedDownloads        = 40;    // Obsolete
-const Relogged               = 41;
-const UserSearch             = 42;
-const SimilarRecommendations = 50;    // Obsolete
-const AddThingILike          = 51;
-const RemoveThingILike       = 52;
-const GetRecommendations     = 54;
-const MyRecommendations      = 55;    // Obsolete
-const GlobalRecommendations  = 56;
-const UserInterests          = 57;
-const RoomList               = 64;
-const AdminMessage           = 66;
-const GlobalUserList         = 67;    // Obsolete
-const PrivilegedUsers        = 69;
-const CheckPrivileges        = 92;
-const WishlistSearch         = 103;
-const WishlistInterval       = 104;
-const SimilarUsers           = 110;
-const ItemRecommendations    = 111;
-const ItemSimilarUsers       = 112;
-const RoomTicker             = 113;
-const RoomTickerAdd          = 114;
-const RoomTickerRemove       = 115;
-const SetRoomTicker          = 116;
-const AddThingIHate          = 117;
-const RemoveThingIHate       = 118;
-const RoomSearch             = 120;
-const SendUploadSpeed        = 121;
-const UserPrivileged         = 122;   // Obsolete
-const GivePrivileges         = 123;
-const NotifyPrivileges       = 124;   // Obsolete
-const AckNotifyPrivileges    = 125;   // Obsolete
-const ChangePassword         = 142;
-const MessageUsers           = 149;
-const JoinGlobalRoom         = 150;
-const LeaveGlobalRoom        = 151;
-const GlobalRoomMessage      = 152;
-const RelatedSearch          = 153;   // Obsolete
-const CantConnectToPeer      = 1001;
+const Login                        = 1;
+const SetWaitPort                  = 2;
+const GetPeerAddress               = 3;
+const WatchUser                    = 5;
+const UnwatchUser                  = 6;
+const GetUserStatus                = 7;
+const SayChatroom                  = 13;
+const JoinRoom                     = 14;
+const LeaveRoom                    = 15;
+const UserJoinedRoom               = 16;
+const UserLeftRoom                 = 17;
+const ConnectToPeer                = 18;
+const MessageUser                  = 22;
+const MessageAcked                 = 23;
+const FileSearch                   = 26;
+const SetStatus                    = 28;
+const ServerPing                   = 32;
+const SendConnectToken             = 33;    // Obsolete
+const SharedFoldersFiles           = 35;
+const GetUserStats                 = 36;
+const QueuedDownloads              = 40;    // Obsolete
+const Relogged                     = 41;
+const UserSearch                   = 42;
+const SimilarRecommendations       = 50;    // Obsolete
+const AddThingILike                = 51;
+const RemoveThingILike             = 52;
+const GetRecommendations           = 54;
+const MyRecommendations            = 55;    // Obsolete
+const GlobalRecommendations        = 56;
+const UserInterests                = 57;
+const RoomList                     = 64;
+const AdminMessage                 = 66;
+const GlobalUserList               = 67;    // Obsolete
+const PrivilegedUsers              = 69;
+const CheckPrivileges              = 92;
+const WishlistSearch               = 103;
+const WishlistInterval             = 104;
+const SimilarUsers                 = 110;
+const ItemRecommendations          = 111;
+const ItemSimilarUsers             = 112;
+const RoomTicker                   = 113;
+const RoomTickerAdd                = 114;
+const RoomTickerRemove             = 115;
+const SetRoomTicker                = 116;
+const AddThingIHate                = 117;
+const RemoveThingIHate             = 118;
+const RoomSearch                   = 120;
+const SendUploadSpeed              = 121;
+const UserPrivileged               = 122;   // Obsolete
+const GivePrivileges               = 123;
+const NotifyPrivileges             = 124;   // Obsolete
+const AckNotifyPrivileges          = 125;   // Obsolete
+const PrivateRoomUsers             = 133;
+const PrivateRoomAddUser           = 134;
+const PrivateRoomRemoveUser        = 135;
+const PrivateRoomCancelMembership  = 136;
+const PrivateRoomDisown            = 137;
+const PrivateRoomAdded             = 139;
+const PrivateRoomRemoved           = 140;
+const PrivateRoomToggle            = 141;
+const ChangePassword               = 142;
+const PrivateRoomAddOperator       = 143;
+const PrivateRoomRemoveOperator    = 144;
+const PrivateRoomOperatorAdded     = 145;
+const PrivateRoomOperatorRemoved   = 146;
+const PrivateRoomOperators         = 148;
+const MessageUsers                 = 149;
+const JoinGlobalRoom               = 150;
+const LeaveGlobalRoom              = 151;
+const GlobalRoomMessage            = 152;
+const RelatedSearch                = 153;   // Obsolete
+const CantConnectToPeer            = 1001;
 
 
 // Incoming Messages
@@ -698,6 +711,70 @@ class UNotifyPrivileges : UMessage
     }
 }
 
+class UPrivateRoomAddUser : UMessage
+{
+    string  room_name;
+    string  username;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+        username = read!string();
+    }
+}
+
+class UPrivateRoomRemoveUser : UMessage
+{
+    string  room_name;
+    string  username;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+        username = read!string();
+    }
+}
+
+class UPrivateRoomCancelMembership : UMessage
+{
+    string room_name;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+    }
+}
+
+class UPrivateRoomDisown : UMessage
+{
+    string room_name;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+    }
+}
+
+class UPrivateRoomToggle : UMessage
+{
+    bool enabled;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        enabled = read!bool();
+    }
+}
+
 class UChangePassword : UMessage
 {
     string password;
@@ -707,6 +784,34 @@ class UChangePassword : UMessage
         super(in_buf, in_username);
 
         password = read!string();
+    }
+}
+
+class UPrivateRoomAddOperator : UMessage
+{
+    string  room_name;
+    string  username;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+        username = read!string();
+    }
+}
+
+class UPrivateRoomRemoveOperator : UMessage
+{
+    string  room_name;
+    string  username;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        room_name = read!string();
+        username = read!string();
     }
 }
 
@@ -896,21 +1001,40 @@ class SSayChatroom : SMessage
 
 class SRoomList : SMessage
 {
-    this(uint[string] rooms) scope
+    this(uint[string] rooms,
+         uint[string] owned_private_rooms,
+         uint[string] other_private_rooms,
+         string[] operated_private_rooms) scope
     {
         super(RoomList);
 
         write!uint(cast(uint) rooms.length);
-        foreach (room, users ; rooms) write!string(room);
+        foreach (room_name, users ; rooms)
+            write!string(room_name);
 
         write!uint(cast(uint) rooms.length);
-        foreach (room, users ; rooms) write!uint(users);
+        foreach (room_name, users ; rooms)
+            write!uint(users);
 
-        write!uint(0);    // number of owned private rooms (unimplemented)
-        write!uint(0);    // number of owned private rooms (unimplemented)
-        write!uint(0);    // number of other private rooms (unimplemented)
-        write!uint(0);    // number of other private rooms (unimplemented)
-        write!uint(0);    // number of operated private rooms (unimplemented)
+        write!uint(cast(uint) owned_private_rooms.length);
+        foreach (room_name, users ; owned_private_rooms)
+            write!string(room_name);
+
+        write!uint(cast(uint) owned_private_rooms.length);
+        foreach (room_name, users ; owned_private_rooms)
+            write!uint(users);
+
+        write!uint(cast(uint) other_private_rooms.length);
+        foreach (room_name, users ; other_private_rooms)
+            write!string(room_name);
+
+        write!uint(cast(uint) other_private_rooms.length);
+        foreach (room_name, users ; other_private_rooms)
+            write!uint(users);
+
+        write!uint(cast(uint) operated_private_rooms.length);
+        foreach (room_name ; operated_private_rooms)
+            write!string(room_name);
     }
 }
 
@@ -1308,6 +1432,70 @@ class SAckNotifyPrivileges : SMessage
     }
 }
 
+class SPrivateRoomUsers : SMessage
+{
+    this(string room_name, string[] usernames) scope
+    {
+        super(PrivateRoomUsers);
+
+        write!string(room_name);
+        write!uint(cast(uint) usernames.length);
+        foreach (username ; usernames) write!string(username);
+    }
+}
+
+class SPrivateRoomAddUser : SMessage
+{
+    this(string room_name, string username) scope
+    {
+        super(PrivateRoomAddUser);
+
+        write!string(room_name);
+        write!string(username);
+    }
+}
+
+class SPrivateRoomRemoveUser : SMessage
+{
+    this(string room_name, string username) scope
+    {
+        super(PrivateRoomRemoveUser);
+
+        write!string(room_name);
+        write!string(username);
+    }
+}
+
+class SPrivateRoomAdded : SMessage
+{
+    this(string room_name) scope
+    {
+        super(PrivateRoomAdded);
+
+        write!string(room_name);
+    }
+}
+
+class SPrivateRoomRemoved : SMessage
+{
+    this(string room_name) scope
+    {
+        super(PrivateRoomRemoved);
+
+        write!string(room_name);
+    }
+}
+
+class SPrivateRoomToggle : SMessage
+{
+    this(bool enabled) scope
+    {
+        super(PrivateRoomToggle);
+
+        write!bool(enabled);
+    }
+}
+
 class SChangePassword : SMessage
 {
     this(string password) scope
@@ -1315,6 +1503,60 @@ class SChangePassword : SMessage
         super(ChangePassword);
 
         write!string(password);
+    }
+}
+
+class SPrivateRoomAddOperator : SMessage
+{
+    this(string room_name, string username) scope
+    {
+        super(PrivateRoomAddOperator);
+
+        write!string(room_name);
+        write!string(username);
+    }
+}
+
+class SPrivateRoomRemoveOperator : SMessage
+{
+    this(string room_name, string username) scope
+    {
+        super(PrivateRoomRemoveOperator);
+
+        write!string(room_name);
+        write!string(username);
+    }
+}
+
+class SPrivateRoomOperatorAdded : SMessage
+{
+    this(string room_name) scope
+    {
+        super(PrivateRoomOperatorAdded);
+
+        write!string(room_name);
+    }
+}
+
+class SPrivateRoomOperatorRemoved : SMessage
+{
+    this(string room_name) scope
+    {
+        super(PrivateRoomOperatorRemoved);
+
+        write!string(room_name);
+    }
+}
+
+class SPrivateRoomOperators : SMessage
+{
+    this(string room_name, string[] usernames) scope
+    {
+        super(PrivateRoomOperators);
+
+        write!string(room_name);
+        write!uint(cast(uint) usernames.length);
+        foreach (username ; usernames) write!string(username);
     }
 }
 
