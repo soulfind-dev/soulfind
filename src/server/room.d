@@ -85,7 +85,7 @@ class Room
         return usernames[];
     }
 
-    ulong num_users()
+    size_t num_users()
     {
         return users.length;
     }
@@ -167,7 +167,7 @@ class Room
         return tickers.byValue.array.sort.array;
     }
 
-    ulong num_tickers()
+    size_t num_tickers()
     {
         return tickers.length;
     }

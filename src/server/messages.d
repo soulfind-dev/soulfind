@@ -115,7 +115,7 @@ const CantConnectToPeer      = 1001;
 class UMessage
 {
     uint             code;
-    private ulong    offset;
+    private size_t   offset;
     private ubyte[]  in_buf;
 
     this(ubyte[] in_buf, string in_username = "?") scope
@@ -896,7 +896,7 @@ class SSayChatroom : SMessage
 
 class SRoomList : SMessage
 {
-    this(ulong[string] rooms) scope
+    this(uint[string] rooms) scope
     {
         super(RoomList);
 
@@ -904,7 +904,7 @@ class SRoomList : SMessage
         foreach (room, users ; rooms) write!string(room);
 
         write!uint(cast(uint) rooms.length);
-        foreach (room, users ; rooms) write!uint(cast(uint) users);
+        foreach (room, users ; rooms) write!uint(users);
 
         write!uint(0);    // number of owned private rooms (unimplemented)
         write!uint(0);    // number of owned private rooms (unimplemented)

@@ -617,7 +617,7 @@ class Sdb
         return usernames[];
     }
 
-    uint num_users(string field = null, ulong min = 1, ulong max = ulong.max)
+    size_t num_users(string field = null, ulong min = 1, ulong max = ulong.max)
     {
         auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
         string[] parameters;
@@ -627,7 +627,7 @@ class Sdb
             parameters = [min.to!string, max.to!string];
         }
         sql ~= ";";
-        return query(sql, parameters)[0][0].to!uint;
+        return query(sql, parameters)[0][0].to!size_t;
     }
 
     private void raise_sql_error(string query = null,

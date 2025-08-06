@@ -424,10 +424,10 @@ class Server
         return rooms[name];
     }
 
-    ulong[string] room_stats()
+    uint[string] room_stats()
     {
-        ulong[string] stats;
-        foreach (room ; rooms) stats[room.name] = room.num_users;
+        uint[string] stats;
+        foreach (room ; rooms) stats[room.name] = cast(uint) room.num_users;
         return stats;
     }
 
@@ -566,7 +566,7 @@ class Server
         auto client_version = "none";
         auto address = "none";
         auto status = "offline";
-        ulong watched_users;
+        size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
         auto joined_global_room = "false";

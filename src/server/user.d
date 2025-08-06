@@ -273,7 +273,7 @@ class User
         return peer_username in watched_users ? true : false;
     }
 
-    ulong num_watched_users()
+    size_t num_watched_users()
     {
         return watched_users.length;
     }
