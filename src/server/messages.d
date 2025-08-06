@@ -173,11 +173,12 @@ class UMessage
             }
         }
         else {
-            offset = in_buf.length;
             writefln!(
-                "Message code %d, length %d not enough data trying to read")(
-                code, offset
+                "Message code %d, offset %d, not enough data reading %s of "
+              ~ "size %d")(
+                code, offset, T.stringof, size
             );
+            offset = in_buf.length;
         }
         return value;
     }
