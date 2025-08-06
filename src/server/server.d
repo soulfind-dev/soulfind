@@ -400,8 +400,9 @@ class Server
 
     Room add_room(string name)
     {
-        auto room = new Room(name);
+        auto room = new Room(name, db);
         rooms[name] = room;
+        db.add_room(name);
         return room;
     }
 
@@ -434,16 +435,22 @@ class Server
     private string room_info(string name)
     {
         Appender!string output;
-        auto room = rooms[name];
+        string[] usernames;
+        const tickers = db.room_tickers(name);
+
+        if (name in rooms)
+            usernames = rooms[name].usernames;
 
         output ~= name;
-        output ~= format!("\nUsers (%d):")(room.num_users);
-        foreach (username ; room.usernames)
+        output ~= format!("\nUsers (%d):")(usernames.length);
+        foreach (username ; usernames)
             output ~= format!("\n\t%s")(username);
 
-        output ~= format!("\nTickers (%d):")(room.num_tickers);
-        foreach (ticker ; room.tickers_by_order)
-            output ~= format!("\n\t[%s] %s")(ticker.username, ticker.content);
+        output ~= format!("\nTickers (%d):")(tickers.length);
+        foreach (ticker ; tickers) {
+            const username = ticker[0], content = ticker[1];
+            output ~= format!("\n\t[%s] %s")(username, content);
+        }
 
         return output[];
     }
@@ -577,6 +584,7 @@ class Server
         bool supporter;
         uint upload_speed;
         uint shared_files, shared_folders;
+        const tickers = db.user_tickers(username);
 
         user = get_user(username);
         if (user) {
@@ -613,9 +621,9 @@ class Server
         if (privileged_until > now)
             privileged = format!("until %s")(privileged_until.toSimpleString);
 
-        return format!(
+        Appender!string output;
+        output ~= format!(
             "%s"
-          ~ "\n"
           ~ "\nSession info:"
           ~ "\n\tclient version: %s"
           ~ "\n\taddress: %s"
@@ -625,15 +633,15 @@ class Server
           ~ "\n\thated items: %s"
           ~ "\n\tjoined rooms: %s"
           ~ "\n\tjoined global room: %s"
-          ~ "\n"
           ~ "\nPresistent info:"
           ~ "\n\tadmin: %s"
           ~ "\n\tbanned: %s"
           ~ "\n\tprivileged: %s"
           ~ "\n\tsupporter: %s"
           ~ "\n\tupload speed: %s"
-          ~ "\n\tfiles: %s"
-          ~ "\n\tdirs: %s")(
+          ~ "\n\tshared files: %s"
+          ~ "\n\tshared folders: %s"
+          ~ "\n\troom tickers: %s")(
             username,
             client_version,
             address,
@@ -649,8 +657,19 @@ class Server
             supporter,
             upload_speed,
             shared_files,
-            shared_folders
+            shared_folders,
+            tickers.length
         );
+
+        if (tickers.length > 0) {
+            output ~= format!("\nRoom tickers (%d):")(tickers.length);
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= format!("\n\t[%s] %s")(room_name, content);
+            }
+        }
+
+        return output[];
     }
 
     private void send_to_all(scope SMessage msg)
@@ -679,6 +698,10 @@ class Server
                       ~ "\n\nrooms\n\tList public rooms"
                       ~ "\n\nuserinfo <user>\n\tShow info about user"
                       ~ "\n\nroominfo <room>\n\tShow info about public room"
+                      ~ "\n\nremovetickers <user>\n\tRemove user's public room"
+                      ~ " tickers"
+                      ~ "\n\nremoverooms\n\tRemove orphaned public rooms and"
+                      ~ " tickers"
                       ~ "\n\nban [days] <user>\n\tBan user"
                       ~ "\n\nunban <user>\n\tUnban user"
                       ~ "\n\nkick [minutes] <user>\n\tDisconnect user for"
@@ -689,8 +712,6 @@ class Server
                       ~ " user"
                       ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
                       ~ " privileges from user"
-                      ~ "\n\nremovetickers <user>\n\tRemove user's public room"
-                      ~ " tickers"
                       ~ "\n\nannouncement <message>\n\tSend announcement to"
                       ~ " online users"
                       ~ "\n\nmessage <message>\n\tSend private message to"
@@ -721,11 +742,18 @@ class Server
 
             case "rooms":
                 Appender!string output;
-                output ~= format!("%d public rooms.")(rooms.length);
-                foreach (room ; rooms)
+                const names = db.rooms;
+                output ~= format!("%d public rooms.")(names.length);
+                foreach (name ; names) {
+                    ulong num_users;
+                    if (name in rooms)
+                        num_users = rooms[name].num_users;
+
                     output ~= format!("\n\t%s (users: %d, tickers: %d)")(
-                        room.name, room.num_users, room.num_tickers
+                        name, num_users, db.num_room_tickers(name)
                     );
+                }
+
                 server_pm(admin_username, output[]);
                 break;
 
@@ -754,7 +782,7 @@ class Server
                 }
                 const name = command[1 .. $].join(" ");
 
-                if (name !in rooms) {
+                if (!db.room_exists(name)) {
                     server_pm(
                         admin_username,
                         format!("Room %s is not registered")(name)
@@ -762,6 +790,48 @@ class Server
                     break;
                 }
                 server_pm(admin_username, room_info(name));
+                break;
+
+            case "removetickers":
+                if (command.length < 2) {
+                    server_pm(
+                        admin_username, "Syntax is : removetickers <user>"
+                    );
+                    break;
+                }
+                const username = command[1 .. $].join(" ");
+                if (!db.user_exists(username)) {
+                    server_pm(
+                        admin_username,
+                        format!("User %s is not registered")(username)
+                    );
+                    break;
+                }
+                del_user_tickers(username);
+                server_pm(
+                    admin_username,
+                    format!("Removed user %s's public room tickers")(username)
+                );
+                break;
+
+            case "removerooms":
+                Appender!(string[]) names;
+                foreach (name ; db.rooms) {
+                    if (name !in rooms) {
+                        db.del_room(name);
+                        names ~= name;
+                    }
+                }
+
+                string response;
+                if (names[].length == 0)
+                    response = "No orphaned rooms";
+                else
+                    response = format!("Removed %d orphaned rooms: %s")(
+                        names[].length, names[].join(", ")
+                    );
+
+                server_pm(admin_username, response);
                 break;
 
             case "ban":
@@ -987,28 +1057,6 @@ class Server
                     );
 
                 server_pm(admin_username, response);
-                break;
-
-            case "removetickers":
-                if (command.length < 2) {
-                    server_pm(
-                        admin_username, "Syntax is : removetickers <user>"
-                    );
-                    break;
-                }
-                const username = command[1 .. $].join(" ");
-                if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
-                        format!("User %s is not registered")(username)
-                    );
-                    break;
-                }
-                del_user_tickers(username);
-                server_pm(
-                    admin_username,
-                    format!("Removed user %s's public room tickers")(username)
-                );
                 break;
 
             case "announcement":

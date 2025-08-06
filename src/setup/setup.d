@@ -317,13 +317,14 @@ class Setup
             format!("Registered users (%d)")(db.num_users),
             [
                 MenuItem("1", "Add user",              &add_user),
-                MenuItem("2", "Show user info",        &user_info),
-                MenuItem("3", "Change user password",  &change_user_password),
-                MenuItem("4", "Unban user",            &unban_user),
-                MenuItem("5", "Remove user",           &remove_user),
-                MenuItem("6", "List registered users", &list_registered),
-                MenuItem("7", "List privileged users", &list_privileged),
-                MenuItem("8", "List banned users",     &list_banned),
+                MenuItem("2", "Change user password",  &change_user_password),
+                MenuItem("3", "Show user info",        &user_info),
+                MenuItem("4", "Show user tickers",     &user_tickers),
+                MenuItem("5", "Unban user",            &unban_user),
+                MenuItem("6", "Remove user",           &remove_user),
+                MenuItem("7", "List registered users", &list_registered),
+                MenuItem("8", "List privileged users", &list_privileged),
+                MenuItem("9", "List banned users",     &list_banned),
                 MenuItem("q", "Return",                &main_menu)
             ]
         );
@@ -361,55 +362,6 @@ class Setup
         registered_users();
     }
 
-    private void user_info()
-    {
-        write("Username : ");
-
-        const username = input.strip;
-        const now = Clock.currTime;
-        const admin = db.is_admin(username);
-        auto banned = "false";
-        const banned_until = db.user_banned_until(username);
-        auto privileged = "none";
-        const privileged_until = db.user_privileged_until(username);
-        const supporter = db.user_supporter(username);
-        const stats = db.user_stats(username);
-
-        if (banned_until == SysTime.fromUnixTime(long.max))
-            banned = "forever";
-
-        else if (banned_until > now)
-            banned = format!("until %s")(banned_until.toSimpleString);
-
-        if (privileged_until > now)
-            privileged = format!("until %s")(privileged_until.toSimpleString);
-
-        if (stats.exists) {
-            writefln!(
-                "\n%s"
-              ~ "\n\tadmin: %s"
-              ~ "\n\tbanned: %s"
-              ~ "\n\tprivileged: %s"
-              ~ "\n\tsupporter: %s"
-              ~ "\n\tfiles: %s"
-              ~ "\n\tdirs: %s"
-              ~ "\n\tupload speed: %s")(
-                username,
-                admin,
-                banned,
-                privileged,
-                supporter,
-                stats.shared_files,
-                stats.shared_folders,
-                stats.upload_speed
-            );
-        }
-        else
-            writefln!("\nUser %s is not registered")(username);
-
-        registered_users();
-    }
-
     private void change_user_password()
     {
         write("User to change password of : ");
@@ -427,6 +379,82 @@ class Setup
             while(true);
 
             db.user_update_password(username, password);
+        }
+        else
+            writefln!("\nUser %s is not registered")(username);
+
+        registered_users();
+    }
+
+    private void user_info()
+    {
+        write("Username : ");
+
+        const username = input.strip;
+        const now = Clock.currTime;
+        const admin = db.is_admin(username);
+        auto banned = "false";
+        const banned_until = db.user_banned_until(username);
+        auto privileged = "none";
+        const privileged_until = db.user_privileged_until(username);
+        const supporter = db.user_supporter(username);
+        const stats = db.user_stats(username);
+        const tickers = db.num_user_tickers(username);
+
+        if (banned_until == SysTime.fromUnixTime(long.max))
+            banned = "forever";
+
+        else if (banned_until > now)
+            banned = format!("until %s")(banned_until.toSimpleString);
+
+        if (privileged_until > now)
+            privileged = format!("until %s")(privileged_until.toSimpleString);
+
+        if (stats.exists) {
+            writefln!(
+                "\n%s"
+              ~ "\n\tadmin: %s"
+              ~ "\n\tbanned: %s"
+              ~ "\n\tprivileged: %s"
+              ~ "\n\tsupporter: %s"
+              ~ "\n\tupload speed: %s"
+              ~ "\n\tshared files: %s"
+              ~ "\n\tshared folders: %s"
+              ~ "\n\troom tickers: %s")(
+                username,
+                admin,
+                banned,
+                privileged,
+                supporter,
+                stats.upload_speed,
+                stats.shared_files,
+                stats.shared_folders,
+                tickers
+            );
+        }
+        else
+            writefln!("\nUser %s is not registered")(username);
+
+        registered_users();
+    }
+
+    private void user_tickers()
+    {
+        write("Username : ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            Appender!string output;
+            const tickers = db.user_tickers(username);
+
+            output ~= format!("\n%s's public room tickers (%d)...")(
+                username, tickers.length
+            );
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= format!("\n\t[%s] %s")(room_name, content);
+            }
+            writeln(output[]);
         }
         else
             writefln!("\nUser %s is not registered")(username);

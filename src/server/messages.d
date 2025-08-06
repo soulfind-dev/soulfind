@@ -8,7 +8,6 @@ module soulfind.server.messages;
 
 import core.time : days, Duration;
 import soulfind.defines : blue, log_msg, norm;
-import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.algorithm : clamp;
 import std.array : Appender, array;
@@ -1250,7 +1249,7 @@ class SItemSimilarUsers : SMessage
 
 class SRoomTicker : SMessage
 {
-    this(string room_name, Ticker[] tickers) scope
+    this(string room_name, string[][] tickers) scope
     {
         super(RoomTicker);
 
@@ -1258,8 +1257,9 @@ class SRoomTicker : SMessage
         write!uint(cast(uint) tickers.length);
         foreach (ticker ; tickers)
         {
-            write!string(ticker.username);
-            write!string(ticker.content);
+            const username = ticker[0], content = ticker[1];
+            write!string(username);
+            write!string(content);
         }
     }
 }

@@ -92,9 +92,11 @@ class Sdb
 {
     sqlite3* db;
 
-    const users_table   = "users";
-    const admins_table  = "admins";
-    const config_table  = "config";
+    const users_table    = "users";
+    const admins_table   = "admins";
+    const config_table   = "config";
+    const rooms_table    = "rooms";
+    const tickers_table  = "tickers";
 
 
     this(string filename)
@@ -114,6 +116,7 @@ class Sdb
         db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
         db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
+        query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
 
         const users_sql = format!(
@@ -137,12 +140,38 @@ class Sdb
             admins_table
         );
 
+        const rooms_sql = format!(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " room TEXT PRIMARY KEY,"
+          ~ " owner TEXT,"
+          ~ " FOREIGN KEY(owner) REFERENCES %s(username) "
+          ~ "ON DELETE CASCADE ON UPDATE CASCADE"
+          ~ ") WITHOUT ROWID;")(
+            rooms_table, users_table
+        );
+
+        const tickers_sql = format!(
+            "CREATE TABLE IF NOT EXISTS %s("
+          ~ " username TEXT,"
+          ~ " room TEXT,"
+          ~ " content TEXT NOT NULL,"
+          ~ " PRIMARY KEY(username, room),"
+          ~ " FOREIGN KEY(username) REFERENCES %s(username) "
+          ~ "ON DELETE CASCADE ON UPDATE CASCADE,"
+          ~ " FOREIGN KEY(room) REFERENCES %s(room) "
+          ~ "ON DELETE CASCADE ON UPDATE CASCADE"
+          ~ ");")(
+            tickers_table, users_table, rooms_table
+        );
+
         foreach (problem ; query("PRAGMA integrity_check;"))
             if (log_db) writefln!("DB: Check [%s]")(problem[0]);
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(admins_sql);
+        query(rooms_sql);
+        query(tickers_sql);
         init_config();
     }
 
@@ -152,6 +181,9 @@ class Sdb
         close();
         shutdown();
     }
+
+
+    // Config
 
     private void init_config()
     {
@@ -269,6 +301,9 @@ class Sdb
         set_config_value("motd", motd);
     }
 
+
+    // Admins
+
     void add_admin(string username)
     {
         const sql = format!(
@@ -309,6 +344,9 @@ class Sdb
         );
         return query(sql, [username]).length > 0;
     }
+
+
+    // Users
 
     private string hash_password(string password)
     {
@@ -629,6 +667,125 @@ class Sdb
         sql ~= ";";
         return query(sql, parameters)[0][0].to!uint;
     }
+
+
+    // Rooms
+
+    void add_room(string room_name)
+    {
+        const sql = format!(
+            "INSERT OR IGNORE INTO %s(room) VALUES(?);")(
+            rooms_table
+        );
+        query(sql, [room_name]);
+    }
+
+    void del_room(string room_name)
+    {
+        const sql = format!("DELETE FROM %s WHERE room = ?;")(
+            rooms_table
+        );
+        query(sql, [room_name]);
+    }
+
+    bool room_exists(string room_name)
+    {
+        const sql = format!(
+            "SELECT 1 FROM %s WHERE room = ?;")(
+            rooms_table
+        );
+        return query(sql, [room_name]).length > 0;
+    }
+
+    string[] rooms()
+    {
+        const sql = format!("SELECT room FROM %s;")(
+            rooms_table
+        );
+        Appender!(string[]) rooms;
+        foreach (record ; query(sql)) rooms ~= record[0];
+        return rooms[];
+    }
+
+    void add_ticker(string room_name, string username, string content)
+    {
+        const sql = format!(
+            "INSERT INTO %s(username, room, content) VALUES(?, ?, ?);")(
+            tickers_table
+        );
+        query(sql, [username, room_name, content]);
+    }
+
+    string get_ticker(string room_name, string username)
+    {
+        const sql = format!(
+            "SELECT content FROM %s WHERE username = ? AND room = ?;")(
+            tickers_table
+        );
+        const res = query(sql, [username, room_name]);
+        return res.length > 0 ? res[0][0] : null;
+    }
+
+    void del_ticker(string room_name, string username)
+    {
+        const sql = format!("DELETE FROM %s WHERE username = ? AND room = ?;")(
+            tickers_table
+        );
+        query(sql, [username, room_name]);
+    }
+
+    string del_oldest_ticker(string room_name)
+    {
+        const sql = format!(
+            "SELECT username FROM %s WHERE room = ? LIMIT 1;")(
+            tickers_table
+        );
+        const res = query(sql, [room_name]);
+        string username;
+
+        if (res.length > 0) {
+            username = res[0][0];
+            del_ticker(room_name, username);
+        }
+        return username;
+    }
+
+    string[][] room_tickers(string room_name)
+    {
+        const sql = format!("SELECT username,content FROM %s WHERE room = ?;")(
+            tickers_table
+        );
+        return query(sql, [room_name]);
+    }
+
+    string[][] user_tickers(string username)
+    {
+        const sql = format!("SELECT room,content FROM %s WHERE username = ?;")(
+            tickers_table
+        );
+        return query(sql, [username]);
+    }
+
+    ulong num_room_tickers(string room_name)
+    {
+        const sql = format!("SELECT COUNT(1) FROM %s WHERE room = ?;")(
+            tickers_table
+        );
+        const res = query(sql, [room_name]);
+        return res.length > 0 ? res[0][0].to!ulong : 0;
+    }
+
+    ulong num_user_tickers(string username)
+    {
+        const sql = format!("SELECT COUNT(1) FROM %s WHERE username = ?;")(
+            tickers_table
+        );
+        const res = query(sql, [username]);
+        return res.length > 0 ? res[0][0].to!ulong : 0;
+    }
+
+
+    // SQLite
 
     private void raise_sql_error(string query = null,
                                  const string[] parameters = null,
