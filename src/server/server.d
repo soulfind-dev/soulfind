@@ -90,7 +90,7 @@ class Server
         }
 
         writefln!("%s %s %s process %d listening on port %d")(
-            red ~ "♥" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
+            red ~ "\&hearts;" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
             thisProcessID, port
         );
 
