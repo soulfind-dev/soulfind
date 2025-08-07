@@ -14,6 +14,7 @@ import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
                           max_username_length, norm, red, server_username,
                           speed_weight, VERSION, wish_interval,
                           wish_interval_privileged;
+import soulfind.select : SelectEvent;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
@@ -538,6 +539,7 @@ class User
             return false;
 
         out_buf = out_buf[send_len .. $];
+        if (!is_sending) server.selector.unregister(sock, SelectEvent.write);
         return true;
     }
 
@@ -566,6 +568,8 @@ class User
         out_buf[offset .. offset + uint.sizeof] = (cast(uint) msg_len)
             .nativeToLittleEndian;
         out_buf[offset + uint.sizeof .. $] = msg_buf;
+
+        server.selector.register(sock, SelectEvent.write);
     }
 
     bool recv_buffer()

@@ -8,10 +8,11 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, delete_user_interval, kick_duration,
+import soulfind.defines : blue, bold, check_user_interval, kick_duration,
                           log_msg, log_user, max_room_name_length,
                           max_search_query_length, norm, red, server_username,
                           VERSION;
+import soulfind.select : SelectEvent, Selector;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -23,7 +24,7 @@ import std.datetime : Clock, SysTime;
 import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
-                    SocketSet, SocketShutdown, TcpSocket;
+                    SocketShutdown, TcpSocket;
 import std.stdio : writefln;
 import std.string : format, join, split;
 
@@ -37,17 +38,16 @@ else {
 class Server
 {
     Sdb                   db;
+    Selector              selector;
     GlobalRoom            global_room;
     User[string]          users;
 
     private SysTime       started_at;
     private MonoTime      started_monotime;
-    private MonoTime      last_delete_user_check;
+    private MonoTime      last_user_check;
     private ushort        port;
 
     private User[Socket]  user_socks;
-    private SocketSet     read_socks;
-    private SocketSet     write_socks;
 
     private PM[uint]      pms;
     private Room[string]  rooms;
@@ -57,6 +57,7 @@ class Server
     {
         this.db                = new Sdb(db_filename);
         this.port              = port > 0 ? port : db.server_port;
+        this.selector          = Selector(1.seconds);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
@@ -67,16 +68,16 @@ class Server
 
     int listen()
     {
-        auto sock = new TcpSocket();
-        sock.blocking = false;
+        auto listen_sock = new TcpSocket();
+        listen_sock.blocking = false;
 
         version (Posix)
-            sock.setOption(
+            listen_sock.setOption(
                 SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
 
         try {
-            sock.bind(new InternetAddress(port));
-            sock.listen(10);
+            listen_sock.bind(new InternetAddress(port));
+            listen_sock.listen(10);
         }
         catch (SocketOSException e) {
             const min_port = 1024;
@@ -94,73 +95,53 @@ class Server
             thisProcessID, port
         );
 
-        const timeout = 1.seconds;
-        read_socks = new SocketSet();
-        write_socks = new SocketSet();
+        selector.register(listen_sock, SelectEvent.read);
 
         while (running) {
-            read_socks.add(sock);
-
-            Socket.select(read_socks, write_socks, null, timeout);
-
-            if (read_socks.isSet(sock)) {
-                while (true) {
-                    Socket new_sock;
-                    try
-                        new_sock = sock.accept();
-                    catch (SocketAcceptException)
-                        break;
-
-                    if (!new_sock.isAlive)
-                        break;
-
-                    enable_keep_alive(new_sock);
-                    new_sock.setOption(
-                        SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
-                    );
-                    new_sock.blocking = false;
-
-                    if (log_user) writefln!("Connection accepted from %s")(
-                        new_sock.remoteAddress
-                    );
-                    user_socks[new_sock] = new User(
-                        this, new_sock,
-                        new InternetAddress(
-                            (cast(InternetAddress)new_sock.remoteAddress).addr,
-                            InternetAddress.PORT_ANY
-                        )
-                    );
-                }
-            }
-
+            const ready_socks = selector.select();
             Appender!(User[]) users_to_disconnect;
 
-            const curr_time = MonoTime.currTime;
-            const check_user_deleted = (
-                (curr_time - last_delete_user_check) >= delete_user_interval
-            );
-            if (check_user_deleted)
-                last_delete_user_check = curr_time;
+            foreach (sock, events ; ready_socks) {
+                const recv_ready = (events & SelectEvent.read) != 0;
+                const send_ready = (events & SelectEvent.write) != 0;
 
-            foreach (user_sock, user ; user_socks) {
-                const recv_ready = read_socks.isSet(user_sock);
-                const send_ready = write_socks.isSet(user_sock);
+                if (sock is listen_sock) {
+                    if (recv_ready) accept(listen_sock);
+                    continue;
+                }
+
+                auto user = user_socks[sock];
                 bool recv_success = true;
                 bool send_success = true;
 
                 if (recv_ready)
                     recv_success = user.recv_buffer();
-                else
-                    read_socks.add(user_sock);
 
                 if (send_ready)
                     send_success = user.send_buffer();
 
                 if (!user.is_sending) {
-                    if (send_ready)
-                        write_socks.remove(user_sock);
+                    if (user.removed) {
+                        // In order to avoid closing connections early before
+                        // delivering e.g. a Relogged message, we disconnect
+                        // the user here after the output buffer is sent
+                        users_to_disconnect ~= user;
+                    }
+                    else if (user.login_rejection.reason) {
+                        recv_success = send_success = false;
+                    }
+                }
 
-                    if (check_user_deleted && user.username in users) {
+                if (!running || !recv_success || !send_success) {
+                    del_user(user);
+                    users_to_disconnect ~= user;
+                }
+            }
+
+            const curr_time = MonoTime.currTime;
+            if ((curr_time - last_user_check) >= check_user_interval) {
+                foreach (user ; user_socks) {
+                    if (user.username in users) {
                         // If the user was removed from the database, perform
                         // server-side removal and disconnection of deleted
                         // users. Send a Relogged message first to prevent the
@@ -172,32 +153,19 @@ class Server
                             user.send_message(relogged_msg);
                             del_user(user, deleted);
                         }
-                        last_delete_user_check = curr_time;
                     }
-                    else if (user.removed) {
-                        // In order to avoid closing connections early before
-                        // delivering e.g. a Relogged message, we disconnect
-                        // the user here after the output buffer is sent
+                    else if (user.login_timed_out) {
+                        del_user(user);
                         users_to_disconnect ~= user;
                     }
-                    else if (user.login_rejection.reason
-                            || user.login_timed_out) {
-                        recv_success = send_success = false;
-                    }
                 }
-                else if (!send_ready) {
-                    write_socks.add(user_sock);
-                }
-
-                if (!running || !recv_success || !send_success) {
-                    del_user(user);
-                    users_to_disconnect ~= user;
-                }
+                last_user_check = curr_time;
             }
 
             foreach (user ; users_to_disconnect) {
-                read_socks.remove(user.sock);
-                write_socks.remove(user.sock);
+                selector.unregister(
+                    user.sock, SelectEvent.read | SelectEvent.write
+                );
                 user_socks.remove(user.sock);
 
                 user.sock.shutdown(SocketShutdown.BOTH);
@@ -210,11 +178,43 @@ class Server
             }
         }
 
-        sock.close();
+        listen_sock.close();
         return 0;
     }
 
-    void enable_keep_alive(Socket sock)
+    private void accept(Socket listen_sock)
+    {
+        while (true) {
+            Socket sock;
+            try
+                sock = listen_sock.accept();
+            catch (SocketAcceptException)
+                break;
+
+            if (!sock.isAlive)
+                break;
+
+            enable_keep_alive(sock);
+            sock.setOption(
+                SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
+            );
+            sock.blocking = false;
+
+            if (log_user) writefln!("Connection accepted from %s")(
+                sock.remoteAddress
+            );
+            user_socks[sock] = new User(
+                this, sock,
+                new InternetAddress(
+                    (cast(InternetAddress)sock.remoteAddress).addr,
+                    InternetAddress.PORT_ANY
+                )
+            );
+            selector.register(sock, SelectEvent.read);
+        }
+    }
+
+    private void enable_keep_alive(Socket sock)
     {
         int TCP_KEEPIDLE;
         int TCP_KEEPINTVL;
