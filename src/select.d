@@ -18,7 +18,8 @@ version (linux) struct EpollSelector
 {
     import core.sys.linux.epoll : epoll_create1, epoll_ctl, EPOLL_CTL_ADD,
                                   EPOLL_CTL_DEL, EPOLL_CTL_MOD, epoll_event,
-                                  epoll_wait, EPOLLIN, EPOLLOUT;
+                                  epoll_wait, EPOLLERR, EPOLLHUP, EPOLLIN,
+                                  EPOLLOUT;
     import core.sys.posix.unistd : close;
 
     private Duration             timeout;
@@ -31,7 +32,7 @@ version (linux) struct EpollSelector
     this(Duration timeout)
     {
         this.timeout = timeout;
-        create();
+        epoll_fd = create();
     }
     @disable this();
 
@@ -66,10 +67,7 @@ version (linux) struct EpollSelector
 
     void unregister(Socket sock, SelectEvent events)
     {
-        if (sock !in socks)
-            return;
-
-        if ((socks[sock] & events) == 0)
+        if (sock !in socks || (socks[sock] & events) == 0)
             return;
 
         socks[sock] &= ~events;
@@ -100,17 +98,21 @@ version (linux) struct EpollSelector
         if (num_fds > 0) foreach (n; 0 .. num_fds) {
             auto ev = epoll_events[n];
             auto sock = fd_socks[ev.data.fd];
-            if (ev.events & EPOLLIN) ready_socks[sock] |= SelectEvent.read;
-            if (ev.events & EPOLLOUT) ready_socks[sock] |= SelectEvent.write;
+
+            if (ev.events & (EPOLLIN | EPOLLERR | EPOLLHUP))
+                ready_socks[sock] |= SelectEvent.read;
+
+            if (ev.events & EPOLLOUT)
+                ready_socks[sock] |= SelectEvent.write;
         }
         return ready_socks;
     }
 
     @trusted
-    private void create()
+    private int create()
     {
         const SOCK_CLOEXEC = 0x80000;
-        epoll_fd = epoll_create1(SOCK_CLOEXEC);
+        return epoll_create1(SOCK_CLOEXEC);
     }
 
     @trusted
