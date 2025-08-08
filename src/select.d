@@ -131,19 +131,28 @@ version (linux) struct EpollSelector
     }
 }
 
-struct SelectSelector
+struct PollSelector
 {
-    private Duration             timeout;
-    private SelectEvent[Socket]  socks;
-    private SocketSet            read_set;
-    private SocketSet            write_set;
+    version (Windows) {
+        import core.sys.windows.winsock2 : poll = WSAPoll, POLLERR,
+                                           pollfd = WSAPOLLFD, POLLHUP,
+                                           POLLIN = POLLRDNORM,
+                                           POLLOUT = POLLWRNORM;
+    }
+    else version (Posix) {
+        import core.sys.posix.poll : poll, POLLERR, pollfd, POLLHUP, POLLIN,
+                                     POLLOUT;
+    }
+
+    private Duration timeout;
+    private SelectEvent[Socket] socks;
+    private Socket[size_t] fd_socks;
+    private pollfd[] pollfds;
 
     @trusted
     this(Duration timeout)
     {
         this.timeout = timeout;
-        read_set = new SocketSet();
-        write_set = new SocketSet();
     }
     @disable this();
 
@@ -152,61 +161,89 @@ struct SelectSelector
         if (sock in socks && (socks[sock] & events) == events)
             return;
 
+        const fd = cast(int) sock.handle;
+        const pfd = create_pollfd(fd, events);
+        const exists = fd in fd_socks;
+
+        if (!exists) fd_socks[fd] = sock;
         socks[sock] |= events;
 
-        if (events & SelectEvent.read)
-            read_set.add(sock);
-
-        if (events & SelectEvent.write)
-            write_set.add(sock);
+        if (exists)
+            pollfds[find_fd_idx(fd)] = pfd;
+        else
+            pollfds ~= pfd;
     }
 
     void unregister(Socket sock, SelectEvent events)
     {
-        if (sock !in socks)
+        if (sock !in socks || (socks[sock] & events) == 0)
             return;
 
-        if ((socks[sock] & events) == 0)
-            return;
+        const fd = cast(int) sock.handle;
+        size_t idx = find_fd_idx(fd);
 
         socks[sock] &= ~events;
         const remaining_events = socks[sock];
 
-        if (remaining_events & SelectEvent.read)
-            read_set.add(sock);
-        else
-            read_set.remove(sock);
-
-        if (remaining_events & SelectEvent.write)
-            write_set.add(sock);
-        else
-            write_set.remove(sock);
-
-        if (remaining_events == 0)
+        if (remaining_events == 0) {
             socks.remove(sock);
+            fd_socks.remove(fd);
+            pollfds[idx] = pollfds[$ - 1];
+            pollfds.length--;
+            return;
+        }
+        pollfds[idx] = create_pollfd(fd, remaining_events);
     }
 
     SelectEvent[Socket] select()
     {
         SelectEvent[Socket] ready_socks;
-        Socket.select(read_set, write_set, null, timeout);
+        const num_fds = wait();
 
-        foreach (sock, events; socks) {
-            if (read_set.isSet(sock))
+        if (num_fds > 0) foreach (pfd; pollfds) {
+            if (pfd.revents == 0)
+                continue;
+
+            auto sock = fd_socks[pfd.fd];
+
+            if (pfd.revents & (POLLIN | POLLERR | POLLHUP))
                 ready_socks[sock] |= SelectEvent.read;
-            else
-                read_set.add(sock);
 
-            if (write_set.isSet(sock))
+            if (pfd.revents & POLLOUT)
                 ready_socks[sock] |= SelectEvent.write;
-            else
-                write_set.add(sock);
         }
         return ready_socks;
+    }
+
+    private pollfd create_pollfd(int fd, SelectEvent events)
+    {
+        pollfd pfd;
+        pfd.fd = fd;
+        if (events & SelectEvent.read) pfd.events |= POLLIN;
+        if (events & SelectEvent.write) pfd.events |= POLLOUT;
+
+        return pfd;
+    }
+
+    private size_t find_fd_idx(int fd)
+    {
+        foreach (i, pfd; pollfds)
+            if (pfd.fd == fd)
+                return i;
+        return size_t.max;
+    }
+
+    @trusted
+    private int wait()
+    {
+        return poll(
+            pollfds.ptr, cast(uint) pollfds.length,
+            cast(int) timeout.total!"msecs"
+        );
     }
 }
 
 version (linux)
     alias Selector = EpollSelector;
 else
-    alias Selector = SelectSelector;
+    alias Selector = PollSelector;
