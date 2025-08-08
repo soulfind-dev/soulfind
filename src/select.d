@@ -28,7 +28,6 @@ version (linux) struct EpollSelector
     private SelectEvent[Socket]  socks;
     private Socket[int]          fd_socks;
 
-    @trusted
     this(Duration timeout)
     {
         this.timeout = timeout;
@@ -149,7 +148,6 @@ struct PollSelector
     private Socket[size_t] fd_socks;
     private pollfd[] pollfds;
 
-    @trusted
     this(Duration timeout)
     {
         this.timeout = timeout;
