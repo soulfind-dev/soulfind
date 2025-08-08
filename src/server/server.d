@@ -87,7 +87,7 @@ class Server
               ~ "a user?")(
                  min_port
             );
-            return 1789;
+            return 1;
         }
 
         writefln!("%s %s %s process %d listening on port %d")(
