@@ -8,6 +8,13 @@ module soulfind.select;
 import core.time : Duration;
 import std.socket : socket_t;
 
+version (linux)         version = epoll;
+version (OSX)           version = kqueue;
+version (FreeBSD)       version = kqueue;
+version (NetBSD)        version = kqueue;
+version (DragonFlyBSD)  version = kqueue;
+
+
 enum SelectEvent
 {
     read   = 1 << 0,
@@ -29,7 +36,7 @@ class Selector
     abstract SelectEvent[socket_t] select();
 }
 
-version (linux) final class EpollSelector : Selector
+version (epoll) final class EpollSelector : Selector
 {
     import core.sys.linux.epoll;
     import core.sys.posix.unistd : close;
@@ -92,13 +99,13 @@ version (linux) final class EpollSelector : Selector
         const num_fds = wait();
 
         if (num_fds > 0) foreach (n; 0 .. num_fds) {
-            const ev = epoll_events[n];
-            const fd = cast(socket_t) ev.data.fd;
+            const event = epoll_events[n];
+            const fd = cast(socket_t) event.data.fd;
 
-            if (ev.events & (EPOLLIN | EPOLLERR | EPOLLHUP))
+            if (event.events & (EPOLLIN | EPOLLERR | EPOLLHUP))
                 ready_fds[fd] |= SelectEvent.read;
 
-            if (ev.events & EPOLLOUT)
+            if (event.events & EPOLLOUT)
                 ready_fds[fd] |= SelectEvent.write;
         }
         return ready_fds;
@@ -135,6 +142,117 @@ version (linux) final class EpollSelector : Selector
         return epoll_wait(
             epoll_fd, epoll_events.ptr, cast(int) epoll_events.length,
             cast(int) timeout.total!"msecs"
+        );
+    }
+}
+
+version (kqueue) final class KqueueSelector : Selector
+{
+    version      (OSX)           import core.sys.darwin.sys.event;
+    else version (FreeBSD)       import core.sys.freebsd.sys.event;
+    else version (NetBSD)        import core.sys.netbsd.sys.event;
+    else version (DragonFlyBSD)  import core.sys.dragonflybsd.sys.event;
+    import core.sys.posix.time : time_t, timespec;
+    import core.sys.posix.unistd : close;
+
+    private int         kqueue_fd;
+    private kevent_t[]  kevents;
+    private size_t      max_events;
+
+    this(Duration timeout)
+    {
+        super(timeout);
+        kqueue_fd = create_kqueue();
+    }
+
+    ~this()
+    {
+        close(kqueue_fd);
+    }
+
+    override void register(socket_t fd, SelectEvent events)
+    {
+        if (fd in fd_events && (fd_events[fd] & events) == events)
+            return;
+
+        scope kevent_t[] changes;
+
+        if (events & SelectEvent.read)
+            changes ~= kevent_t(fd, EVFILT_READ, EV_ADD);
+
+        if (events & SelectEvent.write)
+            changes ~= kevent_t(fd, EVFILT_WRITE, EV_ADD);
+
+        max_events += changes.length;
+        if (kevents.length < max_events)
+            kevents.length = max_events;
+
+        fd_events[fd] |= events;
+        control(changes);
+    }
+
+    override void unregister(socket_t fd, SelectEvent events)
+    {
+        if (fd !in fd_events)
+            return;
+
+        const deleted_events = fd_events[fd] & events;
+        if (deleted_events == 0)
+            return;
+
+        fd_events[fd] &= ~deleted_events;
+        scope kevent_t[] changes;
+
+        if (deleted_events & SelectEvent.read)
+            changes ~= kevent_t(fd, EVFILT_READ, EV_DELETE);
+
+        if (deleted_events & SelectEvent.write)
+            changes ~= kevent_t(fd, EVFILT_WRITE, EV_DELETE);
+
+        max_events -= changes.length;
+        control(changes);
+    }
+
+    override SelectEvent[socket_t] select()
+    {
+        SelectEvent[socket_t] ready_fds;
+        const num_fds = wait();
+
+        if (num_fds > 0) foreach (n; 0 .. num_fds) {
+            const event = kevents[n];
+            const fd = cast(socket_t) event.ident;
+
+            if (event.filter == EVFILT_READ)
+                ready_fds[fd] |= SelectEvent.read;
+
+            if (event.filter == EVFILT_WRITE)
+                ready_fds[fd] |= SelectEvent.write;
+        }
+        return ready_fds;
+    }
+
+    @trusted
+    private int create_kqueue()
+    {
+        return kqueue();
+    }
+
+    @trusted
+    private void control(kevent_t[] changes)
+    {
+        kevent(
+            kqueue_fd, changes.ptr, cast(int) changes.length, null, 0, null
+        );
+    }
+
+    @trusted
+    private int wait()
+    {
+        timespec spec;
+        timeout.split!("seconds", "nsecs")(spec.tv_sec, spec.tv_nsec);
+
+        return kevent(
+            kqueue_fd, null, 0, kevents.ptr, cast(int) kevents.length, &spec
         );
     }
 }
@@ -241,7 +359,6 @@ final class PollSelector : Selector
     }
 }
 
-version (linux)
-    alias DefaultSelector = EpollSelector;
-else
-    alias DefaultSelector = PollSelector;
+version      (epoll)   alias DefaultSelector = EpollSelector;
+else version (kqueue)  alias DefaultSelector = KqueueSelector;
+else                   alias DefaultSelector = PollSelector;
