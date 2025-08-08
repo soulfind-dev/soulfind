@@ -540,7 +540,7 @@ class Server
                 const users = db.usernames(
                     "banned", Clock.currTime.toUnixTime
                 );
-                output ~= format!("\nBanned users (%d)...")(users.length);
+                output ~= format!("%d banned users.")(users.length);
                 foreach (ref user ; users) {
                     const banned_until = db.user_banned_until(user);
                     if (banned_until == SysTime.fromUnixTime(long.max))
@@ -551,11 +551,16 @@ class Server
                 }
                 break;
 
-            default:
+            case null:
                 const usernames = db.usernames;
                 output ~= format!("%d total users.")(usernames.length);
                 foreach (ref username ; db.usernames)
                     output ~= format!("\n\t%s")(username);
+                break;
+
+            default:
+                output ~= "Syntax is : users [connected|banned|privileged]";
+
         }
         return output[];
     }
