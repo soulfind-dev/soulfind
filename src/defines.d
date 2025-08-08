@@ -21,6 +21,7 @@ const kick_duration            = 2.minutes;
 const check_user_interval      = 10.seconds;
 const wish_interval            = 12.minutes;
 const wish_interval_privileged = 2.minutes;
+const conn_backlog_length      = 512;
 const max_msg_size             = 16384;
 const max_chat_message_length  = 2048;
 const max_interest_length      = 64;

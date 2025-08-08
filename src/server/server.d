@@ -8,10 +8,10 @@ module soulfind.server.server;
 
 import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, check_user_interval, kick_duration,
-                          log_msg, log_user, max_room_name_length,
-                          max_search_query_length, norm, red, server_username,
-                          VERSION;
+import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
+                          kick_duration, log_msg, log_user,
+                          max_room_name_length, max_search_query_length, norm,
+                          red, server_username, VERSION;
 import soulfind.select : SelectEvent, Selector;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -77,7 +77,7 @@ class Server
 
         try {
             listen_sock.bind(new InternetAddress(port));
-            listen_sock.listen(10);
+            listen_sock.listen(conn_backlog_length);
         }
         catch (SocketOSException e) {
             const min_port = 1024;
