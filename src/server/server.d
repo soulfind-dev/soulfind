@@ -22,7 +22,7 @@ import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.process : thisProcessID;
-import std.socket : InternetAddress, Socket, SocketAcceptException,
+import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;
 import std.stdio : writefln;
@@ -37,20 +37,20 @@ else {
 
 class Server
 {
-    Sdb                   db;
-    Selector              selector;
-    GlobalRoom            global_room;
-    User[string]          users;
+    Sdb                     db;
+    Selector                selector;
+    GlobalRoom              global_room;
+    User[string]            users;
 
-    private SysTime       started_at;
-    private MonoTime      started_monotime;
-    private MonoTime      last_user_check;
-    private ushort        port;
+    private SysTime         started_at;
+    private MonoTime        started_monotime;
+    private MonoTime        last_user_check;
+    private ushort          port;
 
-    private User[size_t]  sock_users;
+    private User[socket_t]  sock_users;
 
-    private PM[uint]      pms;
-    private Room[string]  rooms;
+    private PM[uint]        pms;
+    private Room[string]    rooms;
 
 
     this(string db_filename, ushort port = 0)
@@ -95,22 +95,22 @@ class Server
             thisProcessID, port
         );
 
-        selector.register(listen_sock, SelectEvent.read);
+        selector.register(listen_sock.handle, SelectEvent.read);
 
         while (running) {
-            const ready_socks = selector.select();
+            const ready_sock_handles = selector.select();
             Appender!(User[]) users_to_disconnect;
 
-            foreach (ref sock, events ; ready_socks) {
+            foreach (sock_handle, events ; ready_sock_handles) {
                 const recv_ready = (events & SelectEvent.read) != 0;
                 const send_ready = (events & SelectEvent.write) != 0;
 
-                if (sock is listen_sock) {
+                if (sock_handle == listen_sock.handle) {
                     if (recv_ready) accept(listen_sock);
                     continue;
                 }
 
-                auto user = sock_users[sock.handle];
+                auto user = sock_users[sock_handle];
                 bool recv_success = true;
                 bool send_success = true;
 
@@ -164,7 +164,7 @@ class Server
 
             foreach (ref user ; users_to_disconnect) {
                 selector.unregister(
-                    user.sock, SelectEvent.read | SelectEvent.write
+                    user.sock.handle, SelectEvent.read | SelectEvent.write
                 );
                 sock_users.remove(user.sock.handle);
 
@@ -210,7 +210,7 @@ class Server
                     InternetAddress.PORT_ANY
                 )
             );
-            selector.register(sock, SelectEvent.read);
+            selector.register(sock.handle, SelectEvent.read);
         }
     }
 

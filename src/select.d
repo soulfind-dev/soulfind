@@ -6,7 +6,7 @@ module soulfind.select;
 @safe:
 
 import core.time : Duration;
-import std.socket : Socket, SocketSet;
+import std.socket : socket_t;
 
 enum SelectEvent
 {
@@ -22,16 +22,15 @@ version (linux) struct EpollSelector
                                   EPOLLOUT;
     import core.sys.posix.unistd : close;
 
-    private Duration             timeout;
-    private int                  epoll_fd;
-    private epoll_event[]        epoll_events;
-    private SelectEvent[Socket]  socks;
-    private Socket[int]          fd_socks;
+    private Duration               timeout;
+    private SelectEvent[socket_t]  fd_events;
+    private int                    epoll_fd;
+    private epoll_event[]          epoll_events;
 
     this(Duration timeout)
     {
         this.timeout = timeout;
-        epoll_fd = create();
+        epoll_fd = create_epoll();
     }
     @disable this();
 
@@ -40,82 +39,82 @@ version (linux) struct EpollSelector
         close(epoll_fd);
     }
 
-    void register(Socket sock, SelectEvent events)
+    void register(socket_t fd, SelectEvent events)
     {
-        if (sock in socks && (socks[sock] & events) == events)
+        const is_registered = fd in fd_events;
+        if (is_registered && (fd_events[fd] & events) == events)
             return;
 
-        const fd = cast(int) sock.handle;
+        auto event = create_epoll_event(fd, events);
         auto op = EPOLL_CTL_MOD;
 
-        if (fd !in fd_socks) {
-            fd_socks[fd] = sock;
+        if (!is_registered) {
             op = EPOLL_CTL_ADD;
-            epoll_events.length = fd_socks.length;
+            epoll_events.length++;
         }
 
-        socks[sock] |= events;
-
-        epoll_event new_event;
-        new_event.data.fd = fd;
-        if (events & SelectEvent.read) new_event.events |= EPOLLIN;
-        if (events & SelectEvent.write) new_event.events |= EPOLLOUT;
-
-        ctl(op, fd, new_event);
+        fd_events[fd] |= events;
+        ctl(op, fd, event);
     }
 
-    void unregister(Socket sock, SelectEvent events)
+    void unregister(socket_t fd, SelectEvent events)
     {
-        if (sock !in socks || (socks[sock] & events) == 0)
+        if (fd !in fd_events || (fd_events[fd] & events) == 0)
             return;
 
-        socks[sock] &= ~events;
-        const fd = cast(int) sock.handle;
-        const remaining_events = socks[sock];
-        epoll_event new_event;
+        fd_events[fd] &= ~events;
+        const remaining_events = fd_events[fd];
+        auto event = create_epoll_event(fd, remaining_events);
 
         if (remaining_events == 0) {
-            ctl(EPOLL_CTL_DEL, fd, new_event);
-            fd_socks.remove(fd);
-            socks.remove(sock);
-            epoll_events.length = fd_socks.length;
+            ctl(EPOLL_CTL_DEL, fd, event);
+            fd_events.remove(fd);
+            epoll_events.length--;
             return;
         }
-
-        new_event.data.fd = fd;
-        if (remaining_events & SelectEvent.read) new_event.events |= EPOLLIN;
-        if (remaining_events & SelectEvent.write) new_event.events |= EPOLLOUT;
-
-        ctl(EPOLL_CTL_MOD, fd, new_event);
+        ctl(EPOLL_CTL_MOD, fd, event);
     }
 
-    SelectEvent[Socket] select()
+    SelectEvent[socket_t] select()
     {
-        SelectEvent[Socket] ready_socks;
+        SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
 
         if (num_fds > 0) foreach (n; 0 .. num_fds) {
-            auto ev = epoll_events[n];
-            auto sock = fd_socks[ev.data.fd];
+            const ev = epoll_events[n];
+            const fd = cast(socket_t) ev.data.fd;
 
             if (ev.events & (EPOLLIN | EPOLLERR | EPOLLHUP))
-                ready_socks[sock] |= SelectEvent.read;
+                ready_fds[fd] |= SelectEvent.read;
 
             if (ev.events & EPOLLOUT)
-                ready_socks[sock] |= SelectEvent.write;
+                ready_fds[fd] |= SelectEvent.write;
         }
-        return ready_socks;
+        return ready_fds;
+    }
+
+    private epoll_event create_epoll_event(socket_t fd, SelectEvent events)
+    {
+        epoll_event event;
+        if (events == 0)
+            return event;
+
+        event.data.fd = fd;
+        if (events & SelectEvent.read)  event.events |= EPOLLIN;
+        if (events & SelectEvent.write) event.events |= EPOLLOUT;
+
+        return event;
     }
 
     @trusted
-    private int create()
+    private int create_epoll()
     {
         const SOCK_CLOEXEC = 0x80000;
         return epoll_create1(SOCK_CLOEXEC);
     }
 
     @trusted
-    private void ctl(int op, int fd, epoll_event event)
+    private void ctl(int op, socket_t fd, epoll_event event)
     {
         epoll_ctl(epoll_fd, op, fd, &event);
     }
@@ -143,10 +142,9 @@ struct PollSelector
                                      POLLOUT;
     }
 
-    private Duration timeout;
-    private SelectEvent[Socket] socks;
-    private Socket[size_t] fd_socks;
-    private pollfd[] pollfds;
+    private Duration               timeout;
+    private SelectEvent[socket_t]  fd_events;
+    private pollfd[]               pollfds;
 
     this(Duration timeout)
     {
@@ -154,38 +152,33 @@ struct PollSelector
     }
     @disable this();
 
-    void register(Socket sock, SelectEvent events)
+    void register(socket_t fd, SelectEvent events)
     {
-        if (sock in socks && (socks[sock] & events) == events)
+        const is_registered = fd in fd_events;
+        if (is_registered && (fd_events[fd] & events) == events)
             return;
 
-        const fd = cast(int) sock.handle;
         const pfd = create_pollfd(fd, events);
-        const exists = fd in fd_socks;
 
-        if (!exists) fd_socks[fd] = sock;
-        socks[sock] |= events;
-
-        if (exists)
+        if (is_registered)
             pollfds[find_fd_idx(fd)] = pfd;
         else
             pollfds ~= pfd;
+
+        fd_events[fd] |= events;
     }
 
-    void unregister(Socket sock, SelectEvent events)
+    void unregister(socket_t fd, SelectEvent events)
     {
-        if (sock !in socks || (socks[sock] & events) == 0)
+        if (fd !in fd_events || (fd_events[fd] & events) == 0)
             return;
 
-        const fd = cast(int) sock.handle;
+        fd_events[fd] &= ~events;
+        const remaining_events = fd_events[fd];
         size_t idx = find_fd_idx(fd);
 
-        socks[sock] &= ~events;
-        const remaining_events = socks[sock];
-
         if (remaining_events == 0) {
-            socks.remove(sock);
-            fd_socks.remove(fd);
+            fd_events.remove(fd);
             pollfds[idx] = pollfds[$ - 1];
             pollfds.length--;
             return;
@@ -193,37 +186,37 @@ struct PollSelector
         pollfds[idx] = create_pollfd(fd, remaining_events);
     }
 
-    SelectEvent[Socket] select()
+    SelectEvent[socket_t] select()
     {
-        SelectEvent[Socket] ready_socks;
+        SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
 
         if (num_fds > 0) foreach (ref pfd; pollfds) {
             if (pfd.revents == 0)
                 continue;
 
-            auto sock = fd_socks[pfd.fd];
+            const fd = cast(socket_t) pfd.fd;
 
             if (pfd.revents & (POLLIN | POLLERR | POLLHUP))
-                ready_socks[sock] |= SelectEvent.read;
+                ready_fds[fd] |= SelectEvent.read;
 
             if (pfd.revents & POLLOUT)
-                ready_socks[sock] |= SelectEvent.write;
+                ready_fds[fd] |= SelectEvent.write;
         }
-        return ready_socks;
+        return ready_fds;
     }
 
-    private pollfd create_pollfd(int fd, SelectEvent events)
+    private pollfd create_pollfd(socket_t fd, SelectEvent events)
     {
         pollfd pfd;
         pfd.fd = fd;
-        if (events & SelectEvent.read) pfd.events |= POLLIN;
+        if (events & SelectEvent.read)  pfd.events |= POLLIN;
         if (events & SelectEvent.write) pfd.events |= POLLOUT;
 
         return pfd;
     }
 
-    private size_t find_fd_idx(int fd)
+    private size_t find_fd_idx(socket_t fd)
     {
         foreach (i, ref pfd; pollfds)
             if (pfd.fd == fd)

@@ -539,7 +539,10 @@ class User
             return false;
 
         out_buf = out_buf[send_len .. $];
-        if (!is_sending) server.selector.unregister(sock, SelectEvent.write);
+
+        if (!is_sending)
+            server.selector.unregister(sock.handle, SelectEvent.write);
+
         return true;
     }
 
@@ -569,7 +572,7 @@ class User
             .nativeToLittleEndian;
         out_buf[offset + uint.sizeof .. $] = msg_buf;
 
-        server.selector.register(sock, SelectEvent.write);
+        server.selector.register(sock.handle, SelectEvent.write);
     }
 
     bool recv_buffer()
