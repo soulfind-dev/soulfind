@@ -47,7 +47,7 @@ class Server
     private MonoTime      last_user_check;
     private ushort        port;
 
-    private User[Socket]  user_socks;
+    private User[size_t]  sock_users;
 
     private PM[uint]      pms;
     private Room[string]  rooms;
@@ -101,7 +101,7 @@ class Server
             const ready_socks = selector.select();
             Appender!(User[]) users_to_disconnect;
 
-            foreach (sock, events ; ready_socks) {
+            foreach (ref sock, events ; ready_socks) {
                 const recv_ready = (events & SelectEvent.read) != 0;
                 const send_ready = (events & SelectEvent.write) != 0;
 
@@ -110,7 +110,7 @@ class Server
                     continue;
                 }
 
-                auto user = user_socks[sock];
+                auto user = sock_users[sock.handle];
                 bool recv_success = true;
                 bool send_success = true;
 
@@ -140,7 +140,7 @@ class Server
 
             const curr_time = MonoTime.currTime;
             if ((curr_time - last_user_check) >= check_user_interval) {
-                foreach (user ; user_socks) {
+                foreach (ref user ; sock_users) {
                     if (user.username in users) {
                         // If the user was removed from the database, perform
                         // server-side removal and disconnection of deleted
@@ -162,11 +162,11 @@ class Server
                 last_user_check = curr_time;
             }
 
-            foreach (user ; users_to_disconnect) {
+            foreach (ref user ; users_to_disconnect) {
                 selector.unregister(
                     user.sock, SelectEvent.read | SelectEvent.write
                 );
-                user_socks.remove(user.sock);
+                sock_users.remove(user.sock.handle);
 
                 user.sock.shutdown(SocketShutdown.BOTH);
                 user.sock.close();
@@ -203,7 +203,7 @@ class Server
             if (log_user) writefln!("Connection accepted from %s")(
                 sock.remoteAddress
             );
-            user_socks[sock] = new User(
+            sock_users[sock.handle] = new User(
                 this, sock,
                 new InternetAddress(
                     (cast(InternetAddress)sock.remoteAddress).addr,
@@ -357,12 +357,12 @@ class Server
     void del_user_pms(string username, bool include_received = false)
     {
         Appender!(PM[]) pms_to_remove;
-        foreach (pm ; pms) {
+        foreach (ref pm ; pms) {
             if (pm.from_username == username
                     || (include_received && pm.to_username == username))
                 pms_to_remove ~= pm;
         }
-        foreach (pm ; pms_to_remove) pms.remove(pm.id);
+        foreach (ref pm ; pms_to_remove) pms.remove(pm.id);
     }
 
     private uint new_pm_id()
@@ -386,7 +386,7 @@ class Server
 
     void send_queued_pms(string username)
     {
-        foreach (pm ; pms) {
+        foreach (ref pm ; pms) {
             if (pm.to_username != username)
                 continue;
 
@@ -413,7 +413,7 @@ class Server
 
     void del_user_tickers(string username)
     {
-        foreach (room ; rooms) room.del_ticker(username);
+        foreach (ref room ; rooms) room.del_ticker(username);
     }
 
     Room get_room(string name)
@@ -427,7 +427,8 @@ class Server
     uint[string] room_stats()
     {
         uint[string] stats;
-        foreach (room ; rooms) stats[room.name] = cast(uint) room.num_users;
+        foreach (ref room ; rooms)
+            stats[room.name] = cast(uint) room.num_users;
         return stats;
     }
 
@@ -438,11 +439,11 @@ class Server
 
         output ~= name;
         output ~= format!("\nUsers (%d):")(room.num_users);
-        foreach (username ; room.usernames)
+        foreach (ref username ; room.usernames)
             output ~= format!("\n\t%s")(username);
 
         output ~= format!("\nTickers (%d):")(room.num_tickers);
-        foreach (ticker ; room.tickers_by_order)
+        foreach (ref ticker ; room.tickers_by_order)
             output ~= format!("\n\t[%s] %s")(ticker.username, ticker.content);
 
         return output[];
@@ -516,7 +517,7 @@ class Server
         {
             case "connected":
                 output ~= format!("%d connected users.")(users.length);
-                foreach (user ; users)
+                foreach (ref user ; users)
                     output ~= format!("\n\t%s (client version: %s)")(
                         user.username, user.client_version
                     );
@@ -527,7 +528,7 @@ class Server
                     "privileges", Clock.currTime.toUnixTime
                 );
                 output ~= format!("%d privileged users.")(users.length);
-                foreach (user ; users) {
+                foreach (ref user ; users) {
                     const privileged_until = db.user_privileged_until(user);
                     output ~= format!("\n\t%s (until %s)")(
                         user, privileged_until.toSimpleString
@@ -540,7 +541,7 @@ class Server
                     "banned", Clock.currTime.toUnixTime
                 );
                 output ~= format!("\nBanned users (%d)...")(users.length);
-                foreach (user ; users) {
+                foreach (ref user ; users) {
                     const banned_until = db.user_banned_until(user);
                     if (banned_until == SysTime.fromUnixTime(long.max))
                         output ~= format!("\n\t%s (forever)")(user);
@@ -553,7 +554,7 @@ class Server
             default:
                 const usernames = db.usernames;
                 output ~= format!("%d total users.")(usernames.length);
-                foreach (username ; db.usernames)
+                foreach (ref username ; db.usernames)
                     output ~= format!("\n\t%s")(username);
         }
         return output[];
@@ -658,7 +659,7 @@ class Server
         if (log_msg) writefln!("Transmit=> %s (code %d) to all users...")(
             blue ~ msg.name ~ norm, msg.code
         );
-        foreach (user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message(msg);
     }
 
     void admin_message(string admin_username, string message)
@@ -706,7 +707,7 @@ class Server
                 Appender!string output;
                 const names = db.admins;
                 output ~= format!("%d admins.")(names.length);
-                foreach (name ; names) {
+                foreach (ref name ; names) {
                     const status = (name in users) ? "online" : "offline";
                     output ~= format!("\n\t%s (%s)")(name, status);
                 }
@@ -722,7 +723,7 @@ class Server
             case "rooms":
                 Appender!string output;
                 output ~= format!("%d public rooms.")(rooms.length);
-                foreach (room ; rooms)
+                foreach (ref room ; rooms)
                     output ~= format!("\n\t%s (users: %d, tickers: %d)")(
                         room.name, room.num_users, room.num_tickers
                     );
@@ -880,11 +881,11 @@ class Server
                     }
                 }
                 Appender!(User[]) users_to_kick;
-                foreach (user ; users)
+                foreach (ref user ; users)
                     if (user.username != admin_username)
                         users_to_kick ~= user;
 
-                foreach (user ; users_to_kick) {
+                foreach (ref user ; users_to_kick) {
                     db.ban_user(user.username, duration);
                     del_user(user);
                 }
@@ -1028,7 +1029,7 @@ class Server
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
-                foreach (username ; db.usernames) server_pm(username, msg);
+                foreach (ref username ; db.usernames) server_pm(username, msg);
                 break;
 
             case "uptime":
@@ -1060,6 +1061,6 @@ class Server
     private void server_announcement(string message)
     {
         scope msg = new SAdminMessage(message);
-        foreach (user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message(msg);
     }
 }

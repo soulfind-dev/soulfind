@@ -53,7 +53,7 @@ class Setup
         do {
             writefln!("\n%s\n")(heading);
 
-            foreach (item; items)
+            foreach (ref item; items)
                 writeln(format!("%s. %s")(item.index, item.label));
 
             write("\nYour choice : ");
@@ -64,7 +64,7 @@ class Setup
                 return;
             }
 
-            foreach (item; items)
+            foreach (ref item; items)
                 if (choice == item.index) {
                     item.action();
                     return;
@@ -154,7 +154,7 @@ class Setup
 
         Appender!string output;
         output ~= format!("\nAdmins (%d)...")(names.length);
-        foreach (name ; names)
+        foreach (ref name ; names)
             output ~= format!(
                 "\n\t%s (registered: %s)")(
                 name, db.user_exists(name) ? "true" : "false"
@@ -462,11 +462,11 @@ class Setup
 
     private void list_registered()
     {
-        const users = db.usernames;
+        const names = db.usernames;
 
         Appender!string output;
-        output ~= format!("\nRegistered users (%d)...")(users.length);
-        foreach (user ; users) output ~= format!("\n\t%s")(user);
+        output ~= format!("\nRegistered users (%d)...")(names.length);
+        foreach (ref name ; names) output ~= format!("\n\t%s")(name);
 
         writeln(output[]);
         registered_users();
@@ -474,14 +474,14 @@ class Setup
 
     private void list_privileged()
     {
-        const users = db.usernames("privileges", Clock.currTime.toUnixTime);
+        const names = db.usernames("privileges", Clock.currTime.toUnixTime);
 
         Appender!string output;
-        output ~= format!("\nPrivileged users (%d)...")(users.length);
-        foreach (user ; users) {
-            const privileged_until = db.user_privileged_until(user);
+        output ~= format!("\nPrivileged users (%d)...")(names.length);
+        foreach (ref name ; names) {
+            const privileged_until = db.user_privileged_until(name);
             output ~= format!("\n\t%s (until %s)")(
-                user, privileged_until.toSimpleString
+                name, privileged_until.toSimpleString
             );
         }
 
@@ -491,17 +491,18 @@ class Setup
 
     private void list_banned()
     {
-        const users = db.usernames("banned", Clock.currTime.toUnixTime);
+        const names = db.usernames("banned", Clock.currTime.toUnixTime);
 
         Appender!string output;
-        output ~= format!("\nBanned users (%d)...")(users.length);
-        foreach (user ; users) {
-            const banned_until = db.user_banned_until(user);
-            if (banned_until == SysTime.fromUnixTime(long.max))
-                output ~= format!("\n\t%s (forever)")(user);
-            else
+        output ~= format!("\nBanned users (%d)...")(names.length);
+        foreach (ref name ; names) {
+            const banned_until = db.user_banned_until(name);
+            if (banned_until != SysTime.fromUnixTime(long.max))
                 output ~= format!("\n\t%s (until %s)")(
-                    user, banned_until.toSimpleString);
+                    name, banned_until.toSimpleString
+                );
+            else
+                output ~= format!("\n\t%s (forever)")(name);
         }
 
         writeln(output[]);

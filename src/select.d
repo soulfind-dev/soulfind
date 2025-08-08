@@ -198,7 +198,7 @@ struct PollSelector
         SelectEvent[Socket] ready_socks;
         const num_fds = wait();
 
-        if (num_fds > 0) foreach (pfd; pollfds) {
+        if (num_fds > 0) foreach (ref pfd; pollfds) {
             if (pfd.revents == 0)
                 continue;
 
@@ -225,7 +225,7 @@ struct PollSelector
 
     private size_t find_fd_idx(int fd)
     {
-        foreach (i, pfd; pollfds)
+        foreach (i, ref pfd; pollfds)
             if (pfd.fd == fd)
                 return i;
         return size_t.max;

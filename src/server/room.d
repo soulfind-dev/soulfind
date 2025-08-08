@@ -81,7 +81,7 @@ class Room
     string[] usernames()
     {
         Appender!(string[]) usernames;
-        foreach (user ; users) usernames ~= user.username;
+        foreach (ref user ; users) usernames ~= user.username;
         return usernames[];
     }
 
@@ -92,7 +92,7 @@ class Room
 
     void send_to_all(scope SMessage msg)
     {
-        foreach (user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message(msg);
     }
 
 
@@ -156,7 +156,7 @@ class Room
     private void del_oldest_ticker()
     {
         Ticker found_ticker;
-        foreach (ticker ; tickers) {
+        foreach (ref ticker ; tickers) {
             if (ticker.time < found_ticker.time) found_ticker = ticker;
         }
         del_ticker(found_ticker.username);
@@ -198,6 +198,6 @@ class GlobalRoom
     void say(string room_name, string username, string message)
     {
         scope msg = new SGlobalRoomMessage(room_name, username, message);
-        foreach (user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message(msg);
     }
 }

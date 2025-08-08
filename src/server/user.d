@@ -107,13 +107,13 @@ class User
         if (username.strip != username)
             return "No leading and trailing spaces allowed in nick.";
 
-        foreach (c ; username) if (!c.isPrintable)
+        foreach (ref c ; username) if (!c.isPrintable)
             // Only printable ASCII characters allowed
             return "Invalid characters in nick.";
 
         static immutable forbidden_names = [server_username];
 
-        foreach (name ; forbidden_names) if (name == username)
+        foreach (ref name ; forbidden_names) if (name == username)
             // Official server returns empty detail
             return "";
 
@@ -285,7 +285,7 @@ class User
             "Transmit=> %s (code %d) to users watching user %s...")(
             blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
-        foreach (user ; server.users)
+        foreach (ref user ; server.users)
             if (user.is_watching(username) || user.joined_same_room(username))
                 user.send_message(msg);
     }
@@ -348,8 +348,8 @@ class User
     private uint[string] global_recommendations()
     {
         uint[string] recommendations;
-        foreach (user ; server.users)
-            foreach (item ; user.liked_items) recommendations[item]++;
+        foreach (ref user ; server.users)
+            foreach (ref item ; user.liked_items) recommendations[item]++;
 
         return recommendations;
     }
@@ -357,20 +357,20 @@ class User
     private uint[string] recommendations()
     {
         uint[string] recommendations;
-        foreach (user ; server.users) {
+        foreach (ref user ; server.users) {
             if (user is this)
                 continue;
 
             int weight;
-            foreach (item ; liked_items) {
+            foreach (ref item ; liked_items) {
                 if (user.likes(item)) weight++;
                 if (user.hates(item) && weight > 0) weight--;
             }
-            foreach (item ; hated_items) {
+            foreach (ref item ; hated_items) {
                 if (user.hates(item)) weight++;
                 if (user.likes(item) && weight > 0) weight--;
             }
-            if (weight > 0) foreach (item ; user.liked_items)
+            if (weight > 0) foreach (ref item ; user.liked_items)
                 recommendations[item] += weight;
         }
         return recommendations;
@@ -379,16 +379,16 @@ class User
     private uint[string] similar_users()
     {
         uint[string] usernames;
-        foreach (user ; server.users) {
+        foreach (ref user ; server.users) {
             if (user is this)
                 continue;
 
             int weight;
-            foreach (item ; liked_items) {
+            foreach (ref item ; liked_items) {
                 if (user.likes(item)) weight++;
                 if (user.hates(item) && weight > 0) weight--;
             }
-            foreach (item ; hated_items) {
+            foreach (ref item ; hated_items) {
                 if (user.hates(item)) weight++;
                 if (user.likes(item) && weight > 0) weight--;
             }
@@ -400,14 +400,14 @@ class User
     private uint[string] item_recommendations(string item)
     {
         uint[string] recommendations;
-        foreach (user ; server.users) {
+        foreach (ref user ; server.users) {
             if (user is this)
                 continue;
 
             int weight;
             if (user.likes(item)) weight++;
             if (user.hates(item) && weight > 0) weight--;
-            if (weight > 0) foreach (recommendation ; user.liked_items)
+            if (weight > 0) foreach (ref recommendation ; user.liked_items)
                 recommendations[recommendation] += weight;
         }
         return recommendations;
@@ -416,7 +416,7 @@ class User
     private string[] item_similar_users(string item)
     {
         Appender!(string[]) usernames;
-        foreach (user ; server.users) {
+        foreach (ref user ; server.users) {
             if (user is this)
                 continue;
             if (user.likes(item)) usernames ~= user.username;
@@ -460,7 +460,7 @@ class User
 
     void leave_joined_rooms()
     {
-        foreach (name, room ; joined_rooms) leave_room(name);
+        foreach (ref name, ref room ; joined_rooms) leave_room(name);
     }
 
     string[] joined_room_names()
@@ -494,7 +494,7 @@ class User
                 room_name
             );
 
-        foreach (c ; room_name) if (!c.isPrintable)
+        foreach (ref c ; room_name) if (!c.isPrintable)
             // Only printable ASCII characters allowed
             return format!(
                 "Could not create room. Reason: Room name %s contains "
@@ -507,7 +507,7 @@ class User
 
     private bool joined_same_room(string peer_username)
     {
-        foreach (room ; joined_rooms)
+        foreach (ref room ; joined_rooms)
             if (room.is_joined(peer_username))
                 return true;
 
@@ -520,7 +520,7 @@ class User
             "Transmit=> %s (code %d) to user %s's joined rooms...")(
             blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
         );
-        foreach (user ; server.users)
+        foreach (ref user ; server.users)
             if (user.joined_same_room(username)) user.send_message(msg);
     }
 
@@ -1180,7 +1180,7 @@ class User
                 if (msg.message.length > max_chat_message_length)
                     break;
 
-                foreach (target_username ; msg.usernames) {
+                foreach (ref target_username ; msg.usernames) {
                     const user = server.get_user(target_username);
                     if (user is null)
                         continue;

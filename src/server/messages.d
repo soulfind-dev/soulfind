@@ -1009,31 +1009,31 @@ class SRoomList : SMessage
         super(RoomList);
 
         write!uint(cast(uint) rooms.length);
-        foreach (room_name, users ; rooms)
+        foreach (ref room_name, ref _users ; rooms)
             write!string(room_name);
 
         write!uint(cast(uint) rooms.length);
-        foreach (room_name, users ; rooms)
+        foreach (ref _room_name, ref users ; rooms)
             write!uint(users);
 
         write!uint(cast(uint) owned_private_rooms.length);
-        foreach (room_name, users ; owned_private_rooms)
+        foreach (ref room_name, ref _users ; owned_private_rooms)
             write!string(room_name);
 
         write!uint(cast(uint) owned_private_rooms.length);
-        foreach (room_name, users ; owned_private_rooms)
+        foreach (ref _room_name, ref users ; owned_private_rooms)
             write!uint(users);
 
         write!uint(cast(uint) other_private_rooms.length);
-        foreach (room_name, users ; other_private_rooms)
+        foreach (ref room_name, ref _users ; other_private_rooms)
             write!string(room_name);
 
         write!uint(cast(uint) other_private_rooms.length);
-        foreach (room_name, users ; other_private_rooms)
+        foreach (ref _room_name, ref users ; other_private_rooms)
             write!uint(users);
 
         write!uint(cast(uint) operated_private_rooms.length);
-        foreach (room_name ; operated_private_rooms)
+        foreach (ref room_name ; operated_private_rooms)
             write!string(room_name);
     }
 }
@@ -1048,13 +1048,13 @@ class SJoinRoom : SMessage
         const n = cast(uint) users.length;
 
         write!uint(n);
-        foreach (username, user ; users) write!string(username);
+        foreach (ref username, ref _user ; users) write!string(username);
 
         write!uint(n);
-        foreach (user ; users) write!uint(user.status);
+        foreach (ref user ; users) write!uint(user.status);
 
         write!uint(n);
-        foreach (user ; users)
+        foreach (ref user ; users)
         {
             write!uint(user.upload_speed);
             write!uint(0);  // upload_number, obsolete
@@ -1064,10 +1064,10 @@ class SJoinRoom : SMessage
         }
 
         write!uint(n);
-        foreach (user ; users) write!uint(0);  // slots_full, obsolete
+        foreach (ref user ; users) write!uint(0);  // slots_full, obsolete
 
         write!uint(n);
-        foreach (user ; users) write!string("");  // country_code, obsolete
+        foreach (ref user ; users) write!string("");  // country_code, obsolete
     }
 }
 
@@ -1206,7 +1206,7 @@ class SGetRecommendations : SMessage
         super(GetRecommendations);
 
         write!uint(cast(uint) recommendations.length);
-        foreach (item, level ; recommendations)
+        foreach (ref item, level ; recommendations)
         {
             write!string(item);
             write!int(level);
@@ -1221,7 +1221,7 @@ class SMyRecommendations : SMessage
         super(MyRecommendations);
 
         write!uint(cast(uint) recommendations.length);
-        foreach (item ; recommendations)
+        foreach (ref item ; recommendations)
         {
             write!string(item);
         }
@@ -1235,7 +1235,7 @@ class SGetGlobalRecommendations : SMessage
         super(GlobalRecommendations);
 
         write!uint(cast(uint) recommendations.length);
-        foreach (item, level ; recommendations)
+        foreach (ref item, level ; recommendations)
         {
             write!string(item);
             write!int(level);
@@ -1252,10 +1252,10 @@ class SUserInterests : SMessage
         write!string(user);
 
         write!uint(cast(uint) likes.length);
-        foreach (item ; likes) write!string(item);
+        foreach (ref item ; likes) write!string(item);
 
         write!uint(cast(uint) hates.length);
-        foreach (item ; hates) write!string(item);
+        foreach (ref item ; hates) write!string(item);
     }
 }
 
@@ -1275,7 +1275,7 @@ class SSimilarRecommendations : SMessage
 
         write!string(recommendation);
         write!uint(cast(uint) recommendations.length);
-        foreach (srecommendation ; recommendations)
+        foreach (ref srecommendation ; recommendations)
             write!string(srecommendation);
     }
 }
@@ -1297,7 +1297,7 @@ class SPrivilegedUsers : SMessage
         super(PrivilegedUsers);
 
         write!uint(cast(uint) users.length);
-        foreach (username ; users)
+        foreach (ref username ; users)
             write!string(username);
     }
 }
@@ -1335,7 +1335,7 @@ class SSimilarUsers : SMessage
         super(SimilarUsers);
 
         write!uint(cast(uint) usernames.length);
-        foreach (username, weight ; usernames)
+        foreach (ref username, weight ; usernames)
         {
             write!string(username);
             write!uint(weight);
@@ -1352,7 +1352,7 @@ class SItemRecommendations : SMessage
         write!string(item);
         write!uint(cast(uint) recommendations.length);
 
-        foreach (recommendation, weight ; recommendations)
+        foreach (ref recommendation, weight ; recommendations)
         {
             write!string (recommendation);
             write!int(weight);
@@ -1368,7 +1368,7 @@ class SItemSimilarUsers : SMessage
 
         write!string(item);
         write!uint(cast(uint) usernames.length);
-        foreach (username ; usernames) write!string(username);
+        foreach (ref username ; usernames) write!string(username);
     }
 }
 
@@ -1380,7 +1380,7 @@ class SRoomTicker : SMessage
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ticker ; tickers)
+        foreach (ref ticker ; tickers)
         {
             write!string(ticker.username);
             write!string(ticker.content);
@@ -1440,7 +1440,7 @@ class SPrivateRoomUsers : SMessage
 
         write!string(room_name);
         write!uint(cast(uint) usernames.length);
-        foreach (username ; usernames) write!string(username);
+        foreach (ref username ; usernames) write!string(username);
     }
 }
 
@@ -1556,7 +1556,7 @@ class SPrivateRoomOperators : SMessage
 
         write!string(room_name);
         write!uint(cast(uint) usernames.length);
-        foreach (username ; usernames) write!string(username);
+        foreach (ref username ; usernames) write!string(username);
     }
 }
 
@@ -1580,7 +1580,7 @@ class SRelatedSearch : SMessage
 
         write!string(query);
         write!uint(cast(uint) terms.length);
-        foreach (term, score ; terms)
+        foreach (ref term, score ; terms)
         {
             write!string(term);
             write!uint(score);

@@ -137,7 +137,7 @@ class Sdb
             admins_table
         );
 
-        foreach (problem ; query("PRAGMA integrity_check;"))
+        foreach (ref problem ; query("PRAGMA integrity_check;"))
             if (log_db) writefln!("DB: Check [%s]")(problem[0]);
 
         query("PRAGMA optimize=0x10002;");  // =all tables
@@ -297,7 +297,7 @@ class Sdb
             admins_table
         );
         Appender!(string[]) admins;
-        foreach (record ; query(sql)) admins ~= record[0];
+        foreach (ref record ; query(sql)) admins ~= record[0];
         return admins[];
     }
 
@@ -586,7 +586,7 @@ class Sdb
 
         if (log_user) {
             string updated;
-            foreach (i, field; fields)
+            foreach (i, ref field; fields)
             {
                 if (i > 0) updated ~= ", ";
                 updated ~= field.replace("?", parameters[i]);
@@ -613,7 +613,7 @@ class Sdb
             parameters = [min.to!string, max.to!string];
         }
         sql ~= ";";
-        foreach (record ; query(sql, parameters)) usernames ~= record[0];
+        foreach (ref record ; query(sql, parameters)) usernames ~= record[0];
         return usernames[];
     }
 
@@ -662,7 +662,7 @@ class Sdb
             return ret[];
         }
 
-        foreach (i, parameter ; parameters) {
+        foreach (i, ref parameter ; parameters) {
             const index = cast(int) i + 1;
             if (parameter !is null)
                 res = bind_text(stmt, index, parameter);
