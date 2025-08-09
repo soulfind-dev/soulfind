@@ -38,11 +38,23 @@ private void increase_fd_limit()
 }
 
 @trusted
-private void set_console_code_page()
+private void setup_console()
 {
     version (Windows) {
-        import core.sys.windows.wincon : SetConsoleOutputCP;
-        SetConsoleOutputCP(65001);  // UTF-8
+        import core.sys.windows.winbase: GetStdHandle, STD_OUTPUT_HANDLE;
+        import core.sys.windows.wincon: ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+                                        GetConsoleMode, SetConsoleMode,
+                                        SetConsoleOutputCP;
+
+        // Enable UTF-8
+        SetConsoleOutputCP(65001);
+
+        // Enable ANSI colors
+        uint mode;
+        auto handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        GetConsoleMode(handle, &mode);
+        mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(handle, mode);
     }
 }
 
@@ -68,7 +80,7 @@ private void setup_signal_handler()
 private int main(string[] args)
 {
     increase_fd_limit();
-    set_console_code_page();
+    setup_console();
     setup_signal_handler();
 
     return run(args);
