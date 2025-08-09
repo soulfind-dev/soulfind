@@ -24,6 +24,20 @@ private extern(Windows) int handle_ctrl(uint) nothrow {
 }
 
 @trusted
+private void increase_fd_limit()
+{
+    // Increase file descriptor limit for concurrent connections
+    version (Posix) {
+        import core.sys.posix.sys.resource : getrlimit, rlimit, RLIMIT_NOFILE,
+                                             setrlimit;
+        rlimit rlim;
+        getrlimit(RLIMIT_NOFILE, &rlim);
+        rlim.rlim_cur = rlim.rlim_max;
+        setrlimit(RLIMIT_NOFILE, &rlim);
+    }
+}
+
+@trusted
 private void set_console_code_page()
 {
     version (Windows) {
@@ -53,6 +67,7 @@ private void setup_signal_handler()
 
 private int main(string[] args)
 {
+    increase_fd_limit();
     set_console_code_page();
     setup_signal_handler();
 
