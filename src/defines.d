@@ -7,10 +7,11 @@ module soulfind.defines;
 @safe:
 
 import core.time : minutes, seconds;
+import std.string : replace;
 
 // Constants
 
-const VERSION                  = "0.5.0-dev";
+const VERSION                  = __DATE__.replace("  ", " ").replace(" ", "-");
 const default_db_filename      = "soulfind.db";
 const default_port             = 2242;
 const default_max_users        = 65535;

@@ -293,13 +293,12 @@ class Setup
         show_menu(
             format!(
                 "Soulfind %s"
-              ~ "\n\tOS: %s"
-              ~ "\n\tCompiled with %s %s.%s on %s"
+              ~ "\n\tCompiled with %s %s.%s for %s"
               ~ "\n\nStats:"
               ~ "\n\t%d registered users"
               ~ "\n\t%d privileged users"
               ~ "\n\t%d banned users")(
-                VERSION, os, name, version_major, version_minor, __DATE__,
+                VERSION, name, version_major, version_minor, os,
                 db.num_users,
                 db.num_users("privileges", Clock.currTime.toUnixTime),
                 db.num_users("banned", Clock.currTime.toUnixTime)
