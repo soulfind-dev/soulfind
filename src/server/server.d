@@ -40,16 +40,15 @@ class Server
     Sdb                     db;
     Selector                selector;
     GlobalRoom              global_room;
-    User[string]            users;
 
     private SysTime         started_at;
     private MonoTime        started_monotime;
     private MonoTime        last_user_check;
+    private Socket          listen_sock;
     private ushort          port;
 
-    private Socket          listen_sock;
+    private User[string]    users;
     private User[socket_t]  sock_users;
-
     private PM[uint]        pms;
     private Room[string]    rooms;
 
@@ -409,6 +408,104 @@ class Server
     }
 
 
+    // Interests
+
+    uint[string] global_recommendations()
+    {
+        uint[string] recommendations;
+        foreach (ref user ; users)
+            foreach (ref item ; user.liked_item_names) recommendations[item]++;
+
+        return recommendations;
+    }
+
+    uint[string] recommendations(string username)
+    {
+        uint[string] recommendations;
+        const user = get_user(username);
+        if (user is null)
+            return recommendations;
+
+        auto liked_item_names = user.liked_item_names;
+        auto hated_item_names = user.hated_item_names;
+
+        foreach (ref other_user ; users) {
+            if (other_user.username == username)
+                continue;
+
+            int weight;
+            foreach (ref item ; liked_item_names) {
+                if (other_user.likes(item)) weight++;
+                if (other_user.hates(item) && weight > 0) weight--;
+            }
+            foreach (ref item ; hated_item_names) {
+                if (other_user.hates(item)) weight++;
+                if (other_user.likes(item) && weight > 0) weight--;
+            }
+            if (weight > 0) foreach (ref item ; other_user.liked_item_names)
+                recommendations[item] += weight;
+        }
+        return recommendations;
+    }
+
+    uint[string] similar_users(string username)
+    {
+        uint[string] usernames;
+        const user = get_user(username);
+        if (user is null)
+            return usernames;
+
+        auto liked_item_names = user.liked_item_names;
+        auto hated_item_names = user.hated_item_names;
+
+        foreach (ref other_user ; users) {
+            if (other_user.username == username)
+                continue;
+
+            int weight;
+            foreach (ref item ; liked_item_names) {
+                if (other_user.likes(item)) weight++;
+                if (other_user.hates(item) && weight > 0) weight--;
+            }
+            foreach (ref item ; hated_item_names) {
+                if (other_user.hates(item)) weight++;
+                if (other_user.likes(item) && weight > 0) weight--;
+            }
+            if (weight > 0) usernames[other_user.username] = weight;
+        }
+        return usernames;
+    }
+
+    uint[string] item_recommendations(string username, string item)
+    {
+        uint[string] recommendations;
+        foreach (ref other_user ; users) {
+            if (other_user.username == username)
+                continue;
+
+            int weight;
+            if (other_user.likes(item)) weight++;
+            if (other_user.hates(item) && weight > 0) weight--;
+            if (weight > 0) {
+                foreach (ref recommendation ; other_user.liked_item_names)
+                    recommendations[recommendation] += weight;
+            }
+        }
+        return recommendations;
+    }
+
+    string[] item_similar_users(string username, string item)
+    {
+        Appender!(string[]) usernames;
+        foreach (ref other_user ; users) {
+            if (other_user.username == username)
+                continue;
+            if (other_user.likes(item)) usernames ~= other_user.username;
+        }
+        return usernames[];
+    }
+
+
     // Rooms
 
     Room add_room(string name)
@@ -443,6 +540,16 @@ class Server
         foreach (ref room ; rooms)
             stats[room.name] = cast(uint) room.num_users;
         return stats;
+    }
+
+    void send_to_joined_rooms(string sender_username, scope SMessage msg)
+    {
+        if (log_msg) writefln!(
+            "Transmit=> %s (code %d) to user %s's joined rooms...")(
+            blue ~ msg.name ~ norm, msg.code, blue ~ sender_username ~ norm
+        );
+        foreach (ref user ; users)
+            if (user.joined_same_room(sender_username)) user.send_message(msg);
     }
 
     private string room_info(string name)
@@ -521,6 +628,11 @@ class Server
             return users[username];
 
         return null;
+    }
+
+    size_t num_users()
+    {
+        return users.length;
     }
 
     private string user_list(string type = null)
@@ -678,6 +790,18 @@ class Server
             blue ~ msg.name ~ norm, msg.code
         );
         foreach (ref user ; users) user.send_message(msg);
+    }
+
+    void send_to_watching(string sender_username, scope SMessage msg)
+    {
+        if (log_msg) writefln!(
+            "Transmit=> %s (code %d) to users watching user %s...")(
+            blue ~ msg.name ~ norm, msg.code, blue ~ sender_username ~ norm
+        );
+        foreach (ref user ; users)
+            if (user.is_watching(sender_username)
+                    || user.joined_same_room(sender_username))
+                user.send_message(msg);
     }
 
     void admin_message(string admin_username, string message)

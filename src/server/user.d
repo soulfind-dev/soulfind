@@ -20,7 +20,7 @@ import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.algorithm : canFind;
-import std.array : Appender, array;
+import std.array : Appender;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, to;
@@ -79,7 +79,7 @@ class User
     {
         return server.db.server_motd
             .replace("%sversion%", VERSION)
-            .replace("%users%", server.users.length.to!string)
+            .replace("%users%", server.num_users.to!string)
             .replace("%username%", username)
             .replace("%version%", client_version);
     }
@@ -124,7 +124,7 @@ class User
     {
         auto login_rejection = LoginRejection();
 
-        if (server.users.length >= server.db.server_max_users) {
+        if (server.num_users >= server.db.server_max_users) {
             login_rejection.reason = LoginRejectionReason.server_full;
             return login_rejection;
         }
@@ -180,7 +180,7 @@ class User
                 scope msg = new SGetUserStatus(
                     username, new_status, privileged
                 );
-                send_to_watching(msg);
+                server.send_to_watching(username, msg);
                 break;
         }
     }
@@ -200,7 +200,7 @@ class User
         scope msg = new SGetUserStats(
             username, upload_speed, shared_files, shared_folders
         );
-        send_to_watching(msg);
+        server.send_to_watching(username, msg);
 
         auto stats = SdbUserStats();
         stats.upload_speed = upload_speed;
@@ -253,41 +253,30 @@ class User
 
     // Watchlist
 
-    private void watch(string peer_username)
+    private void watch(string target_username)
     {
-        if (peer_username != server_username)
-            watched_users[peer_username] = peer_username;
+        if (target_username != server_username)
+            watched_users[target_username] = target_username;
     }
 
-    private void unwatch(string peer_username)
+    private void unwatch(string target_username)
     {
-        if (peer_username == username)
+        if (target_username == username)
             // Always watch our own username for updates
             return;
 
-        if (peer_username in watched_users)
-            watched_users.remove(peer_username);
+        if (target_username in watched_users)
+            watched_users.remove(target_username);
     }
 
-    private bool is_watching(string peer_username)
+    bool is_watching(string target_username)
     {
-        return peer_username in watched_users ? true : false;
+        return target_username in watched_users ? true : false;
     }
 
     size_t num_watched_users()
     {
         return watched_users.length;
-    }
-
-    private void send_to_watching(scope SMessage msg)
-    {
-        if (log_msg) writefln!(
-            "Transmit=> %s (code %d) to users watching user %s...")(
-            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
-        );
-        foreach (ref user ; server.users)
-            if (user.is_watching(username) || user.joined_same_room(username))
-                user.send_message(msg);
     }
 
 
@@ -325,103 +314,24 @@ class User
         if (hates(item)) hated_items.remove(item);
     }
 
-    private bool likes(string item)
+    bool likes(string item)
     {
         return item in liked_items ? true : false;
     }
 
-    private bool hates(string item)
+    bool hates(string item)
     {
         return item in hated_items ? true : false;
     }
 
-    string[] liked_item_names()
+    const liked_item_names()
     {
-        return liked_items.byKey.array;
+        return liked_items.byKey;
     }
 
-    string[] hated_item_names()
+    const hated_item_names()
     {
-        return hated_items.byKey.array;
-    }
-
-    private uint[string] global_recommendations()
-    {
-        uint[string] recommendations;
-        foreach (ref user ; server.users)
-            foreach (ref item ; user.liked_items) recommendations[item]++;
-
-        return recommendations;
-    }
-
-    private uint[string] recommendations()
-    {
-        uint[string] recommendations;
-        foreach (ref user ; server.users) {
-            if (user is this)
-                continue;
-
-            int weight;
-            foreach (ref item ; liked_items) {
-                if (user.likes(item)) weight++;
-                if (user.hates(item) && weight > 0) weight--;
-            }
-            foreach (ref item ; hated_items) {
-                if (user.hates(item)) weight++;
-                if (user.likes(item) && weight > 0) weight--;
-            }
-            if (weight > 0) foreach (ref item ; user.liked_items)
-                recommendations[item] += weight;
-        }
-        return recommendations;
-    }
-
-    private uint[string] similar_users()
-    {
-        uint[string] usernames;
-        foreach (ref user ; server.users) {
-            if (user is this)
-                continue;
-
-            int weight;
-            foreach (ref item ; liked_items) {
-                if (user.likes(item)) weight++;
-                if (user.hates(item) && weight > 0) weight--;
-            }
-            foreach (ref item ; hated_items) {
-                if (user.hates(item)) weight++;
-                if (user.likes(item) && weight > 0) weight--;
-            }
-            if (weight > 0) usernames[user.username] = weight;
-        }
-        return usernames;
-    }
-
-    private uint[string] item_recommendations(string item)
-    {
-        uint[string] recommendations;
-        foreach (ref user ; server.users) {
-            if (user is this)
-                continue;
-
-            int weight;
-            if (user.likes(item)) weight++;
-            if (user.hates(item) && weight > 0) weight--;
-            if (weight > 0) foreach (ref recommendation ; user.liked_items)
-                recommendations[recommendation] += weight;
-        }
-        return recommendations;
-    }
-
-    private string[] item_similar_users(string item)
-    {
-        Appender!(string[]) usernames;
-        foreach (ref user ; server.users) {
-            if (user is this)
-                continue;
-            if (user.likes(item)) usernames ~= user.username;
-        }
-        return usernames[];
+        return hated_items.byKey;
     }
 
 
@@ -463,9 +373,18 @@ class User
         foreach (ref name, ref room ; joined_rooms) leave_room(name);
     }
 
-    string[] joined_room_names()
+    const joined_room_names()
     {
-        return joined_rooms.byKey.array;
+        return joined_rooms.byKey;
+    }
+
+    bool joined_same_room(string target_username)
+    {
+        foreach (ref room ; joined_rooms)
+            if (room.is_joined(target_username))
+                return true;
+
+        return false;
     }
 
     private string check_room_name(string room_name)
@@ -503,25 +422,6 @@ class User
             );
 
         return null;
-    }
-
-    private bool joined_same_room(string peer_username)
-    {
-        foreach (ref room ; joined_rooms)
-            if (room.is_joined(peer_username))
-                return true;
-
-        return false;
-    }
-
-    private void send_to_joined_rooms(scope SMessage msg)
-    {
-        if (log_msg) writefln!(
-            "Transmit=> %s (code %d) to user %s's joined rooms...")(
-            blue ~ msg.name ~ norm, msg.code, blue ~ username ~ norm
-        );
-        foreach (ref user ; server.users)
-            if (user.joined_same_room(username)) user.send_message(msg);
     }
 
 
@@ -918,7 +818,7 @@ class User
                 scope response_msg = new SGetUserStats(
                     username, upload_speed, shared_files, shared_folders
                 );
-                send_to_watching(response_msg);
+                server.send_to_watching(username, response_msg);
                 break;
 
             case GetUserStats:
@@ -952,7 +852,7 @@ class User
                 scope response_msg = new SQueuedDownloads(
                     username, msg.slots_full
                 );
-                send_to_joined_rooms(response_msg);
+                server.send_to_joined_rooms(username, response_msg);
                 break;
 
             case UserSearch:
@@ -995,7 +895,9 @@ class User
 
             case GetRecommendations:
                 scope msg = new UGetRecommendations(msg_buf, username);
-                scope response_msg = new SGetRecommendations(recommendations);
+                scope response_msg = new SGetRecommendations(
+                    server.recommendations(username)
+                );
                 send_message(response_msg);
                 break;
 
@@ -1011,14 +913,16 @@ class User
             case GlobalRecommendations:
                 scope msg = new UGlobalRecommendations(msg_buf, username);
                 scope response_msg = new SGetGlobalRecommendations(
-                    global_recommendations
+                    server.global_recommendations()
                 );
                 send_message(response_msg);
                 break;
 
             case SimilarUsers:
                 scope msg = new USimilarUsers(msg_buf, username);
-                scope response_msg = new SSimilarUsers(similar_users);
+                scope response_msg = new SSimilarUsers(
+                    server.similar_users(username)
+                );
                 send_message(response_msg);
                 break;
 
@@ -1066,7 +970,7 @@ class User
             case ItemRecommendations:
                 scope msg = new UItemRecommendations(msg_buf, username);
                 scope response_msg = new SItemRecommendations(
-                    msg.item, item_recommendations(msg.item)
+                    msg.item, server.item_recommendations(username, msg.item)
                 );
                 send_message(response_msg);
                 break;
@@ -1074,7 +978,7 @@ class User
             case ItemSimilarUsers:
                 scope msg = new UItemSimilarUsers(msg_buf, username);
                 scope response_msg = new SItemSimilarUsers(
-                    msg.item, item_similar_users(msg.item)
+                    msg.item, server.item_similar_users(username, msg.item)
                 );
                 send_message(response_msg);
                 break;

@@ -11,7 +11,7 @@ import soulfind.defines : blue, log_msg, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.algorithm : clamp;
-import std.array : Appender, array;
+import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : to;
 import std.datetime : SysTime;
