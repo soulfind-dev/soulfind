@@ -621,9 +621,9 @@ final class Server
     void add_user(User user)
     {
         writeln(
-            db.is_admin(user.username) ? "Admin " : "User ", blue,
-            user.username, norm, " logged in with client version ",
-            bold, user.client_version, norm
+            db.admin_until(user.username) > Clock.currTime ?
+            "Admin " : "User ", blue, user.username, norm,
+            " logged in with client version ", bold, user.client_version, norm
         );
         users[user.username] = user;
     }
@@ -752,7 +752,7 @@ final class Server
         string liked_items, hated_items;
         string joined_rooms;
         auto joined_global_room = "no";
-        auto admin = db.is_admin(username) ? "yes" : "no";
+        auto admin = "no";
         auto banned = "no";
         auto privileged = "no";
         SysTime privileged_until;
@@ -790,6 +790,10 @@ final class Server
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;
         }
+
+        const admin_until = db.admin_until(username);
+        if (admin_until > now)
+            admin = text("until ", admin_until.toSimpleString);
 
         const banned_until = db.user_banned_until(username);
         if (banned_until == SysTime.fromUnixTime(long.max))
@@ -851,7 +855,7 @@ final class Server
 
     void user_command(string sender_username, string message)
     {
-        if (db.is_admin(sender_username)) {
+        if (db.admin_until(sender_username) > Clock.currTime) {
             admin_command(sender_username, message);
             return;
         }
@@ -912,7 +916,7 @@ final class Server
 
             case "admins":
                 Appender!string output;
-                const names = db.admins;
+                const names = db.usernames("admin", Clock.currTime.toUnixTime);
                 output ~= text(names.length, " admins.");
                 foreach (ref name ; names) {
                     const status = (name in users) ? "online" : "offline";

@@ -98,12 +98,12 @@ final class Setup
     private void admins()
     {
         show_menu(
-            text("Admins (", db.admins.length, ")"),
+            text("Admins (", db.num_users("admin"), ")"),
             [
-                MenuItem("1", "Add an admin",    &add_admin),
-                MenuItem("2", "Remove an admin", &del_admin),
-                MenuItem("3", "List admins",     &list_admins),
-                MenuItem("q", "Return",          &main_menu)
+                MenuItem("1", "Add/renew an admin", &add_admin),
+                MenuItem("2", "Remove an admin",    &del_admin),
+                MenuItem("3", "List admins",        &list_admins),
+                MenuItem("q", "Return",             &main_menu)
             ]
         );
     }
@@ -114,23 +114,30 @@ final class Setup
 
         const username = input.strip;
         if (!db.user_exists(username)) {
-            do {
-                writeln(
-                    "User ", username, " is not registered. Do you really ",
-                    "want to add them to the admin list? [y/n]"
-                );
-                const response = input.strip.toLower;
-                if (response == "y") {
-                    db.add_admin(username);
-                    break;
-                } else if (response == "n") {
-                    break;
-                }
-            }
-            while(true);
-        } else {
-            db.add_admin(username);
+            writeln("\nUser ", username, " is not registered");
+            return;
         }
+
+        Duration duration;
+        do {
+            try {
+                write("Number of days of admin status : ");
+                const value = input.strip.to!ulong;
+                const limit = ushort.max;
+                duration = (value > limit ? limit : value).days;
+                break;
+            }
+            catch (ConvException) {
+                writeln("Invalid number or too many days");
+            }
+        }
+        while(true);
+
+        db.add_admin(username, duration);
+        writeln(
+            "Made ", username, " an admin until ",
+            db.admin_until(username).toSimpleString
+        );
         admins();
     }
 
@@ -139,7 +146,7 @@ final class Setup
         write("Admin to remove : ");
         const username = input.strip;
 
-        if (db.is_admin(username))
+        if (db.admin_until(username).stdTime > 0)
             db.del_admin(username);
         else
             writeln("\nUser ", username, " is not an admin");
@@ -149,16 +156,20 @@ final class Setup
 
     private void list_admins()
     {
-        const names = db.admins;
+        const names = db.usernames("admin");
+        const now = Clock.currTime;
 
         Appender!string output;
         output ~= text("\nAdmins (", names.length, ")...");
         foreach (ref name ; names) {
+            const admin_until = db.admin_until(name);
             output ~= "\n\t";
             output ~= name;
-            output ~= text(
-                " (registered: ", db.user_exists(name) ? "yes" : "no", ")"
-            );
+
+            if (admin_until > now)
+                output ~= text(" (until ", admin_until.toSimpleString, ")");
+            else
+                output ~= text(" (expired)");
         }
 
         writeln(output[]);
@@ -363,13 +374,17 @@ final class Setup
 
         const username = input.strip;
         const now = Clock.currTime;
-        const admin = db.is_admin(username) ? "yes" : "no";
+        auto admin = "no";
+        const admin_until = db.admin_until(username);
         auto banned = "no";
         const banned_until = db.user_banned_until(username);
         auto privileged = "no";
         const privileged_until = db.user_privileged_until(username);
         const supporter = (privileged_until.stdTime > 0) ? "yes" : "no";
         const stats = db.user_stats(username);
+
+        if (admin_until > now)
+            admin = text("until ", admin_until.toSimpleString);
 
         if (banned_until == SysTime.fromUnixTime(long.max))
             banned = "forever";

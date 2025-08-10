@@ -149,13 +149,7 @@ final class User
         }
 
         if (!user_exists) {
-            if (server.db.is_admin(username))
-                // For security reasons, non-existent admins cannot register
-                // through the client
-                login_rejection.reason = LoginRejectionReason.invalid_password;
-            else
-                server.db.add_user(username, password);
-
+            server.db.add_user(username, password);
             return login_rejection;
         }
 
