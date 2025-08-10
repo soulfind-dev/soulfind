@@ -237,12 +237,17 @@ class Server
             TCP_KEEPCNT                    = 0x10;
             TCP_KEEPINTVL                  = 0x11;
         }
+        version (FreeBSD) {
+            TCP_KEEPIDLE                   = 0x100;
+            TCP_KEEPINTVL                  = 0x200;
+            TCP_KEEPCNT                    = 0x400;
+        }
         version (NetBSD) {
             TCP_KEEPIDLE                   = 0x3;
             TCP_KEEPINTVL                  = 0x5;
             TCP_KEEPCNT                    = 0x6;
         }
-        version (FreeBSD) version (DragonFlyBSD) {
+        version (DragonFlyBSD) {
             TCP_KEEPIDLE                   = 0x100;
             TCP_KEEPINTVL                  = 0x200;
             TCP_KEEPCNT                    = 0x400;
