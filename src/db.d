@@ -93,7 +93,6 @@ class Sdb
     sqlite3* db;
 
     const users_table   = "users";
-    const admins_table  = "admins";
     const config_table  = "config";
 
 
@@ -124,17 +123,10 @@ class Sdb
           ~ " files INTEGER,"
           ~ " folders INTEGER,"
           ~ " banned INTEGER,"
-          ~ " privileges INTEGER"
+          ~ " privileges INTEGER,"
+          ~ " admin INTEGER"
           ~ ") WITHOUT ROWID;")(
             users_table
-        );
-
-        const admins_sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s("
-          ~ " username TEXT PRIMARY KEY,"
-          ~ " level INTEGER NOT NULL"
-          ~ ") WITHOUT ROWID;")(
-            admins_table
         );
 
         foreach (ref problem ; query("PRAGMA integrity_check;"))
@@ -142,7 +134,7 @@ class Sdb
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
-        query(admins_sql);
+        add_new_columns();
         init_config();
     }
 
@@ -151,6 +143,29 @@ class Sdb
         if (log_db) writeln("DB: Shutting down...");
         close();
         shutdown();
+    }
+
+    private void add_new_columns()
+    {
+        // Temporary migration code to add new columns
+        const columns = query(format!("PRAGMA table_info(%s);")(users_table));
+        bool has_admin;
+
+        foreach (ref column; columns) {
+            if (column.length < 1)
+                continue;
+
+            if (column[1] == "admin") {
+                has_admin = true;
+                break;
+            }
+        }
+
+        if (!has_admin)
+            query(format!(
+                "ALTER TABLE %s ADD COLUMN admin INTEGER;")(
+                users_table
+            ));
     }
 
     private void init_config()
@@ -272,29 +287,33 @@ class Sdb
     void add_admin(string username)
     {
         const sql = format!(
-            "REPLACE INTO %s(username, level) VALUES(?, ?);")(
-            admins_table
+            "UPDATE %s SET admin = ? WHERE username = ?;")(
+            users_table
         );
-        const level = 0;
-        query(sql, [username, level.to!string]);
+        const enabled = true;
+        query(sql, [enabled.to!ubyte.to!string, username]);
 
         if (log_user) writefln!("Added new admin %s")(blue ~ username ~ norm);
     }
 
     void del_admin(string username)
     {
-        const sql = format!("DELETE FROM %s WHERE username = ?;")(
-            admins_table
+        const sql = format!(
+            "UPDATE %s SET admin = ? WHERE username = ?;")(
+            users_table
         );
-        query(sql, [username]);
+        query(sql, [null, username]);
 
         if (log_user) writefln!("Removed admin %s")(blue ~ username ~ norm);
     }
 
     string[] admins()
     {
-        const sql = format!("SELECT username FROM %s;")(
-            admins_table
+        const sql = format!(
+            "SELECT username"
+          ~ " FROM %s"
+          ~ " WHERE CAST(admin as INTEGER) > 0;")(
+            users_table
         );
         Appender!(string[]) admins;
         foreach (ref record ; query(sql)) admins ~= record[0];
@@ -304,8 +323,11 @@ class Sdb
     bool is_admin(string username)
     {
         const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ?;")(
-            admins_table
+            "SELECT 1"
+          ~ " FROM %s"
+          ~ " WHERE username = ?"
+          ~ " AND CAST(admin as INTEGER) > 0;")(
+            users_table
         );
         return query(sql, [username]).length > 0;
     }
