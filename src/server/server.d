@@ -189,7 +189,7 @@ class Server
 
     private void accept()
     {
-        if (listen_sock !is null)
+        if (listen_sock is null)
             return;
 
         while (true) {
