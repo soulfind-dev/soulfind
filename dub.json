@@ -19,11 +19,13 @@
             "dependencies": {
                 "soulfind:server": {
                     "version": "*",
-                    "dflags": ["-static"]
+                    "dflags": ["-static", "-L--no-export-dynamic"],
+                    "dflags-ldc": ["--flto=thin"]
                 },
                 "soulfind:setup": {
                     "version": "*",
-                    "dflags": ["-static"]
+                    "dflags": ["-static", "-L--no-export-dynamic"],
+                    "dflags-ldc": ["--flto=thin"]
                 }
             }
         },
