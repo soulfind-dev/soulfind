@@ -44,7 +44,6 @@ final class Server
     private SysTime         started_at;
     private MonoTime        started_monotime;
     private MonoTime        last_user_check;
-    private Socket          listen_sock;
     private ushort          port;
 
     private User[string]    users;
@@ -63,17 +62,12 @@ final class Server
         this.global_room       = new GlobalRoom();
     }
 
-    ~this()
-    {
-        if (listen_sock !is null) listen_sock.close();
-    }
-
 
     // Connections
 
     int listen()
     {
-        listen_sock = new TcpSocket();
+        scope listen_sock = new TcpSocket();
         listen_sock.blocking = false;
 
         version (Posix)
@@ -112,7 +106,7 @@ final class Server
                 const send_ready = (events & SelectEvent.write) != 0;
 
                 if (sock_handle == listen_sock.handle) {
-                    if (recv_ready) accept();
+                    if (recv_ready) accept(listen_sock);
                     continue;
                 }
 
@@ -186,11 +180,8 @@ final class Server
         return 0;
     }
 
-    private void accept()
+    private void accept(Socket listen_sock)
     {
-        if (listen_sock is null)
-            return;
-
         while (true) {
             Socket sock;
             try
