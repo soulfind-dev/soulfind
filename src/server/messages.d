@@ -197,7 +197,7 @@ class UMessage
     }
 }
 
-class ULogin : UMessage
+final class ULogin : UMessage
 {
     string  username;
     string  password;
@@ -221,7 +221,7 @@ class ULogin : UMessage
     }
 }
 
-class USetWaitPort : UMessage
+final class USetWaitPort : UMessage
 {
     uint port;
 
@@ -233,7 +233,7 @@ class USetWaitPort : UMessage
     }
 }
 
-class UGetPeerAddress : UMessage
+final class UGetPeerAddress : UMessage
 {
     string username;
 
@@ -245,7 +245,7 @@ class UGetPeerAddress : UMessage
     }
 }
 
-class UWatchUser : UMessage
+final class UWatchUser : UMessage
 {
     string username;
 
@@ -257,7 +257,7 @@ class UWatchUser : UMessage
     }
 }
 
-class UUnwatchUser : UMessage
+final class UUnwatchUser : UMessage
 {
     string username;
 
@@ -269,7 +269,7 @@ class UUnwatchUser : UMessage
     }
 }
 
-class UGetUserStatus : UMessage
+final class UGetUserStatus : UMessage
 {
     string username;
 
@@ -281,7 +281,7 @@ class UGetUserStatus : UMessage
     }
 }
 
-class USayChatroom : UMessage
+final class USayChatroom : UMessage
 {
     string  room_name;
     string  message;
@@ -295,7 +295,7 @@ class USayChatroom : UMessage
     }
 }
 
-class UJoinRoom : UMessage
+final class UJoinRoom : UMessage
 {
     string room_name;
 
@@ -307,7 +307,7 @@ class UJoinRoom : UMessage
     }
 }
 
-class ULeaveRoom : UMessage
+final class ULeaveRoom : UMessage
 {
     string room_name;
 
@@ -319,7 +319,7 @@ class ULeaveRoom : UMessage
     }
 }
 
-class UConnectToPeer : UMessage
+final class UConnectToPeer : UMessage
 {
     uint    token;
     string  username;
@@ -335,7 +335,7 @@ class UConnectToPeer : UMessage
     }
 }
 
-class UMessageUser : UMessage
+final class UMessageUser : UMessage
 {
     string  username;
     string  message;
@@ -349,7 +349,7 @@ class UMessageUser : UMessage
     }
 }
 
-class UMessageAcked : UMessage
+final class UMessageAcked : UMessage
 {
     uint id;
 
@@ -361,7 +361,7 @@ class UMessageAcked : UMessage
     }
 }
 
-class UFileSearch : UMessage
+final class UFileSearch : UMessage
 {
     uint    token;
     string  query;
@@ -375,7 +375,7 @@ class UFileSearch : UMessage
     }
 }
 
-class UWishlistSearch : UMessage
+final class UWishlistSearch : UMessage
 {
     uint    token;
     string  query;
@@ -389,7 +389,7 @@ class UWishlistSearch : UMessage
     }
 }
 
-class USimilarUsers : UMessage
+final class USimilarUsers : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -397,7 +397,7 @@ class USimilarUsers : UMessage
     }
 }
 
-class USetStatus : UMessage
+final class USetStatus : UMessage
 {
     uint status;
 
@@ -409,7 +409,7 @@ class USetStatus : UMessage
     }
 }
 
-class UServerPing : UMessage
+final class UServerPing : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -417,7 +417,7 @@ class UServerPing : UMessage
     }
 }
 
-class USendConnectToken : UMessage
+final class USendConnectToken : UMessage
 {
     string  username;
     uint    token;
@@ -431,7 +431,7 @@ class USendConnectToken : UMessage
     }
 }
 
-class USendUploadSpeed : UMessage
+final class USendUploadSpeed : UMessage
 {
     uint speed;
 
@@ -443,7 +443,7 @@ class USendUploadSpeed : UMessage
     }
 }
 
-class USharedFoldersFiles : UMessage
+final class USharedFoldersFiles : UMessage
 {
     uint  shared_folders;
     uint  shared_files;
@@ -457,7 +457,7 @@ class USharedFoldersFiles : UMessage
     }
 }
 
-class UGetUserStats : UMessage
+final class UGetUserStats : UMessage
 {
     string username;
 
@@ -469,7 +469,7 @@ class UGetUserStats : UMessage
     }
 }
 
-class UQueuedDownloads : UMessage
+final class UQueuedDownloads : UMessage
 {
     uint slots_full;
 
@@ -481,7 +481,7 @@ class UQueuedDownloads : UMessage
     }
 }
 
-class UUserSearch : UMessage
+final class UUserSearch : UMessage
 {
     string  username;
     uint    token;
@@ -497,7 +497,7 @@ class UUserSearch : UMessage
     }
 }
 
-class USimilarRecommendations : UMessage
+final class USimilarRecommendations : UMessage
 {
     string recommendation;
 
@@ -509,7 +509,7 @@ class USimilarRecommendations : UMessage
     }
 }
 
-class UAddThingILike : UMessage
+final class UAddThingILike : UMessage
 {
     string item;
 
@@ -521,7 +521,7 @@ class UAddThingILike : UMessage
     }
 }
 
-class URemoveThingILike : UMessage
+final class URemoveThingILike : UMessage
 {
     string item;
 
@@ -533,7 +533,7 @@ class URemoveThingILike : UMessage
     }
 }
 
-class UGetRecommendations : UMessage
+final class UGetRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -541,7 +541,7 @@ class UGetRecommendations : UMessage
     }
 }
 
-class UMyRecommendations : UMessage
+final class UMyRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -549,7 +549,7 @@ class UMyRecommendations : UMessage
     }
 }
 
-class UGlobalRecommendations : UMessage
+final class UGlobalRecommendations : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -557,7 +557,7 @@ class UGlobalRecommendations : UMessage
     }
 }
 
-class UUserInterests : UMessage
+final class UUserInterests : UMessage
 {
     string username;
 
@@ -569,7 +569,7 @@ class UUserInterests : UMessage
     }
 }
 
-class URoomList : UMessage
+final class URoomList : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -577,7 +577,7 @@ class URoomList : UMessage
     }
 }
 
-class UGlobalUserList : UMessage
+final class UGlobalUserList : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -585,7 +585,7 @@ class UGlobalUserList : UMessage
     }
 }
 
-class UCheckPrivileges : UMessage
+final class UCheckPrivileges : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -593,19 +593,7 @@ class UCheckPrivileges : UMessage
     }
 }
 
-class UAddThingIHate : UMessage
-{
-    string item;
-
-    this(ubyte[] in_buf, string in_username) scope
-    {
-        super(in_buf, in_username);
-
-        item = read!string();
-    }
-}
-
-class URemoveThingIHate : UMessage
+final class UAddThingIHate : UMessage
 {
     string item;
 
@@ -617,7 +605,7 @@ class URemoveThingIHate : UMessage
     }
 }
 
-class UItemRecommendations : UMessage
+final class URemoveThingIHate : UMessage
 {
     string item;
 
@@ -629,7 +617,7 @@ class UItemRecommendations : UMessage
     }
 }
 
-class UItemSimilarUsers : UMessage
+final class UItemRecommendations : UMessage
 {
     string item;
 
@@ -641,7 +629,19 @@ class UItemSimilarUsers : UMessage
     }
 }
 
-class USetRoomTicker : UMessage
+final class UItemSimilarUsers : UMessage
+{
+    string item;
+
+    this(ubyte[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        item = read!string();
+    }
+}
+
+final class USetRoomTicker : UMessage
 {
     string  room_name;
     string  ticker;
@@ -655,7 +655,7 @@ class USetRoomTicker : UMessage
     }
 }
 
-class URoomSearch : UMessage
+final class URoomSearch : UMessage
 {
     string  room_name;
     uint    token;
@@ -671,7 +671,7 @@ class URoomSearch : UMessage
     }
 }
 
-class UUserPrivileged : UMessage
+final class UUserPrivileged : UMessage
 {
     string username;
 
@@ -683,7 +683,7 @@ class UUserPrivileged : UMessage
     }
 }
 
-class UGivePrivileges : UMessage
+final class UGivePrivileges : UMessage
 {
     string    username;
     Duration  duration;
@@ -697,7 +697,7 @@ class UGivePrivileges : UMessage
     }
 }
 
-class UNotifyPrivileges : UMessage
+final class UNotifyPrivileges : UMessage
 {
     uint    token;
     string  username;
@@ -711,7 +711,7 @@ class UNotifyPrivileges : UMessage
     }
 }
 
-class UPrivateRoomAddUser : UMessage
+final class UPrivateRoomAddUser : UMessage
 {
     string  room_name;
     string  username;
@@ -725,7 +725,7 @@ class UPrivateRoomAddUser : UMessage
     }
 }
 
-class UPrivateRoomRemoveUser : UMessage
+final class UPrivateRoomRemoveUser : UMessage
 {
     string  room_name;
     string  username;
@@ -739,7 +739,7 @@ class UPrivateRoomRemoveUser : UMessage
     }
 }
 
-class UPrivateRoomCancelMembership : UMessage
+final class UPrivateRoomCancelMembership : UMessage
 {
     string room_name;
 
@@ -751,7 +751,7 @@ class UPrivateRoomCancelMembership : UMessage
     }
 }
 
-class UPrivateRoomDisown : UMessage
+final class UPrivateRoomDisown : UMessage
 {
     string room_name;
 
@@ -763,7 +763,7 @@ class UPrivateRoomDisown : UMessage
     }
 }
 
-class UPrivateRoomToggle : UMessage
+final class UPrivateRoomToggle : UMessage
 {
     bool enabled;
 
@@ -775,7 +775,7 @@ class UPrivateRoomToggle : UMessage
     }
 }
 
-class UChangePassword : UMessage
+final class UChangePassword : UMessage
 {
     string password;
 
@@ -787,7 +787,7 @@ class UChangePassword : UMessage
     }
 }
 
-class UPrivateRoomAddOperator : UMessage
+final class UPrivateRoomAddOperator : UMessage
 {
     string  room_name;
     string  username;
@@ -801,7 +801,7 @@ class UPrivateRoomAddOperator : UMessage
     }
 }
 
-class UPrivateRoomRemoveOperator : UMessage
+final class UPrivateRoomRemoveOperator : UMessage
 {
     string  room_name;
     string  username;
@@ -815,7 +815,7 @@ class UPrivateRoomRemoveOperator : UMessage
     }
 }
 
-class UMessageUsers : UMessage
+final class UMessageUsers : UMessage
 {
     string[]  usernames;
     string    message;
@@ -829,7 +829,7 @@ class UMessageUsers : UMessage
     }
 }
 
-class UJoinGlobalRoom : UMessage
+final class UJoinGlobalRoom : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -837,7 +837,7 @@ class UJoinGlobalRoom : UMessage
     }
 }
 
-class ULeaveGlobalRoom : UMessage
+final class ULeaveGlobalRoom : UMessage
 {
     this(ubyte[] in_buf, string in_username) scope
     {
@@ -845,7 +845,7 @@ class ULeaveGlobalRoom : UMessage
     }
 }
 
-class URelatedSearch : UMessage
+final class URelatedSearch : UMessage
 {
     string query;
 
@@ -857,7 +857,7 @@ class URelatedSearch : UMessage
     }
 }
 
-class UCantConnectToPeer : UMessage
+final class UCantConnectToPeer : UMessage
 {
     uint token;
     string username;
@@ -912,7 +912,7 @@ class SMessage
     }
 }
 
-class SLogin : SMessage
+final class SLogin : SMessage
 {
     this(bool success, LoginRejection rejection = LoginRejection(),
          string motd = null, uint ip_address = 0, string md5_hash = null,
@@ -938,7 +938,7 @@ class SLogin : SMessage
     }
 }
 
-class SGetPeerAddress : SMessage
+final class SGetPeerAddress : SMessage
 {
     this(string username, uint ip_address, uint port, uint unknown = 0,
          uint obfuscated_port = 0) scope
@@ -953,7 +953,7 @@ class SGetPeerAddress : SMessage
     }
 }
 
-class SWatchUser : SMessage
+final class SWatchUser : SMessage
 {
     this(string username, bool exists, uint status, uint upload_speed,
          uint shared_files, uint shared_folders) scope
@@ -975,7 +975,7 @@ class SWatchUser : SMessage
     }
 }
 
-class SGetUserStatus : SMessage
+final class SGetUserStatus : SMessage
 {
     this(string username, uint status, bool privileged) scope
     {
@@ -987,7 +987,7 @@ class SGetUserStatus : SMessage
     }
 }
 
-class SSayChatroom : SMessage
+final class SSayChatroom : SMessage
 {
     this(string room_name, string username, string message) scope
     {
@@ -999,7 +999,7 @@ class SSayChatroom : SMessage
     }
 }
 
-class SRoomList : SMessage
+final class SRoomList : SMessage
 {
     this(uint[string] rooms,
          uint[string] owned_private_rooms,
@@ -1038,7 +1038,7 @@ class SRoomList : SMessage
     }
 }
 
-class SJoinRoom : SMessage
+final class SJoinRoom : SMessage
 {
     this(string room_name, User[string] users) scope
     {
@@ -1071,7 +1071,7 @@ class SJoinRoom : SMessage
     }
 }
 
-class SLeaveRoom : SMessage
+final class SLeaveRoom : SMessage
 {
     this(string room_name) scope
     {
@@ -1081,7 +1081,7 @@ class SLeaveRoom : SMessage
     }
 }
 
-class SUserJoinedRoom : SMessage
+final class SUserJoinedRoom : SMessage
 {
     this(string room_name, string username, uint status,
          uint upload_speed, uint shared_files, uint shared_folders) scope
@@ -1101,7 +1101,7 @@ class SUserJoinedRoom : SMessage
     }
 }
 
-class SUserLeftRoom : SMessage
+final class SUserLeftRoom : SMessage
 {
     this(string username, string room_name) scope
     {
@@ -1112,7 +1112,7 @@ class SUserLeftRoom : SMessage
     }
 }
 
-class SConnectToPeer : SMessage
+final class SConnectToPeer : SMessage
 {
     this(string username, string type, uint ip_address, uint port,
          uint token, bool privileged, uint unknown = 0,
@@ -1131,7 +1131,7 @@ class SConnectToPeer : SMessage
     }
 }
 
-class SMessageUser : SMessage
+final class SMessageUser : SMessage
 {
     this(uint id, SysTime timestamp, string username, string message,
          bool new_message) scope
@@ -1149,7 +1149,7 @@ class SMessageUser : SMessage
     }
 }
 
-class SFileSearch : SMessage
+final class SFileSearch : SMessage
 {
     this(string username, uint token, string query) scope
     {
@@ -1161,7 +1161,7 @@ class SFileSearch : SMessage
     }
 }
 
-class SSendConnectToken : SMessage
+final class SSendConnectToken : SMessage
 {
     this(string username, uint token) scope
     {
@@ -1172,7 +1172,7 @@ class SSendConnectToken : SMessage
     }
 }
 
-class SGetUserStats : SMessage
+final class SGetUserStats : SMessage
 {
     this(string username, uint upload_speed, uint shared_files,
          uint shared_folders) scope
@@ -1188,7 +1188,7 @@ class SGetUserStats : SMessage
     }
 }
 
-class SQueuedDownloads : SMessage
+final class SQueuedDownloads : SMessage
 {
     this(string username, uint slots_full) scope
     {
@@ -1199,7 +1199,7 @@ class SQueuedDownloads : SMessage
     }
 }
 
-class SGetRecommendations : SMessage
+final class SGetRecommendations : SMessage
 {
     this(uint[string] recommendations) scope
     {
@@ -1214,7 +1214,7 @@ class SGetRecommendations : SMessage
     }
 }
 
-class SMyRecommendations : SMessage
+final class SMyRecommendations : SMessage
 {
     this(string[] recommendations) scope
     {
@@ -1228,7 +1228,7 @@ class SMyRecommendations : SMessage
     }
 }
 
-class SGetGlobalRecommendations : SMessage
+final class SGetGlobalRecommendations : SMessage
 {
     this(uint[string] recommendations) scope
     {
@@ -1243,7 +1243,7 @@ class SGetGlobalRecommendations : SMessage
     }
 }
 
-class SUserInterests : SMessage
+final class SUserInterests : SMessage
 {
     this(string user, string[string] likes, string[string] hates) scope
     {
@@ -1259,7 +1259,7 @@ class SUserInterests : SMessage
     }
 }
 
-class SRelogged : SMessage
+final class SRelogged : SMessage
 {
     this() scope
     {
@@ -1267,7 +1267,7 @@ class SRelogged : SMessage
     }
 }
 
-class SSimilarRecommendations : SMessage
+final class SSimilarRecommendations : SMessage
 {
     this(string recommendation, string[] recommendations) scope
     {
@@ -1280,7 +1280,7 @@ class SSimilarRecommendations : SMessage
     }
 }
 
-class SAdminMessage : SMessage
+final class SAdminMessage : SMessage
 {
     this(string message) scope
     {
@@ -1290,7 +1290,7 @@ class SAdminMessage : SMessage
     }
 }
 
-class SPrivilegedUsers : SMessage
+final class SPrivilegedUsers : SMessage
 {
     this(string[] users) scope
     {
@@ -1302,7 +1302,7 @@ class SPrivilegedUsers : SMessage
     }
 }
 
-class SCheckPrivileges : SMessage
+final class SCheckPrivileges : SMessage
 {
     this(Duration duration) scope
     {
@@ -1315,7 +1315,7 @@ class SCheckPrivileges : SMessage
     }
 }
 
-class SWishlistInterval : SMessage
+final class SWishlistInterval : SMessage
 {
     this(Duration interval) scope
     {
@@ -1328,7 +1328,7 @@ class SWishlistInterval : SMessage
     }
 }
 
-class SSimilarUsers : SMessage
+final class SSimilarUsers : SMessage
 {
     this(uint[string] usernames) scope
     {
@@ -1343,7 +1343,7 @@ class SSimilarUsers : SMessage
     }
 }
 
-class SItemRecommendations : SMessage
+final class SItemRecommendations : SMessage
 {
     this(string item, uint[string] recommendations) scope
     {
@@ -1360,7 +1360,7 @@ class SItemRecommendations : SMessage
     }
 }
 
-class SItemSimilarUsers : SMessage
+final class SItemSimilarUsers : SMessage
 {
     this(string item, string[] usernames) scope
     {
@@ -1372,7 +1372,7 @@ class SItemSimilarUsers : SMessage
     }
 }
 
-class SRoomTicker : SMessage
+final class SRoomTicker : SMessage
 {
     this(string room_name, Ticker[] tickers) scope
     {
@@ -1388,7 +1388,7 @@ class SRoomTicker : SMessage
     }
 }
 
-class SRoomTickerAdd : SMessage
+final class SRoomTickerAdd : SMessage
 {
     this(string room_name, string username, string ticker) scope
     {
@@ -1400,7 +1400,7 @@ class SRoomTickerAdd : SMessage
     }
 }
 
-class SRoomTickerRemove : SMessage
+final class SRoomTickerRemove : SMessage
 {
     this(string room_name, string username) scope
     {
@@ -1411,7 +1411,7 @@ class SRoomTickerRemove : SMessage
     }
 }
 
-class SUserPrivileged : SMessage
+final class SUserPrivileged : SMessage
 {
     this(string username, bool privileged) scope
     {
@@ -1422,7 +1422,7 @@ class SUserPrivileged : SMessage
     }
 }
 
-class SAckNotifyPrivileges : SMessage
+final class SAckNotifyPrivileges : SMessage
 {
     this(uint token) scope
     {
@@ -1432,7 +1432,7 @@ class SAckNotifyPrivileges : SMessage
     }
 }
 
-class SPrivateRoomUsers : SMessage
+final class SPrivateRoomUsers : SMessage
 {
     this(string room_name, string[] usernames) scope
     {
@@ -1444,7 +1444,7 @@ class SPrivateRoomUsers : SMessage
     }
 }
 
-class SPrivateRoomAddUser : SMessage
+final class SPrivateRoomAddUser : SMessage
 {
     this(string room_name, string username) scope
     {
@@ -1455,7 +1455,7 @@ class SPrivateRoomAddUser : SMessage
     }
 }
 
-class SPrivateRoomRemoveUser : SMessage
+final class SPrivateRoomRemoveUser : SMessage
 {
     this(string room_name, string username) scope
     {
@@ -1466,7 +1466,7 @@ class SPrivateRoomRemoveUser : SMessage
     }
 }
 
-class SPrivateRoomAdded : SMessage
+final class SPrivateRoomAdded : SMessage
 {
     this(string room_name) scope
     {
@@ -1476,7 +1476,7 @@ class SPrivateRoomAdded : SMessage
     }
 }
 
-class SPrivateRoomRemoved : SMessage
+final class SPrivateRoomRemoved : SMessage
 {
     this(string room_name) scope
     {
@@ -1486,7 +1486,7 @@ class SPrivateRoomRemoved : SMessage
     }
 }
 
-class SPrivateRoomToggle : SMessage
+final class SPrivateRoomToggle : SMessage
 {
     this(bool enabled) scope
     {
@@ -1496,7 +1496,7 @@ class SPrivateRoomToggle : SMessage
     }
 }
 
-class SChangePassword : SMessage
+final class SChangePassword : SMessage
 {
     this(string password) scope
     {
@@ -1506,7 +1506,7 @@ class SChangePassword : SMessage
     }
 }
 
-class SPrivateRoomAddOperator : SMessage
+final class SPrivateRoomAddOperator : SMessage
 {
     this(string room_name, string username) scope
     {
@@ -1517,7 +1517,7 @@ class SPrivateRoomAddOperator : SMessage
     }
 }
 
-class SPrivateRoomRemoveOperator : SMessage
+final class SPrivateRoomRemoveOperator : SMessage
 {
     this(string room_name, string username) scope
     {
@@ -1528,7 +1528,7 @@ class SPrivateRoomRemoveOperator : SMessage
     }
 }
 
-class SPrivateRoomOperatorAdded : SMessage
+final class SPrivateRoomOperatorAdded : SMessage
 {
     this(string room_name) scope
     {
@@ -1538,7 +1538,7 @@ class SPrivateRoomOperatorAdded : SMessage
     }
 }
 
-class SPrivateRoomOperatorRemoved : SMessage
+final class SPrivateRoomOperatorRemoved : SMessage
 {
     this(string room_name) scope
     {
@@ -1548,7 +1548,7 @@ class SPrivateRoomOperatorRemoved : SMessage
     }
 }
 
-class SPrivateRoomOperators : SMessage
+final class SPrivateRoomOperators : SMessage
 {
     this(string room_name, string[] usernames) scope
     {
@@ -1560,7 +1560,7 @@ class SPrivateRoomOperators : SMessage
     }
 }
 
-class SGlobalRoomMessage : SMessage
+final class SGlobalRoomMessage : SMessage
 {
     this(string room_name, string username, string message) scope
     {
@@ -1572,7 +1572,7 @@ class SGlobalRoomMessage : SMessage
     }
 }
 
-class SRelatedSearch : SMessage
+final class SRelatedSearch : SMessage
 {
     this(string query, uint[string] terms) scope
     {
@@ -1588,7 +1588,7 @@ class SRelatedSearch : SMessage
     }
 }
 
-class SCantConnectToPeer : SMessage
+final class SCantConnectToPeer : SMessage
 {
     this(uint token) scope
     {

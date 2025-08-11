@@ -27,7 +27,7 @@ struct Ticker
 
 }
 
-class Room
+final class Room
 {
     string name;
 
@@ -173,7 +173,7 @@ class Room
     }
 }
 
-class GlobalRoom
+final class GlobalRoom
 {
     private User[string] users;
 

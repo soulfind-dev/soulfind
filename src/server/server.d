@@ -35,7 +35,7 @@ else {
     import soulfind.main : running;
 }
 
-class Server
+final class Server
 {
     Sdb                     db;
     Selector                selector;

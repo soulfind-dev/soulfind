@@ -26,7 +26,7 @@ struct MenuItem
     void delegate()  action;
 }
 
-class Setup
+final class Setup
 {
     private Sdb db;
 

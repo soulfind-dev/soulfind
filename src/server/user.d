@@ -32,7 +32,7 @@ import std.socket : InternetAddress, Socket;
 import std.stdio : writefln;
 import std.string : format, join, replace, strip;
 
-class User
+final class User
 {
     string                  username;
     Socket                  sock;
