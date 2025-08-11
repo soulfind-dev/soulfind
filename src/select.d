@@ -31,14 +31,12 @@ class Selector
 
 version (linux) final class EpollSelector : Selector
 {
-    import core.sys.linux.epoll : epoll_create1, epoll_ctl, EPOLL_CTL_ADD,
-                                  EPOLL_CTL_DEL, EPOLL_CTL_MOD, epoll_event,
-                                  epoll_wait, EPOLLERR, EPOLLHUP, EPOLLIN,
-                                  EPOLLOUT;
+    import core.sys.linux.epoll;
     import core.sys.posix.unistd : close;
 
-    private int                    epoll_fd;
-    private epoll_event[]          epoll_events;
+    private int            epoll_fd;
+    private epoll_event[]  epoll_events;
+    private size_t         max_events;
 
     this(Duration timeout)
     {
@@ -62,11 +60,13 @@ version (linux) final class EpollSelector : Selector
 
         if (!is_registered) {
             op = EPOLL_CTL_ADD;
-            epoll_events.length++;
+            max_events++;
+            if (epoll_events.length < max_events)
+                epoll_events.length = max_events;
         }
 
         fd_events[fd] |= events;
-        ctl(op, fd, event);
+        control(op, fd, event);
     }
 
     override void unregister(socket_t fd, SelectEvent events)
@@ -79,12 +79,11 @@ version (linux) final class EpollSelector : Selector
         auto event = create_epoll_event(fd, remaining_events);
 
         if (remaining_events == 0) {
-            ctl(EPOLL_CTL_DEL, fd, event);
+            control(EPOLL_CTL_DEL, fd, event);
             fd_events.remove(fd);
-            epoll_events.length--;
             return;
         }
-        ctl(EPOLL_CTL_MOD, fd, event);
+        control(EPOLL_CTL_MOD, fd, event);
     }
 
     override SelectEvent[socket_t] select()
@@ -121,12 +120,11 @@ version (linux) final class EpollSelector : Selector
     @trusted
     private int create_epoll()
     {
-        const SOCK_CLOEXEC = 0x80000;
-        return epoll_create1(SOCK_CLOEXEC);
+        return epoll_create1(EPOLL_CLOEXEC);
     }
 
     @trusted
-    private void ctl(int op, socket_t fd, epoll_event event)
+    private void control(int op, socket_t fd, epoll_event event)
     {
         epoll_ctl(epoll_fd, op, fd, &event);
     }
@@ -150,8 +148,7 @@ final class PollSelector : Selector
                                            POLLOUT = POLLWRNORM;
     }
     else version (Posix) {
-        import core.sys.posix.poll : poll, POLLERR, pollfd, POLLHUP, POLLIN,
-                                     POLLOUT;
+        import core.sys.posix.poll;
     }
 
     private SelectEvent[socket_t]  fd_events;
