@@ -710,7 +710,7 @@ class Server
         uint shared_files, shared_folders;
 
         user = get_user(username);
-        if (user) {
+        if (user !is null) {
             client_version = user.client_version;
             address = user.address.toString;
             status = (user.status == Status.away) ? "away" : "online";
@@ -940,7 +940,7 @@ class Server
                 del_user_tickers(username);
 
                 auto user = get_user(username);
-                if (user) del_user(user);
+                if (user !is null) del_user(user);
 
                 string response;
                 if (duration == Duration.max)
@@ -999,7 +999,7 @@ class Server
                 db.ban_user(username, duration);
 
                 auto user = get_user(username);
-                if (user) del_user(user);
+                if (user !is null) del_user(user);
 
                 server_pm(admin_username, format!("Kicked user %s for %s")(
                     username, duration.total!"minutes".minutes
@@ -1078,7 +1078,7 @@ class Server
                 db.add_user_privileges(username, duration);
 
                 auto user = get_user(username);
-                if (user) user.refresh_privileges();
+                if (user !is null) user.refresh_privileges();
 
                 server_pm(admin_username, format!(
                     "Added %s of privileges to user %s")(
@@ -1117,7 +1117,7 @@ class Server
                 db.remove_user_privileges(username, duration);
 
                 auto user = get_user(username);
-                if (user) user.refresh_privileges();
+                if (user !is null) user.refresh_privileges();
 
                 string response;
                 if (duration == Duration.max)

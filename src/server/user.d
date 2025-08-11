@@ -623,7 +623,7 @@ class User
                 uint user_address;
                 uint user_port;
 
-                if (user) {
+                if (user !is null) {
                     user_address = user.address.addr;
                     user_port = user.address.port;
                 }
@@ -643,7 +643,7 @@ class User
                 uint user_upload_speed;
                 uint user_shared_files, user_shared_folders;
 
-                if (user)
+                if (user !is null)
                 {
                     user_exists = true;
                     user_status = user.status;
@@ -679,7 +679,7 @@ class User
                 uint user_status = Status.offline;
                 bool user_privileged;
 
-                if (user) {
+                if (user !is null) {
                     if (log_user) writefln!(
                         "Telling user %s that user %s is online")(
                         blue ~ username ~ norm, blue ~ msg.username ~ norm
@@ -766,7 +766,7 @@ class User
 
                     server.admin_message(username, msg.message);
                 }
-                else if (user) {
+                else if (user !is null) {
                     // User is connected
                     const pm = server.add_pm(
                         msg.message, username, msg.username
@@ -828,7 +828,7 @@ class User
                 uint user_upload_speed;
                 uint user_shared_files, user_shared_folders;
 
-                if (user) {
+                if (user !is null) {
                     user_upload_speed = user.upload_speed;
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
@@ -932,7 +932,7 @@ class User
                 string[string] user_liked_items;
                 string[string] user_hated_items;
 
-                if (user) {
+                if (user !is null) {
                     user_liked_items = user.liked_items;
                     user_hated_items = user.hated_items;
                 }
@@ -986,7 +986,7 @@ class User
             case SetRoomTicker:
                 scope msg = new USetRoomTicker(msg_buf, username);
                 auto room = server.get_room(msg.room_name);
-                if (room) room.add_ticker(username, msg.ticker);
+                if (room !is null) room.add_ticker(username, msg.ticker);
                 break;
 
             case RoomSearch:
