@@ -65,7 +65,7 @@ int run(string[] args)
         return 0;
     }
 
-    auto setup = new Setup(db_filename);
+    scope setup = new Setup(db_filename);
     const exit_code = setup.show();
 
     writefln!("\n%s")(exit_message);

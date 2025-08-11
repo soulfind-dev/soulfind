@@ -47,6 +47,7 @@ class Server
     private MonoTime        last_user_check;
     private ushort          port;
 
+    private Socket          listen_sock;
     private User[socket_t]  sock_users;
 
     private PM[uint]        pms;
@@ -63,12 +64,17 @@ class Server
         this.global_room       = new GlobalRoom();
     }
 
+    ~this()
+    {
+        if (listen_sock !is null) listen_sock.close();
+    }
+
 
     // Connections
 
     int listen()
     {
-        auto listen_sock = new TcpSocket();
+        listen_sock = new TcpSocket();
         listen_sock.blocking = false;
 
         version (Posix)
@@ -76,7 +82,8 @@ class Server
                 SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
 
         try {
-            listen_sock.bind(new InternetAddress(port));
+            scope listen_address = new InternetAddress(port);
+            listen_sock.bind(listen_address);
             listen_sock.listen(conn_backlog_length);
         }
         catch (SocketOSException e) {
@@ -106,7 +113,7 @@ class Server
                 const send_ready = (events & SelectEvent.write) != 0;
 
                 if (sock_handle == listen_sock.handle) {
-                    if (recv_ready) accept(listen_sock);
+                    if (recv_ready) accept();
                     continue;
                 }
 
@@ -177,13 +184,14 @@ class Server
                 user.sock = null;
             }
         }
-
-        listen_sock.close();
         return 0;
     }
 
-    private void accept(Socket listen_sock)
+    private void accept()
     {
+        if (listen_sock !is null)
+            return;
+
         while (true) {
             Socket sock;
             try
