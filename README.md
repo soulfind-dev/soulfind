@@ -14,6 +14,10 @@ production.
 
 ## Building
 
+Soulfind is portable software that compiles on any operating system D supports,
+including Linux, Windows, macOS, *BSD and Solaris.
+
+
 ### Dependencies
 
 Ensure the following dependencies are available:
