@@ -14,7 +14,22 @@ enum SelectEvent
     write  = 1 << 1
 }
 
-version (linux) struct EpollSelector
+class Selector
+{
+    private Duration               timeout;
+    private SelectEvent[socket_t]  fd_events;
+
+    this(Duration timeout)
+    {
+        this.timeout = timeout;
+    }
+
+    abstract void register(socket_t fd, SelectEvent events);
+    abstract void unregister(socket_t fd, SelectEvent events);
+    abstract SelectEvent[socket_t] select();
+}
+
+version (linux) final class EpollSelector : Selector
 {
     import core.sys.linux.epoll : epoll_create1, epoll_ctl, EPOLL_CTL_ADD,
                                   EPOLL_CTL_DEL, EPOLL_CTL_MOD, epoll_event,
@@ -22,24 +37,21 @@ version (linux) struct EpollSelector
                                   EPOLLOUT;
     import core.sys.posix.unistd : close;
 
-    private Duration               timeout;
-    private SelectEvent[socket_t]  fd_events;
     private int                    epoll_fd;
     private epoll_event[]          epoll_events;
 
     this(Duration timeout)
     {
-        this.timeout = timeout;
+        super(timeout);
         epoll_fd = create_epoll();
     }
-    @disable this();
 
     ~this()
     {
         close(epoll_fd);
     }
 
-    void register(socket_t fd, SelectEvent events)
+    override void register(socket_t fd, SelectEvent events)
     {
         const is_registered = fd in fd_events;
         if (is_registered && (fd_events[fd] & events) == events)
@@ -57,7 +69,7 @@ version (linux) struct EpollSelector
         ctl(op, fd, event);
     }
 
-    void unregister(socket_t fd, SelectEvent events)
+    override void unregister(socket_t fd, SelectEvent events)
     {
         if (fd !in fd_events || (fd_events[fd] & events) == 0)
             return;
@@ -75,7 +87,7 @@ version (linux) struct EpollSelector
         ctl(EPOLL_CTL_MOD, fd, event);
     }
 
-    SelectEvent[socket_t] select()
+    override SelectEvent[socket_t] select()
     {
         SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
@@ -129,7 +141,7 @@ version (linux) struct EpollSelector
     }
 }
 
-struct PollSelector
+final class PollSelector : Selector
 {
     version (Windows) {
         import core.sys.windows.winsock2 : poll = WSAPoll, POLLERR,
@@ -142,17 +154,15 @@ struct PollSelector
                                      POLLOUT;
     }
 
-    private Duration               timeout;
     private SelectEvent[socket_t]  fd_events;
     private pollfd[]               pollfds;
 
     this(Duration timeout)
     {
-        this.timeout = timeout;
+        super(timeout);
     }
-    @disable this();
 
-    void register(socket_t fd, SelectEvent events)
+    override void register(socket_t fd, SelectEvent events)
     {
         const is_registered = fd in fd_events;
         if (is_registered && (fd_events[fd] & events) == events)
@@ -168,7 +178,7 @@ struct PollSelector
         fd_events[fd] |= events;
     }
 
-    void unregister(socket_t fd, SelectEvent events)
+    override void unregister(socket_t fd, SelectEvent events)
     {
         if (fd !in fd_events || (fd_events[fd] & events) == 0)
             return;
@@ -186,7 +196,7 @@ struct PollSelector
         pollfds[idx] = create_pollfd(fd, remaining_events);
     }
 
-    SelectEvent[socket_t] select()
+    override SelectEvent[socket_t] select()
     {
         SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
@@ -235,6 +245,6 @@ struct PollSelector
 }
 
 version (linux)
-    alias Selector = EpollSelector;
+    alias DefaultSelector = EpollSelector;
 else
-    alias Selector = PollSelector;
+    alias DefaultSelector = PollSelector;

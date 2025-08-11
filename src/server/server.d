@@ -12,7 +12,7 @@ import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
                           max_room_name_length, max_search_query_length, norm,
                           red, server_username, VERSION;
-import soulfind.select : SelectEvent, Selector;
+import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -57,7 +57,7 @@ final class Server
     {
         this.db                = new Sdb(db_filename);
         this.port              = port > 0 ? port : db.server_port;
-        this.selector          = Selector(1.seconds);
+        this.selector          = new DefaultSelector(1.seconds);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
