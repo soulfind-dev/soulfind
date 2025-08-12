@@ -12,8 +12,6 @@ import soulfind.defines : blue, default_max_users, default_motd, default_port,
 import std.array : Appender;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.digest : digest, LetterCase, secureEqual, toHexString;
-import std.digest.md : MD5;
 import std.stdio : writefln, writeln;
 import std.string : format, fromStringz, join, replace, toStringz;
 
@@ -310,19 +308,12 @@ final class Sdb
         return query(sql, [username]).length > 0;
     }
 
-    private string hash_password(string password)
-    {
-        return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
-    }
-
-    void add_user(string username, string password)
+    void add_user(string username, string hash)
     {
         const sql = format!(
             "INSERT INTO %s(username, password) VALUES(?, ?);")(
             users_table
         );
-        const hash = hash_password(password);
-
         query(sql, [username, hash]);
         query("PRAGMA optimize;");
 
@@ -339,26 +330,21 @@ final class Sdb
         if (log_user) writefln!("Removed user %s")(blue ~ username ~ norm);
     }
 
-    bool user_verify_password(string username, string password)
+    string user_password_hash(string username)
     {
         const sql = format!(
             "SELECT password FROM %s WHERE username = ?;")(
             users_table
         );
-        const stored_hash = query(sql, [username])[0][0];
-        const current_hash = hash_password(password);
-
-        return secureEqual(current_hash, stored_hash);
+        return query(sql, [username])[0][0];
     }
 
-    void user_update_password(string username, string password)
+    void user_update_password(string username, string hash)
     {
         const sql = format!(
             "UPDATE %s SET password = ? WHERE username = ?;")(
             users_table
         );
-        const hash = hash_password(password);
-
         query(sql, [hash, username]);
 
         if (log_user) writefln!("Set user %s's password")(
