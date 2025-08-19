@@ -4,7 +4,7 @@
 # Build binaries
 FROM alpine:edge as builder
 WORKDIR /build
-RUN apk update && apk add dub gcc ldc lld20 musl-dev sqlite-static
+RUN apk update && apk add dub gcc ldc musl-dev sqlite-static
 RUN echo "soulfind:x:1000:1000:soulfind::/sbin/nologin" > passwd
 COPY . .
 RUN dub build -v --build=release-debug --config=static
