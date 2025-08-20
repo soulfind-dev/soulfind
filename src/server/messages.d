@@ -143,13 +143,18 @@ class UMessage
         );
     }
 
-    string name() scope
+    private string name() scope
     {
         auto cls_name = typeid(this).name;
         foreach_reverse (i; 0 .. cls_name.length)
             if (cls_name[i] == '.')
                 return cls_name[i + 1 .. $];
         return cls_name;
+    }
+
+    private bool has_unread_data() scope
+    {
+        return offset < in_buf.length;
     }
 
     private T read(T)() scope
@@ -213,7 +218,7 @@ final class ULogin : UMessage
         password      = read!string();
         major_version = read!uint();
 
-        if (major_version >= 155) {
+        if (has_unread_data) {
             // Older clients would not send these
             hash          = read!string();
             minor_version = read!uint();
