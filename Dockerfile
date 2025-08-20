@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # Build binaries
-FROM alpine:edge as builder
+FROM alpine:edge AS builder
 WORKDIR /build
 RUN apk update && apk add dub gcc ldc musl-dev sqlite-static
 RUN echo "soulfind:x:1000:1000:soulfind::/sbin/nologin" > passwd
