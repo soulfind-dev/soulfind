@@ -11,9 +11,10 @@ import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
-                          max_username_length, norm, red, server_username,
-                          speed_weight, VERSION, wish_interval,
-                          wish_interval_privileged;
+                          max_username_length, norm, pbkdf2_iterations, red,
+                          server_username, speed_weight, VERSION,
+                          wish_interval, wish_interval_privileged;
+import soulfind.pwhash : create_salt, hash_password, verify_password;
 import soulfind.select : SelectEvent;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -25,7 +26,7 @@ import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
-import std.digest : digest, LetterCase, secureEqual, toHexString;
+import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
@@ -137,27 +138,30 @@ final class User
         }
 
         if (!server.db.user_exists(username)) {
-            if (server.db.server_private_mode)
+            if (server.db.server_private_mode) {
                 login_rejection.reason = LoginRejectionReason.server_private;
-
-            else if (password.length == 0)
+            }
+            else if (password.length == 0) {
                 login_rejection.reason = LoginRejectionReason.empty_password;
-
-            else if (server.db.is_admin(username))
+            }
+            else if (server.db.is_admin(username)) {
                 // For security reasons, non-existent admins cannot register
                 // through the client
                 login_rejection.reason = LoginRejectionReason.invalid_password;
-
-            else
-                server.db.add_user(username, password);
-
+            }
+            else {
+                const salt = create_salt();
+                const hash = hash_password(password, salt, pbkdf2_iterations);
+                server.db.add_user(username, hash);
+            }
             return login_rejection;
         }
         if (log_user) writefln!("User %s is registered")(
             blue ~ username ~ norm
         );
 
-        if (!server.db.user_verify_password(username, password)) {
+        const stored_hash = server.db.user_password_hash(username);
+        if (!verify_password(stored_hash, password)) {
             login_rejection.reason = LoginRejectionReason.invalid_password;
             return login_rejection;
         }
@@ -1066,7 +1070,11 @@ final class User
                 if (msg.password.length == 0)
                     break;
 
-                server.db.user_update_password(username, msg.password);
+                const salt = create_salt();
+                const hash = hash_password(
+                    msg.password, salt, pbkdf2_iterations
+                );
+                server.db.user_update_password(username, hash);
 
                 scope response_msg = new SChangePassword(msg.password);
                 send_message(response_msg);

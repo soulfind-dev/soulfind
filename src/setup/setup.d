@@ -8,7 +8,8 @@ module soulfind.setup.setup;
 
 import core.time : days, Duration;
 import soulfind.db : Sdb;
-import soulfind.defines : VERSION;
+import soulfind.defines : pbkdf2_iterations, VERSION;
+import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, to;
@@ -356,7 +357,9 @@ final class Setup
         }
         while(true);
 
-        db.add_user(username, password);
+        const salt = create_salt();
+        const hash = hash_password(password, salt, pbkdf2_iterations);
+        db.add_user(username, hash);
         registered_users();
     }
 
@@ -425,7 +428,9 @@ final class Setup
             }
             while(true);
 
-            db.user_update_password(username, password);
+            const salt = create_salt();
+            const hash = hash_password(password, salt, pbkdf2_iterations);
+            db.user_update_password(username, hash);
         }
         else
             writefln!("\nUser %s is not registered")(username);
