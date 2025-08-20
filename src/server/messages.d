@@ -37,6 +37,12 @@ const enum Status
     online   = 2
 }
 
+const enum RoomType
+{
+    public_room   = 0,
+    private_room  = 1
+}
+
 
 // Structs
 
@@ -302,13 +308,17 @@ final class USayChatroom : UMessage
 
 final class UJoinRoom : UMessage
 {
-    string room_name;
+    string  room_name;
+    uint    room_type;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         room_name = read!string();
+
+        // Optional, assume public otherwise
+        if (has_unread_data) room_type = read!uint();
     }
 }
 
