@@ -520,6 +520,8 @@ final class User
         switch (code) {
             case Login:
                 scope msg = new ULogin(msg_buf);
+                if (!msg.is_valid)
+                    break;
 
                 if (status != Status.offline)
                     break;
@@ -599,6 +601,8 @@ final class User
 
             case SetWaitPort:
                 scope msg = new USetWaitPort(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
 
                 if (msg.port == 0)
                     break;
@@ -619,6 +623,9 @@ final class User
 
             case GetPeerAddress:
                 scope msg = new UGetPeerAddress(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 uint user_address;
                 uint user_port;
@@ -636,6 +643,9 @@ final class User
 
             case WatchUser:
                 scope msg = new UWatchUser(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
 
                 bool user_exists;
@@ -670,11 +680,17 @@ final class User
 
             case UnwatchUser:
                 scope msg = new UUnwatchUser(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 unwatch(msg.username);
                 break;
 
             case GetUserStatus:
                 scope msg = new UGetUserStatus(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 uint user_status = Status.offline;
                 bool user_privileged;
@@ -711,6 +727,9 @@ final class User
 
             case SayChatroom:
                 scope msg = new USayChatroom(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto room = server.get_room(msg.room_name);
                 if (room is null)
                     break;
@@ -721,11 +740,17 @@ final class User
 
             case JoinRoom:
                 scope msg = new UJoinRoom(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 join_room(msg.room_name);
                 break;
 
             case LeaveRoom:
                 scope msg = new ULeaveRoom(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 if (!leave_room(msg.room_name))
                     break;
 
@@ -735,6 +760,9 @@ final class User
 
             case ConnectToPeer:
                 scope msg = new UConnectToPeer(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 if (user is null)
                     break;
@@ -755,10 +783,13 @@ final class User
 
             case MessageUser:
                 scope msg = new UMessageUser(msg_buf, username);
-                auto user = server.get_user(msg.username);
+                if (!msg.is_valid)
+                    break;
 
                 if (msg.message.length > max_chat_message_length)
                     break;
+
+                auto user = server.get_user(msg.username);
 
                 if (msg.username == server_username) {
                     if (address.port == InternetAddress.PORT_ANY)
@@ -782,17 +813,29 @@ final class User
 
             case MessageAcked:
                 scope msg = new UMessageAcked(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 server.del_pm(msg.id, username);
                 break;
 
             case FileSearch:
                 scope msg = new UFileSearch(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 server.search_files(msg.token, msg.query, username);
                 break;
 
             case SetStatus:
                 scope msg = new USetStatus(msg_buf, username);
-                if (msg.status != Status.offline) update_status(msg.status);
+                if (!msg.is_valid)
+                    break;
+
+                if (msg.status == Status.offline)
+                    break;
+
+                update_status(msg.status);
                 break;
 
             case ServerPing:
@@ -801,6 +844,9 @@ final class User
 
             case SendConnectToken:
                 scope msg = new USendConnectToken(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 if (user is null)
                     break;
@@ -813,6 +859,9 @@ final class User
 
             case SharedFoldersFiles:
                 scope msg = new USharedFoldersFiles(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 update_shared_stats(msg.shared_files, msg.shared_folders);
 
                 scope response_msg = new SGetUserStats(
@@ -823,6 +872,9 @@ final class User
 
             case GetUserStats:
                 scope msg = new UGetUserStats(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
 
                 uint user_upload_speed;
@@ -849,6 +901,9 @@ final class User
 
             case QueuedDownloads:
                 scope msg = new UQueuedDownloads(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 scope response_msg = new SQueuedDownloads(
                     username, msg.slots_full
                 );
@@ -857,6 +912,9 @@ final class User
 
             case UserSearch:
                 scope msg = new UUserSearch(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 server.search_user_files(
                     msg.token, msg.query, username, msg.username
                 );
@@ -865,6 +923,9 @@ final class User
             case SimilarRecommendations:
                 // No longer used, send empty response
                 scope msg = new USimilarRecommendations(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 string[] recommendations;
 
                 scope response_msg = new SSimilarRecommendations(
@@ -875,21 +936,33 @@ final class User
 
             case AddThingILike:
                 scope msg = new UAddThingILike(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 add_liked_item(msg.item);
                 break;
 
             case RemoveThingILike:
                 scope msg = new URemoveThingILike(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 del_liked_item(msg.item);
                 break;
 
             case AddThingIHate:
                 scope msg = new UAddThingIHate(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 add_hated_item(msg.item);
                 break;
 
             case RemoveThingIHate:
                 scope msg = new URemoveThingIHate(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 del_hated_item(msg.item);
                 break;
 
@@ -928,6 +1001,9 @@ final class User
 
             case UserInterests:
                 scope msg = new UUserInterests(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 string[string] user_liked_items;
                 string[string] user_hated_items;
@@ -964,11 +1040,17 @@ final class User
 
             case WishlistSearch:
                 scope msg = new UWishlistSearch(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 server.search_files(msg.token, msg.query, username);
                 break;
 
             case ItemRecommendations:
                 scope msg = new UItemRecommendations(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 scope response_msg = new SItemRecommendations(
                     msg.item, server.item_recommendations(username, msg.item)
                 );
@@ -977,6 +1059,9 @@ final class User
 
             case ItemSimilarUsers:
                 scope msg = new UItemSimilarUsers(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 scope response_msg = new SItemSimilarUsers(
                     msg.item, server.item_similar_users(username, msg.item)
                 );
@@ -985,12 +1070,18 @@ final class User
 
             case SetRoomTicker:
                 scope msg = new USetRoomTicker(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto room = server.get_room(msg.room_name);
                 if (room !is null) room.add_ticker(username, msg.ticker);
                 break;
 
             case RoomSearch:
                 scope msg = new URoomSearch(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 server.search_room_files(
                     msg.token, msg.query, username, msg.room_name
                 );
@@ -998,13 +1089,19 @@ final class User
 
             case SendUploadSpeed:
                 scope msg = new USendUploadSpeed(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 update_upload_speed(msg.speed);
                 break;
 
             case UserPrivileged:
                 scope msg = new UUserPrivileged(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
-                const privileged = user ? user.privileged : false;
+                const privileged = user !is null ? user.privileged : false;
 
                 scope response_msg = new SUserPrivileged(
                     msg.username, privileged
@@ -1014,12 +1111,14 @@ final class User
 
             case GivePrivileges:
                 scope msg = new UGivePrivileges(msg_buf, username);
-                auto user = server.get_user(msg.username);
-                const duration = msg.duration;
+                if (!msg.is_valid)
+                    break;
 
+                auto user = server.get_user(msg.username);
                 if (user is null)
                     break;
 
+                const duration = msg.duration;
                 if (duration > privileges)
                     break;
 
@@ -1033,36 +1132,53 @@ final class User
             case NotifyPrivileges:
                 // No longer used, but official server still responds
                 scope msg = new UNotifyPrivileges(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 scope response_msg = new SAckNotifyPrivileges(msg.token);
                 send_message(response_msg);
                 break;
 
             case PrivateRoomAddUser:
                 scope msg = new UPrivateRoomAddUser(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case PrivateRoomRemoveUser:
                 scope msg = new UPrivateRoomRemoveUser(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case PrivateRoomCancelMembership:
                 scope msg = new UPrivateRoomCancelMembership(
                     msg_buf, username
                 );
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case PrivateRoomDisown:
                 scope msg = new UPrivateRoomDisown(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case PrivateRoomToggle:
                 scope msg = new UPrivateRoomToggle(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 scope response_msg = new SPrivateRoomToggle(msg.enabled);
                 send_message(response_msg);
                 break;
 
             case ChangePassword:
                 scope msg = new UChangePassword(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 if (msg.password.length == 0)
                     break;
 
@@ -1074,18 +1190,25 @@ final class User
 
             case PrivateRoomAddOperator:
                 scope msg = new UPrivateRoomAddOperator(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case PrivateRoomRemoveOperator:
                 scope msg = new UPrivateRoomRemoveOperator(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
                 break;
 
             case MessageUsers:
                 scope msg = new UMessageUsers(msg_buf, username);
-                const new_message = true;
+                if (!msg.is_valid)
+                    break;
 
                 if (msg.message.length > max_chat_message_length)
                     break;
+
+                const new_message = true;
 
                 foreach (ref target_username ; msg.usernames) {
                     const user = server.get_user(target_username);
@@ -1112,6 +1235,9 @@ final class User
             case RelatedSearch:
                 // No longer used, send empty response
                 scope msg = new URelatedSearch(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 uint[string] terms;
 
                 scope response_msg = new SRelatedSearch(
@@ -1122,6 +1248,9 @@ final class User
 
             case CantConnectToPeer:
                 scope msg = new UCantConnectToPeer(msg_buf, username);
+                if (!msg.is_valid)
+                    break;
+
                 auto user = server.get_user(msg.username);
                 if (user is null)
                     return;

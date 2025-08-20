@@ -134,6 +134,7 @@ const CantConnectToPeer            = 1001;
 class UMessage
 {
     uint             code;
+    bool             is_valid = true;
     private size_t   offset;
     private ubyte[]  in_buf;
 
@@ -167,8 +168,10 @@ class UMessage
         if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
     {
         T value;
-        uint size;
+        if (!is_valid)
+            return value;
 
+        uint size;
         static if (is(T : string))
             size = read!uint();
         else
@@ -197,12 +200,12 @@ class UMessage
             }
         }
         else {
-            writefln!(
+            if (log_msg) writefln!(
                 "Message code %d, offset %d, not enough data reading %s of "
               ~ "size %d")(
                 code, offset, T.stringof, size
             );
-            offset = in_buf.length;
+            is_valid = false;
         }
         return value;
     }
