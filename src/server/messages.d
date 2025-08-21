@@ -30,7 +30,7 @@ const enum LoginRejectionReason
     server_private    = "SVRPRIVATE"
 }
 
-const enum Status
+const enum UserStatus
 {
     offline  = 0,
     away     = 1,

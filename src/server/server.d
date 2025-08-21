@@ -592,7 +592,7 @@ final class Server
             del_user_tickers(username);
         }
 
-        if (user.status == Status.offline) {
+        if (user.status == UserStatus.offline) {
             if (user.login_rejection.reason) writefln!(
                 "User %s @ %s denied (%s)")(
                 red ~ username ~ norm,
@@ -605,7 +605,7 @@ final class Server
         user.leave_joined_rooms();
         global_room.remove_user(username);
 
-        user.update_status(Status.offline);
+        user.update_status(UserStatus.offline);
         writefln!(
             "User %s @ %s quit")(
             red ~ username ~ norm,
@@ -704,7 +704,7 @@ final class Server
         if (user !is null) {
             client_version = user.client_version;
             address = user.address.toString;
-            status = (user.status == Status.away) ? "away" : "online";
+            status = user.status.to!string;
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");

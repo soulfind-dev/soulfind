@@ -39,7 +39,7 @@ final class User
     InternetAddress         address;
     bool                    removed;
 
-    uint                    status;
+    UserStatus              status;
     string                  client_version;
     LoginRejection          login_rejection;
     SysTime                 privileged_until;
@@ -85,7 +85,7 @@ final class User
 
     bool login_timed_out()
     {
-        if (status != Status.offline)
+        if (status != UserStatus.offline)
             return false;
 
         // Login attempts always time out for banned users. Add jitter to
@@ -173,10 +173,10 @@ final class User
             return;
 
         final switch (new_status) {
-            case Status.offline:
-            case Status.away:
-            case Status.online:
-                status = new_status;
+            case UserStatus.offline:
+            case UserStatus.away:
+            case UserStatus.online:
+                status = cast(UserStatus) new_status;
                 scope msg = new SGetUserStatus(
                     username, new_status, privileged
                 );
@@ -526,7 +526,7 @@ final class User
         in_buf = in_buf[in_msg_size .. $];
         in_msg_size = -1;
 
-        if (status == Status.offline && code != Login)
+        if (status == UserStatus.offline && code != Login)
             return;
 
         switch (code) {
@@ -535,7 +535,7 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                if (status != Status.offline)
+                if (status != UserStatus.offline)
                     break;
 
                 username = msg.username;
@@ -560,7 +560,7 @@ final class User
 
                 auto user = server.get_user(username);
 
-                if (user && user.status != Status.offline) {
+                if (user && user.status != UserStatus.offline) {
                     writefln!(
                         "User %s @ %s already logged in with version %s")(
                         red ~ username ~ norm,
@@ -608,7 +608,7 @@ final class User
                 send_message(wish_interval_msg);
                 send_message(privileged_users_msg);
 
-                update_status(Status.online);
+                update_status(UserStatus.online);
                 server.send_queued_pms(username);
                 break;
 
@@ -662,7 +662,7 @@ final class User
                 auto user = server.get_user(msg.username);
 
                 bool user_exists;
-                uint user_status = Status.offline;
+                uint user_status = UserStatus.offline;
                 uint user_upload_speed;
                 uint user_shared_files, user_shared_folders;
 
@@ -711,7 +711,7 @@ final class User
                     break;
 
                 auto user = server.get_user(msg.username);
-                uint user_status = Status.offline;
+                uint user_status = UserStatus.offline;
                 bool user_privileged;
 
                 if (user !is null) {
@@ -843,7 +843,7 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                if (msg.status == Status.offline)
+                if (msg.status == UserStatus.offline)
                     break;
 
                 update_status(msg.status);
