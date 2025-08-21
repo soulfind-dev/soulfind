@@ -122,6 +122,12 @@ final class User
     private LoginRejection verify_login(string username, string password)
     {
         auto login_rejection = LoginRejection();
+        const user_exists = server.db.user_exists(username);
+
+        if (!user_exists && server.db.server_private_mode) {
+            login_rejection.reason = LoginRejectionReason.server_private;
+            return login_rejection;
+        }
 
         if (server.num_users >= server.db.server_max_users) {
             login_rejection.reason = LoginRejectionReason.server_full;
@@ -135,26 +141,21 @@ final class User
             return login_rejection;
         }
 
-        if (!server.db.user_exists(username)) {
-            if (server.db.server_private_mode)
-                login_rejection.reason = LoginRejectionReason.server_private;
+        if (password.length == 0) {
+            login_rejection.reason = LoginRejectionReason.empty_password;
+            return login_rejection;
+        }
 
-            else if (password.length == 0)
-                login_rejection.reason = LoginRejectionReason.empty_password;
-
-            else if (server.db.is_admin(username))
+        if (!user_exists) {
+            if (server.db.is_admin(username))
                 // For security reasons, non-existent admins cannot register
                 // through the client
                 login_rejection.reason = LoginRejectionReason.invalid_password;
-
             else
                 server.db.add_user(username, password);
 
             return login_rejection;
         }
-        if (log_user) writefln!("User %s is registered")(
-            blue ~ username ~ norm
-        );
 
         if (!server.db.user_verify_password(username, password)) {
             login_rejection.reason = LoginRejectionReason.invalid_password;
