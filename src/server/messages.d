@@ -30,6 +30,12 @@ const enum LoginRejectionReason
     server_private    = "SVRPRIVATE"
 }
 
+const enum ObfuscationType
+{
+    none    = 0,
+    normal  = 1
+}
+
 const enum UserStatus
 {
     offline  = 0,
@@ -228,23 +234,38 @@ final class ULogin : UMessage
         password      = read!string();
         major_version = read!uint();
 
-        if (has_unread_data) {
-            // Older clients would not send these
-            hash          = read!string();
-            minor_version = read!uint();
-        }
+        if (!has_unread_data)
+            return;
+
+        // Older clients would not send these
+        hash          = read!string();
+        minor_version = read!uint();
     }
 }
 
 final class USetWaitPort : UMessage
 {
-    uint port;
+    uint  port;
+    uint  obfuscation_type;
+    uint  obfuscated_port;
 
     this(ubyte[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         port = read!uint();
+
+        if (!has_unread_data)
+            return;
+
+        // Optional
+        obfuscation_type = read!uint();
+
+        if (!has_unread_data)
+            return;
+
+        // Optional
+        obfuscated_port = read!uint();
     }
 }
 
@@ -321,8 +342,11 @@ final class UJoinRoom : UMessage
 
         room_name = read!string();
 
+        if (!has_unread_data)
+            return;
+
         // Optional, assume public otherwise
-        if (has_unread_data) room_type = read!uint();
+        room_type = read!uint();
     }
 }
 
@@ -959,16 +983,16 @@ final class SLogin : SMessage
 
 final class SGetPeerAddress : SMessage
 {
-    this(string username, uint ip_address, uint port, uint unknown = 0,
-         uint obfuscated_port = 0) scope
+    this(string username, uint ip_address, uint port, uint obfuscation_type,
+         ushort obfuscated_port) scope
     {
         super(GetPeerAddress);
 
         write!string(username);
         write!uint(ip_address);
         write!uint(port);
-        write!uint(unknown);
-        write!uint(obfuscated_port);
+        write!uint(obfuscation_type);
+        write!ushort(obfuscated_port);
     }
 }
 
@@ -1134,8 +1158,8 @@ final class SUserLeftRoom : SMessage
 final class SConnectToPeer : SMessage
 {
     this(string username, string type, uint ip_address, uint port,
-         uint token, bool privileged, uint unknown = 0,
-         uint obfuscated_port = 0) scope
+         uint token, bool privileged, uint obfuscation_type,
+         uint obfuscated_port) scope
     {
         super(ConnectToPeer);
 
@@ -1145,7 +1169,7 @@ final class SConnectToPeer : SMessage
         write!uint(port);
         write!uint(token);
         write!bool(privileged);
-        write!uint(unknown);
+        write!uint(obfuscation_type);
         write!uint(obfuscated_port);
     }
 }

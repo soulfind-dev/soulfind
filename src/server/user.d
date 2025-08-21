@@ -37,6 +37,8 @@ final class User
     string                  username;
     Socket                  sock;
     InternetAddress         address;
+    ObfuscationType         obfuscation_type;
+    ushort                  obfuscated_port;
     bool                    removed;
 
     UserStatus              status;
@@ -629,8 +631,11 @@ final class User
                 address = new InternetAddress(
                     address.addr, cast(ushort) msg.port
                 );
+                obfuscation_type = cast(ObfuscationType) msg.obfuscation_type;
+                obfuscated_port = cast(ushort) msg.obfuscated_port;
+
                 writefln!("User %s listening on port %d")(
-                    blue ~ username ~ norm, msg.port,
+                    blue ~ username ~ norm, address.port,
                 );
                 break;
 
@@ -641,15 +646,19 @@ final class User
 
                 auto user = server.get_user(msg.username);
                 uint user_address;
-                uint user_port;
+                uint user_obfuscation_type;
+                ushort user_port, user_obfuscated_port;
 
                 if (user !is null) {
                     user_address = user.address.addr;
                     user_port = user.address.port;
+                    user_obfuscation_type = user.obfuscation_type;
+                    user_obfuscated_port = user.obfuscated_port;
                 }
 
                 scope response_msg = new SGetPeerAddress(
-                    msg.username, user_address, user_port
+                    msg.username, user_address, user_port,
+                    user_obfuscation_type, user_obfuscated_port
                 );
                 send_message(response_msg);
                 break;
@@ -790,7 +799,7 @@ final class User
 
                 scope response_msg = new SConnectToPeer(
                     username, msg.type, address.addr, address.port, msg.token,
-                    privileged
+                    privileged, obfuscation_type, obfuscated_port
                 );
                 user.send_message(response_msg);
                 break;

@@ -685,9 +685,12 @@ final class Server
     {
         User user;
         const now = Clock.currTime;
-        auto client_version = "none";
-        auto address = "none";
         auto status = "offline";
+        auto client_version = "none";
+        auto ip_address = "none";
+        ushort listening_port;
+        auto obfuscation_type = "none";
+        ushort obfuscated_port;
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
@@ -702,9 +705,12 @@ final class Server
 
         user = get_user(username);
         if (user !is null) {
-            client_version = user.client_version;
-            address = user.address.toString;
             status = user.status.to!string;
+            client_version = user.client_version;
+            ip_address = user.address.toAddrString;
+            listening_port = user.address.port;
+            obfuscation_type = user.obfuscation_type.to!string;
+            obfuscated_port = user.obfuscated_port;
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
@@ -739,9 +745,12 @@ final class Server
             "%s"
           ~ "\n"
           ~ "\nSession info:"
-          ~ "\n\tclient version: %s"
-          ~ "\n\taddress: %s"
           ~ "\n\tstatus: %s"
+          ~ "\n\tclient version: %s"
+          ~ "\n\tIP address: %s"
+          ~ "\n\tport: %s"
+          ~ "\n\tobfuscated port: %s"
+          ~ "\n\tobfuscation type: %s"
           ~ "\n\twatched users: %s"
           ~ "\n\tliked items: %s"
           ~ "\n\thated items: %s"
@@ -757,9 +766,12 @@ final class Server
           ~ "\n\tfiles: %s"
           ~ "\n\tdirs: %s")(
             username,
-            client_version,
-            address,
             status,
+            client_version,
+            ip_address,
+            listening_port,
+            obfuscated_port,
+            obfuscation_type,
             watched_users,
             liked_items,
             hated_items,
