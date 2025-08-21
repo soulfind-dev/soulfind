@@ -1106,8 +1106,15 @@ final class User
                 if (!msg.is_valid)
                     break;
 
+                bool privileged;
                 auto user = server.get_user(msg.username);
-                const privileged = user !is null ? user.privileged : false;
+                if (user !is null)
+                    privileged = user.privileged;
+                else
+                    privileged = (
+                        server.db.user_privileged_until(msg.username)
+                        > Clock.currTime
+                    );
 
                 scope response_msg = new SUserPrivileged(
                     msg.username, privileged
