@@ -227,14 +227,22 @@ final class User
 
     void refresh_privileges(bool notify_user = true)
     {
+        const was_privileged = privileged;
         privileged_until = server.db.user_privileged_until(username);
         supporter = server.db.user_supporter(username);
 
         if (!notify_user)
             return;
 
-        scope msg = new SCheckPrivileges(privileges);
-        send_message(msg);
+        if (privileged != was_privileged) {
+            scope wish_interval_msg = new SWishlistInterval(
+                privileged ? wish_interval_privileged : wish_interval
+            );
+            send_message(wish_interval_msg);
+        }
+
+        scope privileges_msg = new SCheckPrivileges(privileges);
+        send_message(privileges_msg);
     }
 
     bool privileged()
@@ -1035,7 +1043,8 @@ final class User
 
             case CheckPrivileges:
                 scope msg = new UCheckPrivileges(msg_buf, username);
-                refresh_privileges();
+                scope response_msg = new SCheckPrivileges(privileges);
+                send_message(response_msg);
                 break;
 
             case WishlistSearch:
@@ -1119,7 +1128,7 @@ final class User
                     break;
 
                 const duration = msg.duration;
-                if (duration > privileges)
+                if (duration.total!"days" < 1 || duration > privileges)
                     break;
 
                 server.db.add_user_privileges(msg.username, duration);
