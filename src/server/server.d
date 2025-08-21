@@ -144,15 +144,9 @@ final class Server
                     if (user.username in users) {
                         // If the user was removed from the database, perform
                         // server-side removal and disconnection of deleted
-                        // users. Send a Relogged message first to prevent the
-                        // user's client from automatically reconnecting and
-                        // registering again.
+                        // users.
                         const deleted = !db.user_exists(user.username);
-                        if (deleted) {
-                            scope relogged_msg = new SRelogged();
-                            user.send_message(relogged_msg);
-                            del_user(user, deleted);
-                        }
+                        if (deleted) del_user(user, deleted);
                     }
                     else if (user.login_timed_out) {
                         del_user(user);
@@ -575,7 +569,7 @@ final class Server
         users[user.username] = user;
     }
 
-    void del_user(User user, bool delete_messages = false)
+    void del_user(User user, bool permanent = false)
     {
         if (user.removed)
             return;
@@ -586,10 +580,16 @@ final class Server
         if (username in users)
             users.remove(username);
 
-        if (delete_messages) {
+        if (permanent) {
+            // Send a Relogged message first to prevent the user's client from
+            // automatically reconnecting and registering again.
+            scope relogged_msg = new SRelogged();
+            user.send_message(relogged_msg);
+
             const include_received = true;
             del_user_pms(username, include_received);
             del_user_tickers(username);
+            db.del_user(username);
         }
 
         if (user.status == Status.offline) {
@@ -809,8 +809,29 @@ final class Server
                 server_pm(
                     sender_username,
                     "Available commands :"
-                  ~ " None"
+                  ~ "\n\ndeleteaccount\n\tDelete your Soulseek account"
                 );
+                break;
+
+            case "deleteaccount":
+                if (command.length < 2
+                        || command.length > 2
+                        || command[1] != "confirm") {
+                    server_pm(
+                        sender_username,
+                        "Type 'deleteaccount confirm' to delete your Soulseek "
+                      ~ "account"
+                    );
+                    break;
+                }
+                const permanent = true;
+                auto user = get_user(sender_username);
+
+                server_pm(
+                    sender_username,
+                    "Your Soulseek account has been deleted"
+                );
+                del_user(user, permanent);
                 break;
 
             default:
