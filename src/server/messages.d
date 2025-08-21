@@ -127,6 +127,7 @@ const LeaveGlobalRoom              = 151;
 const GlobalRoomMessage            = 152;
 const RelatedSearch                = 153;   // Obsolete
 const CantConnectToPeer            = 1001;
+const CantCreateRoom               = 1003;
 
 
 // Incoming Messages
@@ -1613,5 +1614,15 @@ final class SCantConnectToPeer : SMessage
         super(CantConnectToPeer);
 
         write!uint(token);
+    }
+}
+
+final class SCantCreateRoom : SMessage
+{
+    this(string room_name) scope
+    {
+        super(CantCreateRoom);
+
+        write!string(room_name);
     }
 }
