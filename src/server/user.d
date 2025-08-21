@@ -800,10 +800,7 @@ final class User
                 auto user = server.get_user(msg.username);
 
                 if (msg.username == server_username) {
-                    if (address.port == InternetAddress.PORT_ANY)
-                        break;
-
-                    server.admin_message(username, msg.message);
+                    server.user_command(username, msg.message);
                 }
                 else if (user !is null) {
                     // User is connected

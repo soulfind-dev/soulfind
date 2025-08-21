@@ -795,11 +795,32 @@ final class Server
                 user.send_message(msg);
     }
 
-    void admin_message(string admin_username, string message)
+    void user_command(string sender_username, string message)
     {
-        if (!db.is_admin(admin_username))
+        if (db.is_admin(sender_username)) {
+            admin_command(sender_username, message);
             return;
+        }
 
+        const command = message.split(" ");
+        if (command.length > 0) switch (command[0])
+        {
+            case "help":
+                server_pm(
+                    sender_username,
+                    "Available commands :"
+                  ~ " None"
+                );
+                break;
+
+            default:
+                server_unknown_command(sender_username, command[0]);
+                break;
+        }
+    }
+
+    private void admin_command(string admin_username, string message)
+    {
         const command = message.split(" ");
         if (command.length > 0) switch (command[0])
         {
@@ -1175,11 +1196,7 @@ final class Server
                 break;
 
             default:
-                server_pm(
-                    admin_username,
-                    "Don't expect me to understand what you want if you don't "
-                  ~ "use a correct command..."
-                );
+                server_unknown_command(admin_username, command[0]);
                 break;
         }
     }
@@ -1189,6 +1206,18 @@ final class Server
         const pm = add_pm(message, server_username, username);
         const new_message = true;
         send_pm(pm, new_message);
+    }
+
+    private void server_unknown_command(string username, string command)
+    {
+        server_pm(
+            username,
+            format!(
+                "Unknown command '%s'. "
+              ~ "Type 'help' to list available commands.")(
+                command
+            )
+        );
     }
 
     private void server_announcement(string message)
