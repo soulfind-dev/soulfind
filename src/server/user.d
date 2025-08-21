@@ -43,7 +43,6 @@ final class User
     string                  client_version;
     LoginRejection          login_rejection;
     SysTime                 privileged_until;
-    bool                    supporter;
 
     uint                    upload_speed;  // in B/s
     uint                    shared_files;
@@ -229,7 +228,6 @@ final class User
     {
         const was_privileged = privileged;
         privileged_until = server.db.user_privileged_until(username);
-        supporter = server.db.user_supporter(username);
 
         if (!notify_user)
             return;
@@ -248,6 +246,11 @@ final class User
     bool privileged()
     {
         return privileged_until > Clock.currTime;
+    }
+
+    bool supporter()
+    {
+        return privileged_until.stdTime > 0;
     }
 
     private Duration privileges()
@@ -535,8 +538,9 @@ final class User
                     break;
 
                 username = msg.username;
+                const banned_until = server.db.user_banned_until(username);
 
-                if (server.db.user_banned(username))
+                if (banned_until > Clock.currTime)
                     // The official server doesn't send a response when a user
                     // is banned. We also ban users temporarily when kicking
                     // them, and simply closing the connection after some time
@@ -545,7 +549,7 @@ final class User
                     break;
 
                 login_rejection = verify_login(username, msg.password);
-                server.db.unban_user(username);
+                if (banned_until.stdTime > 0) server.db.unban_user(username);
 
                 if (login_rejection.reason) {
                     scope response_msg = new SLogin(false, login_rejection);
@@ -711,19 +715,14 @@ final class User
                     user_status = user.status;
                     user_privileged = user.privileged;
                 }
-                else if (msg.username != server_username
-                         && server.db.user_exists(msg.username)) {
+                else if (msg.username != server_username) {
                     if (log_user) writefln!(
                         "Telling user %s that user %s is offline")(
                         blue ~ username ~ norm, red ~ msg.username ~ norm
                     );
-                    user_privileged = server.db.user_privileged(msg.username);
-                }
-                else {
-                    if (log_user) writefln!(
-                        "Telling user %s that non-existent user %s is "
-                      ~ "offline")(
-                        blue ~ username ~ norm, red ~ msg.username ~ norm
+                    user_privileged = (
+                        server.db.user_privileged_until(msg.username)
+                        > Clock.currTime
                     );
                 }
 

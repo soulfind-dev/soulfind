@@ -369,9 +369,9 @@ final class Setup
         const admin = db.is_admin(username);
         auto banned = "false";
         const banned_until = db.user_banned_until(username);
-        auto privileged = "none";
+        auto privileged = "false";
         const privileged_until = db.user_privileged_until(username);
-        const supporter = db.user_supporter(username);
+        const supporter = privileged_until.stdTime > 0;
         const stats = db.user_stats(username);
 
         if (banned_until == SysTime.fromUnixTime(long.max))
@@ -438,7 +438,7 @@ final class Setup
         write("User to unban : ");
         const username = input.strip;
 
-        if (db.user_banned(username))
+        if (db.user_banned_until(username).stdTime > 0)
             db.unban_user(username);
         else
             writefln!("\nUser %s is not banned")(username);

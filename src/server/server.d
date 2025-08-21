@@ -719,7 +719,7 @@ final class Server
         else {
             const user_stats = db.user_stats(username);
             privileged_until = db.user_privileged_until(username);
-            supporter = db.user_supporter(username);
+            supporter = privileged_until.stdTime > 0;
             upload_speed = user_stats.upload_speed;
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;

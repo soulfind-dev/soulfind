@@ -429,32 +429,6 @@ final class Sdb
         }
     }
 
-    bool user_privileged(string username)
-    {
-        const sql = format!(
-            "SELECT 1"
-          ~ " FROM %s"
-          ~ " WHERE username = ?"
-          ~ " AND CAST(privileges AS INTEGER) > ?;")(
-            users_table
-        );
-        const now = Clock.currTime.toUnixTime;
-        return query(sql, [username, now.to!string]).length > 0;
-    }
-
-    bool user_supporter(string username)
-    {
-        const sql = format!(
-            "SELECT 1"
-          ~ " FROM %s"
-          ~ " WHERE username = ?"
-          ~ " AND CAST(privileges AS INTEGER) > ?;")(
-            users_table
-        );
-        const privileged_until = 0;
-        return query(sql, [username, privileged_until.to!string]).length > 0;
-    }
-
     SysTime user_privileged_until(string username)
     {
         const sql = format!(
@@ -464,10 +438,15 @@ final class Sdb
         const res = query(sql, [username]);
         long privileged_until;
 
-        if (res.length > 0)
-            try privileged_until = res[0][0].to!long; catch (ConvException) {}
-
-        return SysTime.fromUnixTime(privileged_until);
+        if (res.length > 0) {
+            try {
+                privileged_until = res[0][0].to!long;
+                if (privileged_until > 0)
+                    return SysTime.fromUnixTime(privileged_until);
+            }
+            catch (ConvException) {}
+        }
+        return SysTime();
     }
 
     void ban_user(string username, Duration duration)
@@ -500,19 +479,6 @@ final class Sdb
         if (log_user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
     }
 
-    bool user_banned(string username)
-    {
-        const sql = format!(
-            "SELECT 1"
-          ~ " FROM %s"
-          ~ " WHERE username = ?"
-          ~ " AND CAST(banned AS INTEGER) > ?;")(
-            users_table
-        );
-        const now = Clock.currTime.toUnixTime;
-        return query(sql, [username, now.to!string]).length > 0;
-    }
-
     SysTime user_banned_until(string username)
     {
         const sql = format!(
@@ -522,10 +488,15 @@ final class Sdb
         const res = query(sql, [username]);
         long banned_until;
 
-        if (res.length > 0)
-            try banned_until = res[0][0].to!long; catch (ConvException) {}
-
-        return SysTime.fromUnixTime(banned_until);
+        if (res.length > 0) {
+            try {
+                banned_until = res[0][0].to!long;
+                if (banned_until > 0)
+                    return SysTime.fromUnixTime(banned_until);
+            }
+            catch (ConvException) {}
+        }
+        return SysTime();
     }
 
     SdbUserStats user_stats(string username)
