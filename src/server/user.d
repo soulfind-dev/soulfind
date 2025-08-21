@@ -674,7 +674,13 @@ final class User
                     user_shared_files = user.shared_files;
                     user_shared_folders = user.shared_folders;
                 }
-                else if (msg.username != server_username) {
+                else if (msg.username == server_username) {
+                    // Allow clients that check user existence to add the
+                    // 'server' user to the user list, otherwise some of them
+                    // have no way of opening a private chat tab.
+                    user_exists = true;
+                }
+                else {
                     const user_stats = server.db.user_stats(msg.username);
                     user_exists = user_stats.exists;
                     user_upload_speed = user_stats.upload_speed;
