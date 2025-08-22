@@ -21,7 +21,7 @@ import std.string : representation;
 
 // Constants
 
-const enum LoginRejectionReason
+const enum LoginRejectionReason : string
 {
     invalid_username  = "INVALIDUSERNAME",
     empty_password    = "EMPTYPASSWORD",
@@ -30,20 +30,20 @@ const enum LoginRejectionReason
     server_private    = "SVRPRIVATE"
 }
 
-const enum ObfuscationType
+const enum ObfuscationType : uint
 {
     none    = 0,
     normal  = 1
 }
 
-const enum UserStatus
+const enum UserStatus : uint
 {
     offline  = 0,
     away     = 1,
     online   = 2
 }
 
-const enum RoomType
+const enum RoomType : uint
 {
     public_room   = 0,
     private_room  = 1
