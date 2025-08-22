@@ -58,6 +58,12 @@ struct LoginRejection
     string  detail;
 }
 
+struct LimitedRecommendations
+{
+    int[string]  descending_items;
+    int[string]  ascending_items;
+}
+
 
 // Message Codes
 
@@ -1243,12 +1249,18 @@ final class SQueuedDownloads : SMessage
 
 final class SGetRecommendations : SMessage
 {
-    this(uint[string] recommendations) scope
+    this(LimitedRecommendations recommendations) scope
     {
         super(GetRecommendations);
 
-        write!uint(cast(uint) recommendations.length);
-        foreach (ref item, level ; recommendations)
+        write!uint(cast(uint) recommendations.descending_items.length);
+        foreach (item, level ; recommendations.descending_items)
+        {
+            write!string(item);
+            write!int(level);
+        }
+        write!uint(cast(uint) recommendations.ascending_items.length);
+        foreach (item, level ; recommendations.ascending_items)
         {
             write!string(item);
             write!int(level);
@@ -1272,12 +1284,18 @@ final class SMyRecommendations : SMessage
 
 final class SGetGlobalRecommendations : SMessage
 {
-    this(uint[string] recommendations) scope
+    this(LimitedRecommendations recommendations) scope
     {
         super(GlobalRecommendations);
 
-        write!uint(cast(uint) recommendations.length);
-        foreach (ref item, level ; recommendations)
+        write!uint(cast(uint) recommendations.descending_items.length);
+        foreach (item, level ; recommendations.descending_items)
+        {
+            write!string(item);
+            write!int(level);
+        }
+        write!uint(cast(uint) recommendations.ascending_items.length);
+        foreach (item, level ; recommendations.ascending_items)
         {
             write!string(item);
             write!int(level);
@@ -1387,7 +1405,7 @@ final class SSimilarUsers : SMessage
 
 final class SItemRecommendations : SMessage
 {
-    this(string item, uint[string] recommendations) scope
+    this(string item, int[string] recommendations) scope
     {
         super(ItemRecommendations);
 
@@ -1396,7 +1414,7 @@ final class SItemRecommendations : SMessage
 
         foreach (ref recommendation, weight ; recommendations)
         {
-            write!string (recommendation);
+            write!string(recommendation);
             write!int(weight);
         }
     }

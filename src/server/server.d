@@ -10,15 +10,16 @@ import core.time : days, Duration, minutes, MonoTime, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
-                          max_room_name_length, max_search_query_length, norm,
-                          red, server_username, VERSION;
+                          max_global_recommendations, max_room_name_length,
+                          max_search_query_length, max_user_recommendations,
+                          norm, red, server_username, VERSION;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm : clamp;
-import std.array : Appender;
+import std.algorithm : clamp, sort;
+import std.array : Appender, array;
 import std.conv : ConvException, to;
 import std.datetime : Clock, SysTime;
 import std.process : thisProcessID;
@@ -399,22 +400,30 @@ final class Server
 
     // Interests
 
-    uint[string] global_recommendations()
+    LimitedRecommendations global_recommendations()
     {
-        uint[string] recommendations;
-        foreach (ref user ; users)
+        int[string] recommendations;
+        foreach (user ; users) {
             foreach (ref item ; user.liked_item_names) recommendations[item]++;
-
-        return recommendations;
+            foreach (ref item ; user.hated_item_names) recommendations[item]--;
+        }
+        return LimitedRecommendations(
+            filter_recommendations(
+                recommendations, max_global_recommendations
+            ),
+            filter_recommendations(
+                recommendations, max_global_recommendations, true
+            )
+        );
     }
 
-    uint[string] recommendations(string username)
+    LimitedRecommendations user_recommendations(string username)
     {
-        uint[string] recommendations;
-        const user = get_user(username);
+        auto user = get_user(username);
         if (user is null)
-            return recommendations;
+            return LimitedRecommendations();
 
+        int[string] recommendations;
         auto liked_item_names = user.liked_item_names;
         auto hated_item_names = user.hated_item_names;
 
@@ -425,19 +434,57 @@ final class Server
             int weight;
             foreach (ref item ; liked_item_names) {
                 if (other_user.likes(item)) weight++;
-                if (other_user.hates(item) && weight > 0) weight--;
+                if (other_user.hates(item)) weight--;
             }
             foreach (ref item ; hated_item_names) {
                 if (other_user.hates(item)) weight++;
-                if (other_user.likes(item) && weight > 0) weight--;
+                if (other_user.likes(item)) weight--;
             }
-            if (weight > 0) foreach (ref item ; other_user.liked_item_names)
-                recommendations[item] += weight;
+
+            if (weight == 0)
+                continue;
+
+            foreach (ref item ; other_user.liked_item_names)
+                if (!user.likes(item) && !user.hates(item))
+                    recommendations[item] += weight;
+
+            foreach (ref item ; other_user.hated_item_names)
+                if (!user.likes(item) && !user.hates(item))
+                    recommendations[item] -= weight;
         }
-        return recommendations;
+        return LimitedRecommendations(
+            filter_recommendations(
+                recommendations, max_user_recommendations
+            ),
+            filter_recommendations(
+                recommendations, max_user_recommendations, true
+            )
+        );
     }
 
-    uint[string] similar_users(string username)
+    int[string] item_recommendations(string item)
+    {
+        int[string] recommendations;
+        foreach (ref user ; users) {
+            int weight;
+            if (user.likes(item)) weight++;
+            if (user.hates(item)) weight--;
+
+            if (weight == 0)
+                continue;
+
+            foreach (ref recommendation ; user.liked_item_names)
+                if (recommendation != item)
+                    recommendations[recommendation] += weight;
+
+            foreach (ref recommendation ; user.hated_item_names)
+                if (recommendation != item)
+                    recommendations[recommendation] -= weight;
+        }
+        return filter_recommendations(recommendations, size_t.max);
+    }
+
+    uint[string] user_similar_users(string username)
     {
         uint[string] usernames;
         const user = get_user(username);
@@ -454,44 +501,43 @@ final class Server
             int weight;
             foreach (ref item ; liked_item_names) {
                 if (other_user.likes(item)) weight++;
-                if (other_user.hates(item) && weight > 0) weight--;
+                if (other_user.hates(item)) weight--;
             }
             foreach (ref item ; hated_item_names) {
                 if (other_user.hates(item)) weight++;
-                if (other_user.likes(item) && weight > 0) weight--;
+                if (other_user.likes(item)) weight--;
             }
-            if (weight > 0) usernames[other_user.username] = weight;
+            if (weight > 0) usernames[other_user.username] = cast(uint) weight;
         }
         return usernames;
     }
 
-    uint[string] item_recommendations(string username, string item)
-    {
-        uint[string] recommendations;
-        foreach (ref other_user ; users) {
-            if (other_user.username == username)
-                continue;
-
-            int weight;
-            if (other_user.likes(item)) weight++;
-            if (other_user.hates(item) && weight > 0) weight--;
-            if (weight > 0) {
-                foreach (ref recommendation ; other_user.liked_item_names)
-                    recommendations[recommendation] += weight;
-            }
-        }
-        return recommendations;
-    }
-
-    string[] item_similar_users(string username, string item)
+    string[] item_similar_users(string item)
     {
         Appender!(string[]) usernames;
-        foreach (ref other_user ; users) {
-            if (other_user.username == username)
-                continue;
-            if (other_user.likes(item)) usernames ~= other_user.username;
+        foreach (ref user ; users) {
+            if (user.likes(item)) usernames ~= user.username;
         }
         return usernames[];
+    }
+
+    private int[string] filter_recommendations(
+        int[string] recommendations, size_t max_length, bool ascending = false)
+    {
+        int[string] filtered_recommendations;
+        auto recommendations_array = recommendations.byKeyValue.array;
+        recommendations_array.sort!(
+            (ref a, ref b)
+            => ascending ? a.value < b.value : a.value > b.value
+        );
+
+        foreach (i, ref item; recommendations_array) {
+            const rating = item.value;
+            if (i >= max_length)
+                break;
+            if (rating != 0) filtered_recommendations[item.key] = rating;
+        }
+        return filtered_recommendations;
     }
 
 

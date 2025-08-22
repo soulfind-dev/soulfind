@@ -971,7 +971,7 @@ final class User
             case GetRecommendations:
                 scope msg = new UGetRecommendations(msg_buf, username);
                 scope response_msg = new SGetRecommendations(
-                    server.recommendations(username)
+                    server.user_recommendations(username)
                 );
                 send_message(response_msg);
                 break;
@@ -988,7 +988,7 @@ final class User
             case GlobalRecommendations:
                 scope msg = new UGlobalRecommendations(msg_buf, username);
                 scope response_msg = new SGetGlobalRecommendations(
-                    server.global_recommendations()
+                    server.global_recommendations
                 );
                 send_message(response_msg);
                 break;
@@ -996,7 +996,7 @@ final class User
             case SimilarUsers:
                 scope msg = new USimilarUsers(msg_buf, username);
                 scope response_msg = new SSimilarUsers(
-                    server.similar_users(username)
+                    server.user_similar_users(username)
                 );
                 send_message(response_msg);
                 break;
@@ -1055,7 +1055,7 @@ final class User
                     break;
 
                 scope response_msg = new SItemRecommendations(
-                    msg.item, server.item_recommendations(username, msg.item)
+                    msg.item, server.item_recommendations(msg.item)
                 );
                 send_message(response_msg);
                 break;
@@ -1066,7 +1066,7 @@ final class User
                     break;
 
                 scope response_msg = new SItemSimilarUsers(
-                    msg.item, server.item_similar_users(username, msg.item)
+                    msg.item, server.item_similar_users(msg.item)
                 );
                 send_message(response_msg);
                 break;
