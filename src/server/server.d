@@ -68,7 +68,7 @@ final class Server
 
     int listen()
     {
-        scope listen_sock = new TcpSocket();
+        auto listen_sock = new TcpSocket();
         listen_sock.blocking = false;
 
         version (Posix)
@@ -76,7 +76,7 @@ final class Server
                 SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
 
         try {
-            scope listen_address = new InternetAddress(port);
+            auto listen_address = new InternetAddress(port);
             listen_sock.bind(listen_address);
             listen_sock.listen(conn_backlog_length);
         }

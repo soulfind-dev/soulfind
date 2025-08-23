@@ -75,7 +75,7 @@ int run(string[] args)
 
     if (enable_debug) log_db = log_msg = log_user = true;
 
-    scope server = new Server(db_filename, port);
+    auto server = new Server(db_filename, port);
     const exit_code = server.listen();
 
     writefln!("\n%s")(exit_message);

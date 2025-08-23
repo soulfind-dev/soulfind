@@ -1181,7 +1181,7 @@ final class SConnectToPeer : SMessage
 
 final class SMessageUser : SMessage
 {
-    this(uint id, SysTime timestamp, string username, string message,
+    this(uint id, const SysTime timestamp, string username, string message,
          bool new_message) scope
     {
         super(MessageUser);
