@@ -145,15 +145,14 @@ class UMessage
     private size_t   offset;
     private ubyte[]  in_buf;
 
-    this(ubyte[] in_buf, string in_username = "?") scope
+    this(ubyte[] in_buf, string in_username = "[ unknown ]") scope
     {
         this.in_buf = in_buf;
         code = read!uint();
 
         if (log_msg) writefln!(
-            "Receive <- %s (code %d) of %d bytes <- from user %s")(
-            blue ~ this.name ~ norm, code, in_buf.length,
-            blue ~ in_username ~ norm
+            "Receive <- %s (code %d) <- from user %s")(
+            blue ~ this.name ~ norm, code, blue ~ in_username ~ norm
         );
     }
 

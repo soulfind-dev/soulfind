@@ -6,13 +6,14 @@
 module soulfind.server.room;
 @safe:
 
-import soulfind.defines : max_chat_message_length, max_room_ticker_length,
-                          max_room_tickers;
+import soulfind.defines : blue, log_msg, max_chat_message_length,
+                          max_room_ticker_length, max_room_tickers, norm;
 import soulfind.server.messages;
 import soulfind.server.user : User;
 import std.algorithm : sort;
 import std.array : Appender, array;
 import std.datetime : Clock, SysTime;
+import std.stdio : writefln;
 
 struct Ticker
 {
@@ -92,7 +93,11 @@ final class Room
 
     void send_to_all(scope SMessage msg)
     {
-        foreach (ref user ; users) user.send_message(msg);
+        if (log_msg) writefln!(
+            "Transmit=> %s (code %d) to joined room members...")(
+            blue ~ msg.name ~ norm, msg.code
+        );
+        foreach (ref user ; users) user.send_message!"log_disabled"(msg);
     }
 
 

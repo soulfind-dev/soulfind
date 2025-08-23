@@ -361,7 +361,7 @@ final class Sdb
 
         query(sql, [hash, username]);
 
-        if (log_user) writefln!("Set user %s's password")(
+        if (log_user) writefln!("Updated user %s's password")(
             blue ~ username ~ norm
         );
     }
@@ -389,9 +389,8 @@ final class Sdb
 
         query(sql, [privileged_until.to!string, username]);
 
-        if (log_user) writefln!(
-            "Added %s of privileges to user %s")(
-            duration.total!"days".days, blue ~ username ~ norm,
+        if (log_user) writefln!("Added privileges to user %s")(
+            blue ~ username ~ norm,
         );
     }
 
@@ -417,14 +416,12 @@ final class Sdb
 
         if (log_user) {
             if (duration == Duration.max)
-                writefln!(
-                    "Removed all privileges from user %s")(
+                writefln!("Removed all privileges from user %s")(
                     blue ~ username ~ norm
                 );
             else
-                writefln!(
-                    "Removed %s of privileges from user %s")(
-                    duration.total!"days".days, blue ~ username ~ norm
+                writefln!("Removed some privileges from user %s")(
+                    blue ~ username ~ norm
                 );
         }
     }
@@ -554,22 +551,12 @@ final class Sdb
             "UPDATE %s SET %s WHERE username = ?;")(
             users_table, fields.join(", ")
         );
-
-        if (log_user) {
-            string updated;
-            foreach (i, ref field; fields)
-            {
-                if (i > 0) updated ~= ", ";
-                updated ~= field.replace("?", parameters[i]);
-            }
-            writefln!(
-                "Updating user %s's stats (%s)")(
-                blue ~ username ~ norm, updated
-            );
-        }
-
         parameters ~= username;
         query(sql, parameters);
+
+        if (log_user) writefln!("Updated user %s's stats")(
+            blue ~ username ~ norm
+        );
     }
 
     string[] usernames(string field = null, ulong min = 1,

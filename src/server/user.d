@@ -460,23 +460,25 @@ final class User
         return true;
     }
 
-    void send_message(scope SMessage msg)
+    void send_message(string log = "log_all")(scope SMessage msg)
+        if (log == "log_all" || log == "log_redacted" || log == "log_disabled")
     {
         const msg_buf = msg.bytes;
         const msg_len = msg_buf.length;
         const offset = out_buf.length;
+        const log_username = log == "log_redacted" ? "[ redacted ]" : username;
 
-        if (log_msg) writefln!(
-            "Sending -> %s (code %d) of %d bytes -> to user %s")(
-            blue ~ msg.name ~ norm, msg.code, msg_len, blue ~ username ~ norm
+        if (log_msg && log != "log_disabled") writefln!(
+            "Sending -> %s (code %d) -> to user %s")(
+            blue ~ msg.name ~ norm, msg.code, blue ~ log_username ~ norm
         );
 
         if (msg_len > uint.max) {
             writefln!(
                 "Message %s (code %d) of %d bytes to user %s is too large, "
               ~ "not sending")(
-                blue ~ msg.name ~ norm, msg.code, msg_len,
-                blue ~ username ~ norm
+                red ~ msg.name ~ norm, msg.code, msg_len,
+                blue ~ log_username ~ norm
             );
             return;
         }
@@ -564,10 +566,8 @@ final class User
 
                 if (user && user.status != UserStatus.offline) {
                     writefln!(
-                        "User %s @ %s already logged in with version %s")(
-                        red ~ username ~ norm,
-                        bold ~ user.address.toAddrString ~ norm,
-                        bold ~ user.client_version ~ norm
+                        "User %s already logged in, disconnecting")(
+                        red ~ username ~ norm
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
@@ -633,10 +633,6 @@ final class User
                 );
                 obfuscation_type = cast(ObfuscationType) msg.obfuscation_type;
                 obfuscated_port = cast(ushort) msg.obfuscated_port;
-
-                writefln!("User %s listening on port %d")(
-                    blue ~ username ~ norm, address.port,
-                );
                 break;
 
             case GetPeerAddress:
@@ -724,18 +720,10 @@ final class User
                 bool user_privileged;
 
                 if (user !is null) {
-                    if (log_user) writefln!(
-                        "Telling user %s that user %s is online")(
-                        blue ~ username ~ norm, blue ~ msg.username ~ norm
-                    );
                     user_status = user.status;
                     user_privileged = user.privileged;
                 }
                 else if (msg.username != server_username) {
-                    if (log_user) writefln!(
-                        "Telling user %s that user %s is offline")(
-                        blue ~ username ~ norm, red ~ msg.username ~ norm
-                    );
                     user_privileged = (
                         server.db.user_privileged_until(msg.username)
                         > Clock.currTime
@@ -790,18 +778,11 @@ final class User
                 if (user is null)
                     break;
 
-                if (log_user) writefln!(
-                    "User %s @ %s connecting indirectly to peer %s @ %s")(
-                    blue ~ username ~ norm, bold ~ address.toString ~ norm,
-                    blue ~ msg.username ~ norm,
-                    bold ~ user.address.toString ~ norm
-                );
-
                 scope response_msg = new SConnectToPeer(
                     username, msg.type, address.addr, address.port, msg.token,
                     privileged, obfuscation_type, obfuscated_port
                 );
-                user.send_message(response_msg);
+                user.send_message!"log_redacted"(response_msg);
                 break;
 
             case MessageUser:
@@ -832,7 +813,8 @@ final class User
                 break;
 
             case MessageAcked:
-                scope msg = new UMessageAcked(msg_buf, username);
+                const in_username = "[ redacted ]";
+                scope msg = new UMessageAcked(msg_buf, in_username);
                 if (!msg.is_valid)
                     break;
 
@@ -874,7 +856,7 @@ final class User
                 scope response_msg = new SSendConnectToken(
                     username, msg.token
                 );
-                user.send_message(response_msg);
+                user.send_message!"log_redacted"(response_msg);
                 break;
 
             case SharedFoldersFiles:
@@ -1284,7 +1266,7 @@ final class User
                     return;
 
                 scope response_msg = new SCantConnectToPeer(msg.token);
-                user.send_message(response_msg);
+                user.send_message!"log_redacted"(response_msg);
                 break;
 
             default:

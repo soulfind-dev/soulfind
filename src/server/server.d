@@ -25,7 +25,7 @@ import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;
-import std.stdio : writefln;
+import std.stdio : writefln, writeln;
 import std.string : format, join, split;
 
 version (unittest) {
@@ -171,8 +171,8 @@ final class Server
                 user.sock.shutdown(SocketShutdown.BOTH);
                 user.sock.close();
 
-                if (log_user) writefln!("Closed connection to %s")(
-                    user.address.toAddrString
+                if (log_user) writefln!("Closed connection to user %s")(
+                    user.username
                 );
                 user.sock = null;
             }
@@ -198,9 +198,7 @@ final class Server
             );
             sock.blocking = false;
 
-            if (log_user) writefln!("Connection accepted from %s")(
-                sock.remoteAddress
-            );
+            if (log_user) writeln("Connection attempt accepted");
             sock_users[sock.handle] = new User(
                 this, sock,
                 new InternetAddress(
@@ -384,7 +382,7 @@ final class Server
         scope msg = new SMessageUser(
             pm.id, pm.time, pm.from_username, pm.message, new_message
         );
-        user.send_message(msg);
+        user.send_message!"log_redacted"(msg);
     }
 
     void send_queued_pms(string username)
@@ -540,7 +538,8 @@ final class Server
             blue ~ msg.name ~ norm, msg.code, blue ~ sender_username ~ norm
         );
         foreach (ref user ; users)
-            if (user.joined_same_room(sender_username)) user.send_message(msg);
+            if (user.joined_same_room(sender_username))
+                user.send_message!"log_disabled"(msg);
     }
 
     private string room_info(string name)
@@ -566,10 +565,9 @@ final class Server
     void add_user(User user)
     {
         writefln!(
-            "%s %s @ %s logged in with version %s")(
+            "%s %s logged in with client version %s")(
             db.is_admin(user.username) ? "Admin" : "User",
             blue ~ user.username ~ norm,
-            bold ~ user.address.toAddrString ~ norm,
             bold ~ user.client_version ~ norm
         );
         users[user.username] = user;
@@ -594,9 +592,8 @@ final class Server
 
         if (user.status == UserStatus.offline) {
             if (user.login_rejection.reason) writefln!(
-                "User %s @ %s denied (%s)")(
+                "User %s denied (%s)")(
                 red ~ username ~ norm,
-                bold ~ user.address.toAddrString ~ norm,
                 red ~ user.login_rejection.reason ~ norm
             );
             return;
@@ -606,11 +603,7 @@ final class Server
         global_room.remove_user(username);
 
         user.update_status(UserStatus.offline);
-        writefln!(
-            "User %s @ %s quit")(
-            red ~ username ~ norm,
-            bold ~ user.address.toString ~ norm
-        );
+        writefln!("User %s logged out")(red ~ username ~ norm);
     }
 
     User get_user(string username)
@@ -792,7 +785,7 @@ final class Server
         if (log_msg) writefln!("Transmit=> %s (code %d) to all users...")(
             blue ~ msg.name ~ norm, msg.code
         );
-        foreach (ref user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message!"log_disabled"(msg);
     }
 
     void send_to_watching(string sender_username, scope SMessage msg)
@@ -804,7 +797,7 @@ final class Server
         foreach (ref user ; users)
             if (user.is_watching(sender_username)
                     || user.joined_same_room(sender_username))
-                user.send_message(msg);
+                user.send_message!"log_disabled"(msg);
     }
 
     void user_command(string sender_username, string message)
