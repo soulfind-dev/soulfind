@@ -6,20 +6,19 @@
 module soulfind.main;
 @safe:
 
-import core.atomic : atomicStore;
 import std.stdio : writefln;
 
 version (Have_soulfind_server) import soulfind.server : run;
 version (Have_soulfind_setup)  import soulfind.setup : run;
 
-shared bool running = true;
+bool running = true;
 
 private extern(C) void handle_termination(int) {
-    atomicStore(running, false);
+    running = false;
 }
 
 private extern(Windows) int handle_ctrl(uint) nothrow {
-    atomicStore(running, false);
+    running = false;
     return true;
 }
 
