@@ -10,12 +10,12 @@ import core.time : days, Duration;
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           default_private_mode, log_db, log_user, norm;
 import std.array : Appender;
-import std.conv : ConvException, to;
+import std.conv : ConvException, text, to;
 import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
-import std.stdio : writefln, writeln;
-import std.string : format, fromStringz, join, replace, toStringz;
+import std.stdio : writeln;
+import std.string : fromStringz, join, replace, toStringz;
 
 extern (C) {
     // Manual definitions due to etc.c.sqlite3 bindings being out of date, or
@@ -99,7 +99,7 @@ final class Sdb
 
     this(string filename)
     {
-        if (log_db) writefln!("DB: Using database: %s")(filename);
+        if (log_db) writeln("DB: Using database: ", filename);
 
         // Soulfind is single-threaded. Disable SQLite mutexes for a slight
         // performance improvement.
@@ -116,29 +116,27 @@ final class Sdb
 
         query("PRAGMA secure_delete = ON;");
 
-        const users_sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s("
-          ~ " username TEXT PRIMARY KEY,"
-          ~ " password TEXT NOT NULL,"
-          ~ " speed INTEGER,"
-          ~ " files INTEGER,"
-          ~ " folders INTEGER,"
-          ~ " banned INTEGER,"
-          ~ " privileges INTEGER"
-          ~ ") WITHOUT ROWID;")(
-            users_table
+        const users_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", users_table,
+            "(username TEXT PRIMARY KEY,",
+            " password TEXT NOT NULL,",
+            " speed INTEGER,",
+            " files INTEGER,",
+            " folders INTEGER,",
+            " banned INTEGER,",
+            " privileges INTEGER",
+            ") WITHOUT ROWID;"
         );
 
-        const admins_sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s("
-          ~ " username TEXT PRIMARY KEY,"
-          ~ " level INTEGER NOT NULL"
-          ~ ") WITHOUT ROWID;")(
-            admins_table
+        const admins_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", admins_table,
+            "(username TEXT PRIMARY KEY,",
+            " level INTEGER NOT NULL",
+            ") WITHOUT ROWID;"
         );
 
         foreach (ref problem ; query("PRAGMA integrity_check;"))
-            if (log_db) writefln!("DB: Check [%s]")(problem[0]);
+            if (log_db) writeln("DB: Check [", problem[0], "]");
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
@@ -155,12 +153,11 @@ final class Sdb
 
     private void init_config()
     {
-        const sql = format!(
-            "CREATE TABLE IF NOT EXISTS %s("
-          ~ " option TEXT PRIMARY KEY,"
-          ~ " value"
-          ~ ") WITHOUT ROWID;")(
-            config_table
+        const sql = text(
+            "CREATE TABLE IF NOT EXISTS ", config_table,
+            "(option TEXT PRIMARY KEY,",
+            " value",
+            ") WITHOUT ROWID;"
         );
         query(sql);
 
@@ -179,8 +176,8 @@ final class Sdb
 
     private string get_config_value(string option)
     {
-        const sql = format!("SELECT value FROM %s WHERE option = ?;")(
-            config_table
+        const sql = text(
+            "SELECT value FROM ", config_table, " WHERE option = ?;"
         );
         const res = query(sql, [option]);
         string value;
@@ -193,14 +190,13 @@ final class Sdb
 
     private void set_config_value(string option, string value)
     {
-        const sql = format!(
-            "REPLACE INTO %s(option, value) VALUES(?, ?);")(
-            config_table
+        const sql = text(
+            "REPLACE INTO ", config_table, "(option, value) VALUES(?, ?);"
         );
         query(sql, [option, value]);
 
-        if (log_db) writefln!("DB: Updated config value %s to %s")(
-            option, value
+        if (log_db) writeln(
+            "DB: Updated config value ", option, " to ", value
         );
     }
 
@@ -217,7 +213,7 @@ final class Sdb
 
     void set_server_port(ushort port)
     {
-        set_config_value("port", port.to!string);
+        set_config_value("port", port.text);
     }
 
     uint server_max_users()
@@ -233,7 +229,7 @@ final class Sdb
 
     void set_server_max_users(uint num_users)
     {
-        set_config_value("max_users", num_users.to!string);
+        set_config_value("max_users", num_users.text);
     }
 
     bool server_private_mode()
@@ -250,7 +246,7 @@ final class Sdb
 
     void set_server_private_mode(bool private_mode)
     {
-        set_config_value("private_mode", private_mode.to!ubyte.to!string);
+        set_config_value("private_mode", private_mode.to!ubyte.text);
     }
 
     string server_motd()
@@ -271,31 +267,26 @@ final class Sdb
 
     void add_admin(string username)
     {
-        const sql = format!(
-            "REPLACE INTO %s(username, level) VALUES(?, ?);")(
-            admins_table
+        const sql = text(
+            "REPLACE INTO ", admins_table, "(username, level) VALUES(?, ?);"
         );
         const level = 0;
-        query(sql, [username, level.to!string]);
+        query(sql, [username, level.text]);
 
-        if (log_user) writefln!("Added new admin %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Added new admin ", blue, username, norm);
     }
 
     void del_admin(string username)
     {
-        const sql = format!("DELETE FROM %s WHERE username = ?;")(
-            admins_table
-        );
+        const sql = text("DELETE FROM ", admins_table, " WHERE username = ?;");
         query(sql, [username]);
 
-        if (log_user) writefln!("Removed admin %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Removed admin ", blue, username, norm);
     }
 
     string[] admins()
     {
-        const sql = format!("SELECT username FROM %s;")(
-            admins_table
-        );
+        const sql = text("SELECT username FROM ", admins_table, ";");
         Appender!(string[]) admins;
         foreach (ref record ; query(sql)) admins ~= record[0];
         return admins[];
@@ -303,47 +294,42 @@ final class Sdb
 
     bool is_admin(string username)
     {
-        const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ?;")(
-            admins_table
+        const sql = text(
+            "SELECT 1 FROM ", admins_table, " WHERE username = ?;"
         );
         return query(sql, [username]).length > 0;
     }
 
     private string hash_password(string password)
     {
-        return digest!MD5(password).toHexString!(LetterCase.lower).to!string;
+        return digest!MD5(password).toHexString!(LetterCase.lower).text;
     }
 
     void add_user(string username, string password)
     {
-        const sql = format!(
-            "INSERT INTO %s(username, password) VALUES(?, ?);")(
-            users_table
+        const sql = text(
+            "INSERT INTO ", users_table, "(username, password) VALUES(?, ?);"
         );
         const hash = hash_password(password);
 
         query(sql, [username, hash]);
         query("PRAGMA optimize;");
 
-        if (log_user) writefln!("Added new user %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Added new user ", blue, username, norm);
     }
 
     void del_user(string username)
     {
-        const sql = format!("DELETE FROM %s WHERE username = ?;")(
-            users_table
-        );
+        const sql = text("DELETE FROM ", users_table, " WHERE username = ?;");
         query(sql, [username]);
 
-        if (log_user) writefln!("Removed user %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Removed user ", blue, username, norm);
     }
 
     bool user_verify_password(string username, string password)
     {
-        const sql = format!(
-            "SELECT password FROM %s WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "SELECT password FROM ", users_table, " WHERE username = ?;"
         );
         const stored_hash = query(sql, [username])[0][0];
         const current_hash = hash_password(password);
@@ -353,33 +339,30 @@ final class Sdb
 
     void user_update_password(string username, string password)
     {
-        const sql = format!(
-            "UPDATE %s SET password = ? WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "UPDATE ", users_table, " SET password = ? WHERE username = ?;"
         );
         const hash = hash_password(password);
 
         query(sql, [hash, username]);
 
-        if (log_user) writefln!("Updated user %s's password")(
-            blue ~ username ~ norm
+        if (log_user) writeln(
+            "Updated user ", blue, username, norm, "'s password"
         );
     }
 
     bool user_exists(string username)
     {
-        const sql = format!(
-            "SELECT 1 FROM %s WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "SELECT 1 FROM ", users_table, " WHERE username = ?;"
         );
         return query(sql, [username]).length > 0;
     }
 
     void add_user_privileges(string username, Duration duration)
     {
-        const sql = format!(
-            "UPDATE %s SET privileges = ? WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
         );
         auto privileged_until = user_privileged_until(username).toUnixTime;
         const now = Clock.currTime.toUnixTime;
@@ -387,10 +370,10 @@ final class Sdb
         if (privileged_until < now) privileged_until = now;
         privileged_until += duration.total!"seconds";
 
-        query(sql, [privileged_until.to!string, username]);
+        query(sql, [privileged_until.text, username]);
 
-        if (log_user) writefln!("Added privileges to user %s")(
-            blue ~ username ~ norm,
+        if (log_user) writeln(
+            "Added privileges to user ", blue, username, norm,
         );
     }
 
@@ -400,9 +383,8 @@ final class Sdb
         if (privileged_until <= 0)
             return;
 
-        const sql = format!(
-            "UPDATE %s SET privileges = ? WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
         );
         const now = Clock.currTime.toUnixTime;
         const seconds = duration.total!"seconds";
@@ -412,25 +394,24 @@ final class Sdb
         else
             privileged_until = now;
 
-        query(sql, [privileged_until.to!string, username]);
+        query(sql, [privileged_until.text, username]);
 
         if (log_user) {
             if (duration == Duration.max)
-                writefln!("Removed all privileges from user %s")(
-                    blue ~ username ~ norm
+                writeln(
+                    "Removed all privileges from user ", blue, username, norm
                 );
             else
-                writefln!("Removed some privileges from user %s")(
-                    blue ~ username ~ norm
+                writeln(
+                    "Removed some privileges from user ", blue, username, norm
                 );
         }
     }
 
     SysTime user_privileged_until(string username)
     {
-        const sql = format!(
-            "SELECT privileges FROM %s WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "SELECT privileges FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
         long privileged_until;
@@ -448,9 +429,8 @@ final class Sdb
 
     void ban_user(string username, Duration duration)
     {
-        const sql = format!(
-            "UPDATE %s SET banned = ? WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
         );
         long banned_until;
 
@@ -460,27 +440,25 @@ final class Sdb
             banned_until = (
                 Clock.currTime.toUnixTime + duration.total!"seconds");
 
-        query(sql, [banned_until.to!string, username]);
+        query(sql, [banned_until.text, username]);
 
-        if (log_user) writefln!("Banned user %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Banned user ", blue, username, norm);
     }
 
     void unban_user(string username)
     {
-        const sql = format!(
-            "UPDATE %s SET banned = ? WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
         );
         query(sql, [null, username]);
 
-        if (log_user) writefln!("Unbanned user %s")(blue ~ username ~ norm);
+        if (log_user) writeln("Unbanned user ", blue, username, norm);
     }
 
     SysTime user_banned_until(string username)
     {
-        const sql = format!(
-            "SELECT banned FROM %s WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "SELECT banned FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
         long banned_until;
@@ -498,11 +476,10 @@ final class Sdb
 
     SdbUserStats user_stats(string username)
     {
-        const sql = format!(
-            "SELECT speed,files,folders"
-          ~ " FROM %s"
-          ~ " WHERE username = ?;")(
-            users_table
+        const sql = text(
+            "SELECT speed,files,folders",
+            " FROM ", users_table,
+            " WHERE username = ?;"
         );
         const res = query(sql, [username]);
         auto user_stats = SdbUserStats();
@@ -531,31 +508,32 @@ final class Sdb
         if (stats.updating_speed) {
             const upload_speed = stats.upload_speed;
             fields ~= "speed = ?";
-            parameters ~= upload_speed > 0 ? upload_speed.to!string : null;
+            parameters ~= upload_speed > 0 ? upload_speed.text : null;
         }
 
         if (stats.updating_shared) {
             const shared_files = stats.shared_files;
             fields ~= "files = ?";
-            parameters ~= shared_files > 0 ? shared_files.to!string : null;
+            parameters ~= shared_files > 0 ? shared_files.text : null;
 
             const shared_folders = stats.shared_folders;
             fields ~= "folders = ?";
-            parameters ~= shared_folders > 0 ? shared_folders.to!string : null;
+            parameters ~= shared_folders > 0 ? shared_folders.text : null;
         }
 
         if (fields[].length == 0)
             return;
 
-        const sql = format!(
-            "UPDATE %s SET %s WHERE username = ?;")(
-            users_table, fields[].join(", ")
+        const sql = text(
+            "UPDATE ", users_table,
+            " SET ", fields[].join(", "),
+            " WHERE username = ?;"
         );
         parameters ~= username;
         query(sql, parameters[]);
 
-        if (log_user) writefln!("Updated user %s's stats")(
-            blue ~ username ~ norm
+        if (log_user) writeln(
+            "Updated user ", blue, username, norm, "'s stats"
         );
     }
 
@@ -563,12 +541,12 @@ final class Sdb
                        ulong max = ulong.max)
     {
         Appender!(string[]) usernames;
-        auto sql = format!("SELECT username FROM %s")(users_table);
+        auto sql = text("SELECT username FROM ", users_table);
         string[] parameters;
 
         if (field) {
-            sql ~= format!(" WHERE %s BETWEEN ? AND ?")(field);
-            parameters = [min.to!string, max.to!string];
+            sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
+            parameters = [min.text, max.text];
         }
         sql ~= ";";
         foreach (ref record ; query(sql, parameters)) usernames ~= record[0];
@@ -577,12 +555,12 @@ final class Sdb
 
     size_t num_users(string field = null, ulong min = 1, ulong max = ulong.max)
     {
-        auto sql = format!("SELECT COUNT(1) FROM %s")(users_table);
+        auto sql = text("SELECT COUNT(1) FROM ", users_table);
         string[] parameters;
 
         if (field) {
-            sql ~= format!(" WHERE %s BETWEEN ? AND ?")(field);
-            parameters = [min.to!string, max.to!string];
+            sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
+            parameters = [min.text, max.text];
         }
         sql ~= ";";
         return query(sql, parameters)[0][0].to!size_t;
@@ -596,16 +574,16 @@ final class Sdb
         const error_string = error_string(error_code);
 
         if (query)
-            writefln!("DB: Query [%s]")(query);
+            writeln("DB: Query [", query, "]");
 
         if (parameters)
-            writefln!("DB: Parameters [%s]")(parameters.join(", "));
+            writeln("DB: Parameters [", parameters.join(", "), "]");
 
         if (res)
-            writefln!("DB: Result code %d.\n\n%s\n")(res, error_msg(db));
+            writeln("DB: Result code ", res, ".\n\n", error_msg(db), "\n");
 
         throw new SdbException(
-            format!("SQLite error %d (%s)")(error_code, error_string)
+            text("SQLite error ", error_code, " (", error_string, ")")
         );
     }
 

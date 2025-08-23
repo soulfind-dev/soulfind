@@ -23,14 +23,14 @@ import std.algorithm : canFind;
 import std.array : Appender;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
-import std.conv : ConvException, to;
+import std.conv : ConvException, text, to;
 import std.datetime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
-import std.stdio : writefln;
-import std.string : format, join, replace, strip;
+import std.stdio : writeln;
+import std.string : join, replace, strip;
 
 final class User
 {
@@ -80,7 +80,7 @@ final class User
     {
         return server.db.server_motd
             .replace("%sversion%", VERSION)
-            .replace("%users%", server.num_users.to!string)
+            .replace("%users%", server.num_users.text)
             .replace("%username%", username)
             .replace("%version%", client_version);
     }
@@ -407,32 +407,28 @@ final class User
             return "Could not create room. Reason: Room name empty.";
 
         if (room_name.length > max_room_name_length)
-            return format!(
-                "Could not create room. Reason: Room name %s longer than %d "
-              ~ "characters.")(
-                room_name, max_room_name_length
+            return text(
+                "Could not create room. Reason: Room name ", room_name,
+                " longer than ", max_room_name_length, " characters."
             );
 
         if (room_name.strip != room_name)
-            return format!(
-                "Could not create room. Reason: Room name %s contains leading "
-              ~ "or trailing spaces.")(
-                room_name
+            return text(
+                "Could not create room. Reason: Room name ", room_name,
+                " contains leading or trailing spaces."
             );
 
         if (room_name.canFind("  "))
-            return format!(
-                "Could not create room. Reason: Room name %s contains "
-              ~ "multiple following spaces.")(
-                room_name
+            return text(
+                "Could not create room. Reason: Room name ", room_name,
+                " contains multiple following spaces."
             );
 
         foreach (ref c ; room_name) if (!c.isPrintable)
             // Only printable ASCII characters allowed
-            return format!(
-                "Could not create room. Reason: Room name %s contains "
-              ~ "invalid characters.")(
-                room_name
+            return text(
+                "Could not create room. Reason: Room name ", room_name,
+                " contains invalid characters."
             );
 
         return null;
@@ -468,17 +464,16 @@ final class User
         const offset = out_buf.length;
         const log_username = log == "log_redacted" ? "[ redacted ]" : username;
 
-        if (log_msg && log != "log_disabled") writefln!(
-            "Sending -> %s (code %d) -> to user %s")(
-            blue ~ msg.name ~ norm, msg.code, blue ~ log_username ~ norm
+        if (log_msg && log != "log_disabled") writeln(
+            "Sending -> ", blue, msg.name, norm, " (code ", msg.code,
+            ") -> to user ", blue, log_username, norm
         );
 
         if (msg_len > uint.max) {
-            writefln!(
-                "Message %s (code %d) of %d bytes to user %s is too large, "
-              ~ "not sending")(
-                red ~ msg.name ~ norm, msg.code, msg_len,
-                blue ~ log_username ~ norm
+            writeln(
+                "Message ", red, msg.name, norm, " (code ", msg.code,
+                ") of ", msg_len, " bytes to user ", blue, log_username, norm,
+                " is too large, not sending"
             );
             return;
         }
@@ -506,10 +501,10 @@ final class User
                 in_msg_size = in_buf.read!(uint, Endian.littleEndian);
             }
             if (in_msg_size < 0 || in_msg_size > max_msg_size) {
-                if (log_msg) writefln!(
-                    "Received unexpected message size %d from user %s, "
-                  ~ "disconnecting them")(
-                    in_msg_size, blue ~ username ~ norm
+                if (log_msg) writeln(
+                    "Received unexpected message size ", in_msg_size,
+                    " from user ", blue, username, norm, ", ",
+                    "disconnecting them"
                 );
                 return false;
             }
@@ -565,17 +560,18 @@ final class User
                 auto user = server.get_user(username);
 
                 if (user && user.status != UserStatus.offline) {
-                    writefln!(
-                        "User %s already logged in, disconnecting")(
-                        red ~ username ~ norm
+                    writeln(
+                        "User ", red, username, norm, " already logged in, ",
+                        "disconnecting"
                     );
                     scope relogged_msg = new SRelogged();
                     user.send_message(relogged_msg);
                     server.del_user(user);
                 }
 
-                client_version = format!("%d.%d")(
-                    msg.major_version, msg.minor_version);
+                client_version = text(
+                    msg.major_version, ".", msg.minor_version
+                );
 
                 const user_stats = server.db.user_stats(username);
                 upload_speed = user_stats.upload_speed;
@@ -591,7 +587,7 @@ final class User
                 string[] privileged_users;
                 const md5_hash = digest!MD5(msg.password)
                     .toHexString!(LetterCase.lower)
-                    .to!string;
+                    .text;
                 scope response_msg = new SLogin(
                     true, login_rejection, motd, address.addr, md5_hash,
                     supporter
@@ -1270,11 +1266,10 @@ final class User
                 break;
 
             default:
-                if (log_msg) writefln!(
-                    "Unimplemented message code %s%d%s from user %s with "
-                  ~ "length %d\n%s")(
-                    red, code, norm, blue ~ username ~ norm, msg_buf.length,
-                    msg_buf
+                if (log_msg) writeln(
+                    "Unimplemented message code ", red, code, norm,
+                    " from user ", blue, username, norm, " with length ",
+                    msg_buf.length, "\n", msg_buf
                 );
                 break;
         }

@@ -20,14 +20,14 @@ import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
 import std.algorithm : clamp, sort;
 import std.array : Appender, array;
-import std.conv : ConvException, to;
+import std.conv : ConvException, text, to;
 import std.datetime : Clock, SysTime;
 import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;
-import std.stdio : writefln, writeln;
-import std.string : format, join, split;
+import std.stdio : writeln;
+import std.string : join, split;
 
 version (unittest) {
     auto running = true;
@@ -82,18 +82,17 @@ final class Server
         }
         catch (SocketOSException e) {
             const min_port = 1024;
-            writefln!("Unable to bind socket to port %d")(port);
-            if (port < min_port) writefln!(
-                "Are you trying to use a port less than %d while running as "
-              ~ "a user?")(
-                 min_port
+            writeln("Unable to bind socket to port ", port);
+            if (port < min_port) writeln(
+                "Are you trying to use a port less than ", min_port,
+                " while running as a user?"
             );
             return 1;
         }
 
-        writefln!("%s %s %s process %d listening on port %d")(
-            red ~ "\&hearts;" ~ norm, bold ~ "Soulfind", VERSION ~ norm,
-            thisProcessID, port
+        writeln(
+            red, "\&hearts;", norm, " ", bold, "Soulfind", " ", VERSION,
+            norm, " process ", thisProcessID, " listening on port ", port
         );
 
         selector.register(listen_sock.handle, SelectEvent.read);
@@ -172,8 +171,8 @@ final class Server
                 user.sock.shutdown(SocketShutdown.BOTH);
                 user.sock.close();
 
-                if (log_user) writefln!("Closed connection to user %s")(
-                    user.username
+                if (log_user) writeln(
+                    "Closed connection to user ", user.username
                 );
                 user.sock = null;
             }
@@ -579,9 +578,9 @@ final class Server
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writefln!(
-            "Transmit=> %s (code %d) to user %s's joined rooms...")(
-            blue ~ msg.name ~ norm, msg.code, blue ~ sender_username ~ norm
+        if (log_msg) writeln(
+            "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+            ") to user ", blue, sender_username, norm, "'s joined rooms..."
         );
         foreach (ref user ; users)
             if (user.joined_same_room(sender_username))
@@ -594,13 +593,13 @@ final class Server
         auto room = rooms[name];
 
         output ~= name;
-        output ~= format!("\nUsers (%d):")(room.num_users);
+        output ~= text("\nUsers (", room.num_users, "):");
         foreach (ref username ; room.usernames)
-            output ~= format!("\n\t%s")(username);
+            output ~= text("\n\t", username);
 
-        output ~= format!("\nTickers (%d):")(room.num_tickers);
+        output ~= text("\nTickers (", room.num_tickers, "):");
         foreach (ref ticker ; room.tickers_by_order)
-            output ~= format!("\n\t[%s] %s")(ticker.username, ticker.content);
+            output ~= text("\n\t[", ticker.username, "] ", ticker.content);
 
         return output[];
     }
@@ -610,11 +609,10 @@ final class Server
 
     void add_user(User user)
     {
-        writefln!(
-            "%s %s logged in with client version %s")(
-            db.is_admin(user.username) ? "Admin" : "User",
-            blue ~ user.username ~ norm,
-            bold ~ user.client_version ~ norm
+        writeln(
+            db.is_admin(user.username) ? "Admin " : "User ", blue,
+            user.username, norm, " logged in with client version ",
+            bold, user.client_version, norm
         );
         users[user.username] = user;
     }
@@ -637,10 +635,9 @@ final class Server
         }
 
         if (user.status == UserStatus.offline) {
-            if (user.login_rejection.reason) writefln!(
-                "User %s denied (%s)")(
-                red ~ username ~ norm,
-                red ~ user.login_rejection.reason ~ norm
+            if (user.login_rejection.reason) writeln(
+                "User ", red, username, norm, " denied (", red,
+                user.login_rejection.reason, norm, ")"
             );
             return;
         }
@@ -649,7 +646,7 @@ final class Server
         global_room.remove_user(username);
 
         user.update_status(UserStatus.offline);
-        writefln!("User %s logged out")(red ~ username ~ norm);
+        writeln("User ", red, username, norm, " logged out");
     }
 
     User get_user(string username)
@@ -671,10 +668,11 @@ final class Server
         switch (type)
         {
             case "connected":
-                output ~= format!("%d connected users.")(users.length);
+                output ~= text(users.length, " connected users.");
                 foreach (ref user ; users)
-                    output ~= format!("\n\t%s (client version: %s)")(
-                        user.username, user.client_version
+                    output ~= text(
+                        "\n\t", user.username, " (client version: ",
+                        user.client_version, ")"
                     );
                 break;
 
@@ -682,11 +680,12 @@ final class Server
                 const users = db.usernames(
                     "privileges", Clock.currTime.toUnixTime
                 );
-                output ~= format!("%d privileged users.")(users.length);
+                output ~= text(users.length, " privileged users.");
                 foreach (ref user ; users) {
                     const privileged_until = db.user_privileged_until(user);
-                    output ~= format!("\n\t%s (until %s)")(
-                        user, privileged_until.toSimpleString
+                    output ~= text(
+                        "\n\t", user, " (until ",
+                        privileged_until.toSimpleString, ")"
                     );
                 }
                 break;
@@ -695,22 +694,24 @@ final class Server
                 const users = db.usernames(
                     "banned", Clock.currTime.toUnixTime
                 );
-                output ~= format!("%d banned users.")(users.length);
+                output ~= text(users.length, " banned users.");
                 foreach (ref user ; users) {
                     const banned_until = db.user_banned_until(user);
                     if (banned_until == SysTime.fromUnixTime(long.max))
-                        output ~= format!("\n\t%s (forever)")(user);
+                        output ~= text("\n\t", user, " (forever)");
                     else
-                        output ~= format!("\n\t%s (until %s)")(
-                            user, banned_until.toSimpleString);
+                        output ~= text(
+                            "\n\t", user, " (until ",
+                            banned_until.toSimpleString, ")"
+                        );
                 }
                 break;
 
             case null:
                 const usernames = db.usernames;
-                output ~= format!("%d total users.")(usernames.length);
+                output ~= text(usernames.length, " total users.");
                 foreach (ref username ; db.usernames)
-                    output ~= format!("\n\t%s")(username);
+                    output ~= text("\n\t", username);
                 break;
 
             default:
@@ -744,11 +745,11 @@ final class Server
 
         user = get_user(username);
         if (user !is null) {
-            status = user.status.to!string;
+            status = user.status.text;
             client_version = user.client_version;
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
-            obfuscation_type = user.obfuscation_type.to!string;
+            obfuscation_type = user.obfuscation_type.text;
             obfuscated_port = user.obfuscated_port;
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
@@ -775,70 +776,52 @@ final class Server
             banned = "forever";
 
         else if (banned_until > now)
-            banned = format!("until %s")(banned_until.toSimpleString);
+            banned = text("until ", banned_until.toSimpleString);
 
         if (privileged_until > now)
-            privileged = format!("until %s")(privileged_until.toSimpleString);
+            privileged = text("until ", privileged_until.toSimpleString);
 
-        return format!(
-            "%s"
-          ~ "\n"
-          ~ "\nSession info:"
-          ~ "\n\tstatus: %s"
-          ~ "\n\tclient version: %s"
-          ~ "\n\tIP address: %s"
-          ~ "\n\tport: %s"
-          ~ "\n\tobfuscated port: %s"
-          ~ "\n\tobfuscation type: %s"
-          ~ "\n\twatched users: %s"
-          ~ "\n\tliked items: %s"
-          ~ "\n\thated items: %s"
-          ~ "\n\tjoined rooms: %s"
-          ~ "\n\tjoined global room: %s"
-          ~ "\n"
-          ~ "\nPresistent info:"
-          ~ "\n\tadmin: %s"
-          ~ "\n\tbanned: %s"
-          ~ "\n\tprivileged: %s"
-          ~ "\n\tsupporter: %s"
-          ~ "\n\tupload speed: %s"
-          ~ "\n\tfiles: %s"
-          ~ "\n\tdirs: %s")(
+        return text(
             username,
-            status,
-            client_version,
-            ip_address,
-            listening_port,
-            obfuscated_port,
-            obfuscation_type,
-            watched_users,
-            liked_items,
-            hated_items,
-            joined_rooms,
-            joined_global_room,
-            admin,
-            banned,
-            privileged,
-            supporter,
-            upload_speed,
-            shared_files,
-            shared_folders
+            "\n",
+            "\nSession info:",
+            "\n\tstatus: ", status,
+            "\n\tclient version: ", client_version,
+            "\n\tIP address: ", ip_address,
+            "\n\tport: ", listening_port,
+            "\n\tobfuscated port: ", obfuscated_port,
+            "\n\tobfuscation type: ", obfuscation_type,
+            "\n\twatched users: ", watched_users,
+            "\n\tliked items: ", liked_items,
+            "\n\thated items: ", hated_items,
+            "\n\tjoined rooms: ", joined_rooms,
+            "\n\tjoined global room: ", joined_global_room,
+            "\n",
+            "\nPresistent info:",
+            "\n\tadmin: ", admin,
+            "\n\tbanned: ", banned,
+            "\n\tprivileged: ", privileged,
+            "\n\tsupporter: ", supporter,
+            "\n\tupload speed: ", upload_speed,
+            "\n\tfiles: ", shared_files,
+            "\n\tdirs: ", shared_folders
         );
     }
 
     private void send_to_all(scope SMessage msg)
     {
-        if (log_msg) writefln!("Transmit=> %s (code %d) to all users...")(
-            blue ~ msg.name ~ norm, msg.code
+        if (log_msg) writeln(
+            "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+            ") to all users..."
         );
         foreach (ref user ; users) user.send_message!"log_disabled"(msg);
     }
 
     void send_to_watching(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writefln!(
-            "Transmit=> %s (code %d) to users watching user %s...")(
-            blue ~ msg.name ~ norm, msg.code, blue ~ sender_username ~ norm
+        if (log_msg) writeln(
+            "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+            ") to users watching user ", blue, sender_username, norm, "..."
         );
         foreach (ref user ; users)
             if (user.is_watching(sender_username)
@@ -878,32 +861,31 @@ final class Server
             case "help":
                 server_pm(
                     admin_username,
-                    format!(
-                        "Available commands :"
-                      ~ "\n\nadmins\n\tList admins"
-                      ~ "\n\nusers [connected|banned|privileged]\n\tList users"
-                      ~ "\n\nrooms\n\tList public rooms"
-                      ~ "\n\nuserinfo <user>\n\tShow info about user"
-                      ~ "\n\nroominfo <room>\n\tShow info about public room"
-                      ~ "\n\nban [days] <user>\n\tBan user"
-                      ~ "\n\nunban <user>\n\tUnban user"
-                      ~ "\n\nkick [minutes] <user>\n\tDisconnect user for"
-                      ~ " [%d] minutes"
-                      ~ "\n\nkickall [minutes]\n\tDisconnect active users for"
-                      ~ " [%d] minutes"
-                      ~ "\n\naddprivileges <days> <user>\n\tAdd privileges to"
-                      ~ " user"
-                      ~ "\n\nremoveprivileges [days] <user>\n\tRemove"
-                      ~ " privileges from user"
-                      ~ "\n\nremovetickers <user>\n\tRemove user's public room"
-                      ~ " tickers"
-                      ~ "\n\nannouncement <message>\n\tSend announcement to"
-                      ~ " online users"
-                      ~ "\n\nmessage <message>\n\tSend private message to"
-                      ~ " all registered users"
-                      ~ "\n\nuptime\n\tShow server uptime")(
-                        kick_duration.total!"minutes",
-                        kick_duration.total!"minutes"
+                    text(
+                        "Available commands :",
+                        "\n\nadmins\n\tList admins",
+                        "\n\nusers [connected|banned|privileged]\n\tList",
+                        " users",
+                        "\n\nrooms\n\tList public rooms",
+                        "\n\nuserinfo <user>\n\tShow info about user",
+                        "\n\nroominfo <room>\n\tShow info about public room",
+                        "\n\nban [days] <user>\n\tBan user",
+                        "\n\nunban <user>\n\tUnban user",
+                        "\n\nkick [minutes] <user>\n\tDisconnect user for",
+                        " [", kick_duration.total!"minutes", "] minutes",
+                        "\n\nkickall [minutes]\n\tDisconnect active users for",
+                        " [", kick_duration.total!"minutes", "] minutes",
+                        "\n\naddprivileges <days> <user>\n\tAdd privileges to",
+                        " user",
+                        "\n\nremoveprivileges [days] <user>\n\tRemove",
+                        " privileges from user",
+                        "\n\nremovetickers <user>\n\tRemove user's public ",
+                        " room tickers",
+                        "\n\nannouncement <message>\n\tSend announcement to",
+                        " online users",
+                        "\n\nmessage <message>\n\tSend private message to",
+                        " all registered users",
+                        "\n\nuptime\n\tShow server uptime"
                     )
                 );
                 break;
@@ -911,10 +893,10 @@ final class Server
             case "admins":
                 Appender!string output;
                 const names = db.admins;
-                output ~= format!("%d admins.")(names.length);
+                output ~= text(names.length, " admins.");
                 foreach (ref name ; names) {
                     const status = (name in users) ? "online" : "offline";
-                    output ~= format!("\n\t%s (%s)")(name, status);
+                    output ~= text("\n\t", name, " (", status, ")");
                 }
 
                 server_pm(admin_username, output[]);
@@ -927,10 +909,11 @@ final class Server
 
             case "rooms":
                 Appender!string output;
-                output ~= format!("%d public rooms.")(rooms.length);
+                output ~= text(rooms.length, " public rooms.");
                 foreach (ref room ; rooms)
-                    output ~= format!("\n\t%s (users: %d, tickers: %d)")(
-                        room.name, room.num_users, room.num_tickers
+                    output ~= text(
+                        "\n\t", room.name, " (users: ", room.num_users,
+                        ", tickers: ", room.num_tickers, ")"
                     );
                 server_pm(admin_username, output[]);
                 break;
@@ -945,7 +928,7 @@ final class Server
                 if (!db.user_exists(username)) {
                     server_pm(
                         admin_username,
-                        format!("User %s is not registered")(username)
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
@@ -963,7 +946,7 @@ final class Server
                 if (name !in rooms) {
                     server_pm(
                         admin_username,
-                        format!("Room %s is not registered")(name)
+                        text("Room ", name, " is not registered")
                     );
                     break;
                 }
@@ -993,7 +976,7 @@ final class Server
                 if (!db.user_exists(username)) {
                     server_pm(
                         admin_username,
-                        format!("User %s is not registered")(username)
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
@@ -1007,10 +990,11 @@ final class Server
 
                 string response;
                 if (duration == Duration.max)
-                    response = format!("Banned user %s forever")(username);
+                    response = text("Banned user ", username, " forever");
                 else
-                    response = format!("Banned user %s for %s")(
-                        username, duration.total!"days".days
+                    response = text(
+                        "Banned user ", username, " for ",
+                        duration.total!"days".days
                     );
 
                 server_pm(admin_username, response);
@@ -1025,7 +1009,7 @@ final class Server
                 db.unban_user(username);
                 server_pm(
                     admin_username,
-                    format!("Unbanned user %s")(username)
+                    text("Unbanned user ", username)
                 );
                 break;
 
@@ -1054,7 +1038,7 @@ final class Server
                 if (!db.user_exists(username)) {
                     server_pm(
                         admin_username,
-                        format!("User %s is not registered")(username)
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
@@ -1064,9 +1048,13 @@ final class Server
                 auto user = get_user(username);
                 if (user !is null) del_user(user);
 
-                server_pm(admin_username, format!("Kicked user %s for %s")(
-                    username, duration.total!"minutes".minutes
-                ));
+                server_pm(
+                    admin_username,
+                    text(
+                        "Kicked user ", username, " for ",
+                        duration.total!"minutes".minutes
+                    )
+                );
                 break;
 
             case "kickall":
@@ -1095,15 +1083,17 @@ final class Server
                     del_user(user);
                 }
 
-                if (log_user) writefln!(
-                    "Admin %s kicked ALL %d users for %s!")(
-                    blue ~ admin_username ~ norm, users_to_kick[].length,
-                    duration
+                if (log_user) writeln(
+                    "Admin ", blue, admin_username, norm, " kicked ALL ",
+                    users_to_kick[].length, " users for ", duration
                 );
-                server_pm(admin_username, format!(
-                    "Kicked all %d users for %s")(
-                    users_to_kick[].length, duration.total!"minutes".minutes
-                ));
+                server_pm(
+                    admin_username,
+                    text(
+                        "Kicked all ", users_to_kick[].length, " users for ",
+                        duration.total!"minutes".minutes
+                    )
+                );
                 break;
 
             case "addprivileges":
@@ -1133,7 +1123,7 @@ final class Server
                 if (!db.user_exists(username)) {
                     server_pm(
                         admin_username,
-                        format!("User %s is not registered")(username)
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
@@ -1143,9 +1133,12 @@ final class Server
                 auto user = get_user(username);
                 if (user !is null) user.refresh_privileges();
 
-                server_pm(admin_username, format!(
-                    "Added %s of privileges to user %s")(
-                    duration.total!"days".days, username)
+                server_pm(
+                    admin_username,
+                    text(
+                        "Added ", duration.total!"days".days,
+                        " of privileges to user ", username
+                    )
                 );
                 break;
 
@@ -1171,8 +1164,8 @@ final class Server
 
                 if (!db.user_exists(username)) {
                     server_pm(
-                        admin_username, format!("User %s is not registered")(
-                        username)
+                        admin_username,
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
@@ -1184,12 +1177,13 @@ final class Server
 
                 string response;
                 if (duration == Duration.max)
-                    response = format!(
-                        "Removed all privileges from user %s")(username);
+                    response = text(
+                        "Removed all privileges from user ", username
+                    );
                 else
-                    response = format!(
-                        "Removed %s of privileges from user %s")(
-                        duration.total!"days".days, username
+                    response = text(
+                        "Removed ", duration.total!"days".days,
+                        " of privileges from user ", username
                     );
 
                 server_pm(admin_username, response);
@@ -1206,14 +1200,14 @@ final class Server
                 if (!db.user_exists(username)) {
                     server_pm(
                         admin_username,
-                        format!("User %s is not registered")(username)
+                        text("User ", username, " is not registered")
                     );
                     break;
                 }
                 del_user_tickers(username);
                 server_pm(
                     admin_username,
-                    format!("Removed user %s's public room tickers")(username)
+                    text("Removed user ", username, "'s public room tickers")
                 );
                 break;
 
@@ -1239,9 +1233,9 @@ final class Server
 
             case "uptime":
                 const duration = (MonoTime.currTime - started_monotime);
-                const response = format!("Running for %s since %s")(
-                    duration.total!"seconds".seconds,
-                    started_at.toSimpleString
+                const response = text(
+                    "Running for ", duration.total!"seconds".seconds,
+                    " since ", started_at.toSimpleString
                 );
                 server_pm(admin_username, response);
                 break;
@@ -1263,10 +1257,9 @@ final class Server
     {
         server_pm(
             username,
-            format!(
-                "Unknown command '%s'. "
-              ~ "Type 'help' to list available commands.")(
-                command
+            text(
+                "Unknown command '", command, "'. ",
+                "Type 'help' to list available commands."
             )
         );
     }

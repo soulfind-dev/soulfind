@@ -6,8 +6,6 @@
 module soulfind.main;
 @safe:
 
-import std.stdio : writefln;
-
 version (Have_soulfind_server) import soulfind.server : run;
 version (Have_soulfind_setup)  import soulfind.setup : run;
 

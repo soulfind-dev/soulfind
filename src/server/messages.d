@@ -13,10 +13,10 @@ import soulfind.server.user : User;
 import std.algorithm : clamp;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
-import std.conv : to;
+import std.conv : text;
 import std.datetime : SysTime;
 import std.encoding : isValid;
-import std.stdio : writefln;
+import std.stdio : writeln;
 import std.string : representation;
 
 // Constants
@@ -156,9 +156,9 @@ class UMessage
         this.in_buf = in_buf;
         code = read!uint();
 
-        if (log_msg) writefln!(
-            "Receive <- %s (code %d) <- from user %s")(
-            blue ~ this.name ~ norm, code, blue ~ in_username ~ norm
+        if (log_msg) writeln(
+            "Receive <- ", blue, this.name, norm, " (code ", code,
+            ") <- from user ", blue, in_username, norm
         );
     }
 
@@ -203,7 +203,7 @@ class UMessage
                         // Latin-1 fallback
                         auto wchars = new wchar[bytes.length];
                         foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
-                        value = wchars.to!string;
+                        value = wchars.text;
                     }
                 }
             }
@@ -212,10 +212,9 @@ class UMessage
             }
         }
         else {
-            if (log_msg) writefln!(
-                "Message code %d, offset %d, not enough data reading %s of "
-              ~ "size %d")(
-                code, offset, T.stringof, size
+            if (log_msg) writeln(
+                "Message code ", code, ", offset ", offset,
+                ", not enough data reading ", T.stringof, " of size ", size
             );
             is_valid = false;
         }

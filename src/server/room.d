@@ -13,7 +13,7 @@ import soulfind.server.user : User;
 import std.algorithm : sort;
 import std.array : Appender, array;
 import std.datetime : Clock, SysTime;
-import std.stdio : writefln;
+import std.stdio : writeln;
 
 struct Ticker
 {
@@ -93,9 +93,9 @@ final class Room
 
     void send_to_all(scope SMessage msg)
     {
-        if (log_msg) writefln!(
-            "Transmit=> %s (code %d) to joined room members...")(
-            blue ~ msg.name ~ norm, msg.code
+        if (log_msg) writeln(
+            "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+            ") to joined room members..."
         );
         foreach (ref user ; users) user.send_message!"log_disabled"(msg);
     }
