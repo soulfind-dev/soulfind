@@ -175,20 +175,21 @@ version (kqueue) final class KqueueSelector : Selector
         if (fd in fd_events && (fd_events[fd] & events) == events)
             return;
 
-        scope kevent_t[] changes;
+        kevent_t[2] changes;
+        size_t num_changes;
 
         if (events & SelectEvent.read)
-            changes ~= kevent_t(fd, EVFILT_READ, EV_ADD);
+            changes[num_changes++] = kevent_t(fd, EVFILT_READ, EV_ADD);
 
         if (events & SelectEvent.write)
-            changes ~= kevent_t(fd, EVFILT_WRITE, EV_ADD);
+            changes[num_changes++] = kevent_t(fd, EVFILT_WRITE, EV_ADD);
 
-        max_events += changes.length;
+        max_events += num_changes;
         if (kevents.length < max_events)
             kevents.length = max_events;
 
         fd_events[fd] |= events;
-        control(changes);
+        control(changes[0 .. num_changes]);
     }
 
     override void unregister(socket_t fd, SelectEvent events)
@@ -201,16 +202,17 @@ version (kqueue) final class KqueueSelector : Selector
             return;
 
         fd_events[fd] &= ~deleted_events;
-        scope kevent_t[] changes;
+        kevent_t[2] changes;
+        size_t num_changes;
 
         if (deleted_events & SelectEvent.read)
-            changes ~= kevent_t(fd, EVFILT_READ, EV_DELETE);
+            changes[num_changes++] = kevent_t(fd, EVFILT_READ, EV_DELETE);
 
         if (deleted_events & SelectEvent.write)
-            changes ~= kevent_t(fd, EVFILT_WRITE, EV_DELETE);
+            changes[num_changes++] = kevent_t(fd, EVFILT_WRITE, EV_DELETE);
 
-        max_events -= changes.length;
-        control(changes);
+        max_events -= num_changes;
+        control(changes[0 .. num_changes]);
     }
 
     override SelectEvent[socket_t] select()

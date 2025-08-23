@@ -525,8 +525,8 @@ final class Sdb
 
     void user_update_stats(string username, SdbUserStats stats)
     {
-        string[] fields;
-        string[] parameters;
+        Appender!(string[]) fields;
+        Appender!(string[]) parameters;
 
         if (stats.updating_speed) {
             const upload_speed = stats.upload_speed;
@@ -544,15 +544,15 @@ final class Sdb
             parameters ~= shared_folders > 0 ? shared_folders.to!string : null;
         }
 
-        if (fields.length == 0)
+        if (fields[].length == 0)
             return;
 
         const sql = format!(
             "UPDATE %s SET %s WHERE username = ?;")(
-            users_table, fields.join(", ")
+            users_table, fields[].join(", ")
         );
         parameters ~= username;
-        query(sql, parameters);
+        query(sql, parameters[]);
 
         if (log_user) writefln!("Updated user %s's stats")(
             blue ~ username ~ norm
@@ -636,11 +636,11 @@ final class Sdb
 
         res = step(stmt);
         while (res == SQLITE_ROW) {
-            string[] record;
+            Appender!(string[]) record;
             foreach (i ; 0 .. column_count(stmt))
                 record ~= column_text(stmt, i);
 
-            ret ~= record;
+            ret ~= record[];
             res = step(stmt);
         }
 
