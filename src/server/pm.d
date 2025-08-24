@@ -6,7 +6,7 @@
 module soulfind.server.pm;
 @safe:
 
-import std.datetime : SysTime;
+import std.datetime.systime : SysTime;
 
 struct PM
 {

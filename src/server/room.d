@@ -10,9 +10,9 @@ import soulfind.defines : blue, log_msg, max_chat_message_length,
                           max_room_ticker_length, max_room_tickers, norm;
 import soulfind.server.messages;
 import soulfind.server.user : User;
-import std.algorithm : sort;
+import std.algorithm.sorting : sort;
 import std.array : Appender, array;
-import std.datetime : Clock, SysTime;
+import std.datetime.systime : Clock, SysTime;
 import std.stdio : writeln;
 
 struct Ticker

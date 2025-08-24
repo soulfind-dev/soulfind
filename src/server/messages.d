@@ -10,14 +10,12 @@ import core.time : days, Duration;
 import soulfind.defines : blue, log_msg, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
-import std.algorithm : clamp;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
-import std.datetime : SysTime;
+import std.datetime.systime : SysTime;
 import std.encoding : isValid;
 import std.stdio : writeln;
-import std.string : representation;
 
 // Constants
 
@@ -951,7 +949,7 @@ class SMessage
     {
         static if (is(T == string)) {
             write!uint(cast(uint) value.length);
-            out_buf ~= value.representation;
+            out_buf ~= cast(immutable(ubyte)[]) value;
         }
         else {
             out_buf ~= value.nativeToLittleEndian[];
@@ -1185,10 +1183,11 @@ final class SMessageUser : SMessage
     {
         super(MessageUser);
 
+        const unix_timestamp = timestamp.toUnixTime;
+
         write!uint(id);
-        write!uint(cast(uint) timestamp
-            .toUnixTime
-            .clamp(0, uint.max)
+        write!uint(
+            cast(uint) (unix_timestamp > uint.max ? uint.max : unix_timestamp)
         );
         write!string(username);
         write!string(message);
@@ -1367,9 +1366,9 @@ final class SCheckPrivileges : SMessage
     {
         super(CheckPrivileges);
 
-        write!uint(cast(uint) duration
-            .total!"seconds"
-            .clamp(0, uint.max)
+        const duration_value = duration.total!"seconds";
+        write!uint(
+            cast(uint) (duration_value > uint.max ? uint.max : duration_value)
         );
     }
 }
@@ -1380,9 +1379,9 @@ final class SWishlistInterval : SMessage
     {
         super(WishlistInterval);
 
-        write!uint(cast(uint) interval
-            .total!"seconds"
-            .clamp(0, uint.max)
+        const interval_value = interval.total!"seconds";
+        write!uint(
+            cast(uint) (interval_value > uint.max ? uint.max : interval_value)
         );
     }
 }

@@ -19,18 +19,17 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
-import std.algorithm : canFind;
 import std.array : Appender;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, text, to;
-import std.datetime : Clock, SysTime;
+import std.datetime.systime : Clock, SysTime;
 import std.digest : digest, LetterCase, secureEqual, toHexString;
 import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writeln;
-import std.string : join, replace, strip;
+import std.string : indexOf, join, replace, strip;
 
 final class User
 {
@@ -418,7 +417,7 @@ final class User
                 " contains leading or trailing spaces."
             );
 
-        if (room_name.canFind("  "))
+        if (room_name.indexOf("  ") != -1)
             return text(
                 "Could not create room. Reason: Room name ", room_name,
                 " contains multiple following spaces."

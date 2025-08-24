@@ -6,19 +6,7 @@
 module soulfind.main;
 @safe:
 
-version (Have_soulfind_server) import soulfind.server : run;
-version (Have_soulfind_setup)  import soulfind.setup : run;
-
 bool running = true;
-
-private extern(C) void handle_termination(int) {
-    running = false;
-}
-
-private extern(Windows) int handle_ctrl(uint) nothrow {
-    running = false;
-    return true;
-}
 
 @trusted
 private void increase_fd_limit()
@@ -62,6 +50,10 @@ private void setup_signal_handler()
         import core.sys.posix.signal : sigaction, sigaction_t, SIGINT, SIGTERM;
         import core.sys.posix.unistd : fork;
 
+        extern(C) void handle_termination(int) {
+            running = false;
+        }
+
         sigaction_t act;
         act.sa_handler = &handle_termination;
 
@@ -70,12 +62,20 @@ private void setup_signal_handler()
     }
     version (Windows) {
         import core.sys.windows.windows : SetConsoleCtrlHandler;
+
+        extern(Windows) int handle_ctrl(uint) nothrow {
+            running = false;
+            return true;
+        }
         SetConsoleCtrlHandler(&handle_ctrl, true);
     }
 }
 
 private int main(string[] args)
 {
+    version (Have_soulfind_server) import soulfind.server : run;
+    version (Have_soulfind_setup)  import soulfind.setup  : run;
+
     increase_fd_limit();
     setup_console();
     setup_signal_handler();

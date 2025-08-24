@@ -12,7 +12,7 @@ import soulfind.defines : VERSION;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, text, to;
-import std.datetime : Clock, SysTime;
+import std.datetime.systime : Clock, SysTime;
 import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writeln;

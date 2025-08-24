@@ -18,23 +18,16 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm : clamp, sort;
+import std.algorithm.sorting : sort;
 import std.array : Appender, array;
 import std.conv : ConvException, text, to;
-import std.datetime : Clock, SysTime;
+import std.datetime.systime : Clock, SysTime;
 import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;
 import std.stdio : writeln;
 import std.string : join, split;
-
-version (unittest) {
-    auto running = true;
-}
-else {
-    import soulfind.main : running;
-}
 
 final class Server
 {
@@ -68,6 +61,11 @@ final class Server
 
     int listen()
     {
+        version (unittest)
+            const running = true;
+        else
+            import soulfind.main : running;
+
         auto listen_sock = new TcpSocket();
         listen_sock.blocking = false;
 
@@ -958,10 +956,9 @@ final class Server
                 Duration duration;
                 string username;
                 try {
-                    duration = command[1]
-                        .to!ulong
-                        .clamp(0, ushort.max)
-                        .days;
+                    const value = command[1].to!ulong;
+                    const limit = ushort.max;
+                    duration = (value > limit ? limit : value).days;
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException) {
@@ -1020,10 +1017,9 @@ final class Server
                 Duration duration;
                 string username;
                 try {
-                    duration = command[1]
-                        .to!ulong
-                        .clamp(0, ushort.max)
-                        .minutes;
+                    const value = command[1].to!ulong;
+                    const limit = ushort.max;
+                    duration = (value > limit ? limit : value).minutes;
                     username = command[2 .. $].join(" ");
                 }
                 catch (ConvException) {
@@ -1057,10 +1053,9 @@ final class Server
                 Duration duration = kick_duration;
                 if (command.length > 1) {
                     try {
-                        duration = command[1]
-                            .to!ulong
-                            .clamp(0, ushort.max)
-                            .minutes;
+                        const value = command[1].to!ulong;
+                        const limit = ushort.max;
+                        duration = (value > limit ? limit : value).minutes;
                     }
                     catch (ConvException) {
                         server_pm(
@@ -1103,10 +1098,9 @@ final class Server
 
                 Duration duration;
                 try {
-                    duration = command[1]
-                        .to!ulong
-                        .clamp(0, ushort.max)
-                        .days;
+                    const value = command[1].to!ulong;
+                    const limit = ushort.max;
+                    duration = (value > limit ? limit : value).days;
                 }
                 catch (ConvException) {
                     server_pm(
