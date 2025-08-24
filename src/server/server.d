@@ -18,7 +18,7 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm.sorting : sort;
+import std.algorithm.sorting : topN;
 import std.array : Appender, array;
 import std.conv : ConvException, text, to;
 import std.datetime.systime : Clock, SysTime;
@@ -523,15 +523,13 @@ final class Server
     {
         int[string] filtered_recommendations;
         auto recommendations_array = recommendations.byKeyValue.array;
-        recommendations_array.sort!(
+        recommendations_array.topN!(
             (ref a, ref b)
             => ascending ? a.value < b.value : a.value > b.value
-        );
+        )(max_length);
 
         foreach (i, ref item; recommendations_array) {
             const rating = item.value;
-            if (i >= max_length)
-                break;
             if (rating != 0) filtered_recommendations[item.key] = rating;
         }
         return filtered_recommendations;
