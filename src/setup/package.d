@@ -6,61 +6,41 @@
 module soulfind.setup;
 @safe:
 
-import soulfind.defines : default_db_filename, exit_message, VERSION;
+import soulfind.cli : print_help, print_version;
+import soulfind.defines : default_db_filename, exit_message;
 import soulfind.setup.setup : Setup;
-import std.array : appender;
-import std.compiler : name, version_major, version_minor;
+import std.array : Appender;
 import std.conv : text;
-import std.getopt : config, defaultGetoptFormatter, getopt, GetoptResult;
-import std.stdio : write, writeln;
-import std.system : os;
+import std.getopt : getopt, GetoptResult;
+import std.stdio : writeln;
 
-@trusted
-GetoptResult parse_args(ref string[] args, ref string db_filename,
-                        ref bool show_version)
-{
-    return getopt(
-        args,
-        config.passThrough,
-        "d|database", text("Path to database (default: ", db_filename, ")."),
-                      &db_filename,
-        "v|version", "Show version.", &show_version
-    );
-}
+private string  db_filename = default_db_filename;
+private bool    show_version;
 
 int run(string[] args)
 {
     GetoptResult result;
-    string db_filename = default_db_filename;
-    bool show_version;
-
     try {
-        result = parse_args(args, db_filename, show_version);
+        result = getopt(
+            args,
+            "d|database", text(
+                "Database path (default: ", default_db_filename, ")."
+            ),                             &db_filename,
+            "v|version",  "Show version.", &show_version
+        );
     }
     catch (Exception e) {
         writeln(e.msg);
         return 1;
     }
 
-    if (result.helpWanted) {
-        auto output = appender!string;
-        output.defaultGetoptFormatter(
-            text("Usage: ", args[0], " [options]"), result.options
-        );
-        write(output[]);
+    if (show_version) {
+        print_version();
         return 0;
     }
 
-    if (args.length > 1) {
-        writeln("Unrecognized option ", args[1]);
-        return 1;
-    }
-
-    if (show_version) {
-        writeln(
-            "Soulfind ", VERSION, "\nCompiled with ", name, " ", version_major,
-            ".", version_minor, " for ", os
-        );
+    if (result.helpWanted) {
+        print_help("Soulfind server management tool", result.options);
         return 0;
     }
 
