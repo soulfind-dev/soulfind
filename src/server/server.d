@@ -665,7 +665,7 @@ final class Server
     private string user_list(string type = null)
     {
         Appender!string output;
-        switch (type)
+        final switch (type)
         {
             case "connected":
                 output ~= text(users.length, " connected users.");
@@ -713,10 +713,6 @@ final class Server
                 foreach (ref username ; db.usernames)
                     output ~= text("\n\t", username);
                 break;
-
-            default:
-                output ~= "Syntax is : users [connected|banned|privileged]";
-
         }
         return output[];
     }
