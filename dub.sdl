@@ -1,0 +1,55 @@
+// SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+name "soulfind"
+description "Soulseek server implementation in D"
+copyright "Copyright © 2005-2025, Soulfind Contributors"
+license "GPL-3.0-or-later"
+
+configuration "default" {
+    targetType "none"
+    mainSourceFile "src/main.d"
+    dependency "soulfind:server" version="*"
+    dependency "soulfind:setup" version="*"
+}
+configuration "static" {
+    targetType "none"
+    dependency "soulfind:server" version="*" {
+        dflags "-static" "-L--no-export-dynamic"
+        dflags "--flto=thin" platform="ldc"
+    }
+    dependency "soulfind:setup" version="*" {
+        dflags "-static" "-L--no-export-dynamic"
+        dflags "--flto=thin" platform="ldc"
+    }
+}
+configuration "unittest" {
+    targetPath "bin"
+    libs "sqlite3" platform="posix"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x86" platform="windows-x86"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x64" platform="windows-x86_64"
+    libs "$PACKAGE_DIR/lib/winsqlite3-arm64" platform="windows-aarch64"
+}
+
+subPackage {
+    name "server"
+    targetType "executable"
+    targetPath "bin"
+    targetName "soulfind"
+    libs "sqlite3" platform="posix"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x86" platform="windows-x86"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x64" platform="windows-x86_64"
+    libs "$PACKAGE_DIR/lib/winsqlite3-arm64" platform="windows-aarch64"
+    excludedSourceFiles "src/setup/*"
+}
+subPackage {
+    name "setup"
+    targetType "executable"
+    targetPath "bin"
+    targetName "soulsetup"
+    libs "sqlite3" platform="posix"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x86" platform="windows-x86"
+    libs "$PACKAGE_DIR/lib/winsqlite3-x64" platform="windows-x86_64"
+    libs "$PACKAGE_DIR/lib/winsqlite3-arm64" platform="windows-aarch64"
+    excludedSourceFiles "src/server/*"
+}

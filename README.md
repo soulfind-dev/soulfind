@@ -55,8 +55,11 @@ Once compiled, binaries are available in the `bin/` folder.
 
 ### Using a Different Compiler
 
-LDC is used as the default D compiler. Set the DC environment variable to use
-a different compiler:
+Set the DC environment variable to use a specific compiler:
+
+```sh
+DC=ldc2 dub build
+```
 
 ```sh
 DC=dmd dub build
