@@ -302,7 +302,7 @@ final class Sdb
 
     private string hash_password(string password)
     {
-        return digest!MD5(password).toHexString!(LetterCase.lower).text;
+        return digest!MD5(password).toHexString!(LetterCase.lower).idup;
     }
 
     void add_user(string username, string password)

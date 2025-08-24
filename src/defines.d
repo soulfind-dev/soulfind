@@ -11,7 +11,7 @@ import std.string : join, split;
 
 // Constants
 
-const VERSION                     = __DATE__.split.join("-");
+const VERSION                     = __DATE__.split(" ").join("-");
 const default_db_filename         = "soulfind.db";
 const default_port                = 2242;
 const default_max_users           = 65535;

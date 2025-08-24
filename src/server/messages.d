@@ -14,8 +14,8 @@ import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
 import std.datetime.systime : SysTime;
-import std.encoding : isValid;
 import std.stdio : writeln;
+import std.utf : UTFException, validate;
 
 // Constants
 
@@ -191,13 +191,13 @@ class UMessage
             static if (is(T : string)) {
                 if (size > 0) {
                     const bytes = in_buf[offset .. offset + size];
+                    value = cast(T) bytes.idup;  // UTF-8
                     offset += size;
 
-                    if (bytes.isValid) {
-                        // UTF-8
-                        value = cast(T) bytes.idup;
+                    try {
+                        value.validate;
                     }
-                    else {
+                    catch (UTFException) {
                         // Latin-1 fallback
                         auto wchars = new wchar[bytes.length];
                         foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;

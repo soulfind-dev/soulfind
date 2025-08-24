@@ -19,6 +19,7 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
+import std.algorithm.searching : canFind;
 import std.array : Appender;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
@@ -29,7 +30,7 @@ import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writeln;
-import std.string : indexOf, join, replace, strip;
+import std.string : join, replace, strip;
 
 final class User
 {
@@ -417,7 +418,7 @@ final class User
                 " contains leading or trailing spaces."
             );
 
-        if (room_name.indexOf("  ") != -1)
+        if (room_name.canFind("  "))
             return text(
                 "Could not create room. Reason: Room name ", room_name,
                 " contains multiple following spaces."
@@ -586,7 +587,7 @@ final class User
                 string[] privileged_users;
                 const md5_hash = digest!MD5(msg.password)
                     .toHexString!(LetterCase.lower)
-                    .text;
+                    .idup;
                 scope response_msg = new SLogin(
                     true, login_rejection, motd, address.addr, md5_hash,
                     supporter
@@ -1268,7 +1269,7 @@ final class User
                 if (log_msg) writeln(
                     "Unimplemented message code ", red, code, norm,
                     " from user ", blue, username, norm, " with length ",
-                    msg_buf.length, "\n", msg_buf
+                    msg_buf.length
                 );
                 break;
         }

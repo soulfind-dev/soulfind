@@ -10,7 +10,6 @@ import soulfind.cli : print_help, print_version;
 import soulfind.defines : default_db_filename, exit_message, log_db, log_msg,
                           log_user;
 import soulfind.server.server : Server;
-import std.array : Appender;
 import std.conv : text;
 import std.getopt : getopt, GetoptResult;
 import std.stdio : writeln;

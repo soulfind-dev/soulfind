@@ -17,7 +17,6 @@ import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.stdio : readln, StdioException, write, writeln;
 import std.string : chomp, strip, toLower;
-import std.system : os;
 
 struct MenuItem
 {
@@ -154,11 +153,13 @@ final class Setup
 
         Appender!string output;
         output ~= text("\nAdmins (", names.length, ")...");
-        foreach (ref name ; names)
+        foreach (ref name ; names) {
+            output ~= "\n\t";
+            output ~= name;
             output ~= text(
-                "\n\t", name, " (registered: ",
-                db.user_exists(name) ? "true" : "false", ")"
+                " (registered: ", db.user_exists(name) ? "yes" : "no", ")"
             );
+        }
 
         writeln(output[]);
         admins();
@@ -291,7 +292,7 @@ final class Setup
             text(
                 "Soulfind ", VERSION,
                 "\n\tCompiled with ", name, " ",
-                version_major, ".", version_minor, " for ", os,
+                version_major, ".", version_minor,
                 "\n\nStats:",
                 "\n\t", db.num_users, " registered users",
                 "\n\t", db.num_users("privileges", Clock.currTime.toUnixTime),
@@ -362,12 +363,12 @@ final class Setup
 
         const username = input.strip;
         const now = Clock.currTime;
-        const admin = db.is_admin(username);
-        auto banned = "false";
+        const admin = db.is_admin(username) ? "yes" : "no";
+        auto banned = "no";
         const banned_until = db.user_banned_until(username);
-        auto privileged = "false";
+        auto privileged = "no";
         const privileged_until = db.user_privileged_until(username);
-        const supporter = privileged_until.stdTime > 0;
+        const supporter = (privileged_until.stdTime > 0) ? "yes" : "no";
         const stats = db.user_stats(username);
 
         if (banned_until == SysTime.fromUnixTime(long.max))
@@ -453,7 +454,11 @@ final class Setup
 
         Appender!string output;
         output ~= text("\nRegistered users (", names.length, ")...");
-        foreach (ref name ; names) output ~= text("\n\t", name);
+
+        foreach (ref name ; names) {
+            output ~= "\n\t";
+            output ~= name;
+        }
 
         writeln(output[]);
         registered_users();
@@ -465,11 +470,12 @@ final class Setup
 
         Appender!string output;
         output ~= text("\nPrivileged users (", names.length, ")...");
+
         foreach (ref name ; names) {
             const privileged_until = db.user_privileged_until(name);
-            output ~= text(
-            	"\n\t", name, " (until ", privileged_until.toSimpleString, ")"
-            );
+            output ~= "\n\t";
+            output ~= name;
+            output ~= text(" (until ", privileged_until.toSimpleString, ")");
         }
 
         writeln(output[]);
@@ -482,14 +488,19 @@ final class Setup
 
         Appender!string output;
         output ~= text("\nBanned users (", names.length, ")...");
+
         foreach (ref name ; names) {
             const banned_until = db.user_banned_until(name);
-            if (banned_until != SysTime.fromUnixTime(long.max))
-                output ~= text(
-                    "\n\t", name, " (until ", banned_until.toSimpleString, ")"
-                );
-            else
-                output ~= text("\n\t", name, " (forever)");
+            if (banned_until != SysTime.fromUnixTime(long.max)) {
+                output ~= "\n\t";
+                output ~= name;
+                output ~= text(" (until ", banned_until.toSimpleString, ")");
+            }
+            else {
+                output ~= "\n\t";
+                output ~= name;
+                output ~= " (forever)";
+            }
         }
 
         writeln(output[]);

@@ -9,7 +9,6 @@ module soulfind.setup;
 import soulfind.cli : print_help, print_version;
 import soulfind.defines : default_db_filename, exit_message;
 import soulfind.setup.setup : Setup;
-import std.array : Appender;
 import std.conv : text;
 import std.getopt : getopt, GetoptResult;
 import std.stdio : writeln;

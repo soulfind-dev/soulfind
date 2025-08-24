@@ -11,7 +11,7 @@ import soulfind.defines : blue, log_msg, max_chat_message_length,
 import soulfind.server.messages;
 import soulfind.server.user : User;
 import std.algorithm.sorting : sort;
-import std.array : Appender, array;
+import std.array : Appender;
 import std.datetime.systime : Clock, SysTime;
 import std.stdio : writeln;
 
@@ -169,7 +169,11 @@ final class Room
 
     Ticker[] tickers_by_order()
     {
-        return tickers.byValue.array.sort.array;
+        Ticker[] sorted_tickers;
+        foreach (ref ticker ; tickers.byValue) sorted_tickers ~= ticker;
+        sorted_tickers.sort();
+
+        return sorted_tickers;
     }
 
     size_t num_tickers()

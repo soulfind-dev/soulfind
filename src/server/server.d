@@ -18,11 +18,10 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm.sorting : topN;
+import std.algorithm.sorting : sort;
 import std.array : Appender, array;
 import std.conv : ConvException, text, to;
 import std.datetime.systime : Clock, SysTime;
-import std.process : thisProcessID;
 import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;
@@ -88,16 +87,24 @@ final class Server
             return 1;
         }
 
+        @trusted
+        size_t process_id () {
+            version (Windows)
+                import core.sys.windows.winbase : getpid = GetCurrentProcessId;
+            else version (Posix)
+                import core.sys.posix.unistd : getpid;
+            return getpid;
+        }
         writeln(
             red, "\&hearts;", norm, " ", bold, "Soulfind", " ", VERSION,
-            norm, " process ", thisProcessID, " listening on port ", port
+            norm, " process ", process_id, " listening on port ", port
         );
 
         selector.register(listen_sock.handle, SelectEvent.read);
 
         while (running) {
             const ready_sock_handles = selector.select();
-            Appender!(User[]) users_to_disconnect;
+            User[] users_to_disconnect;
 
             foreach (sock_handle, events ; ready_sock_handles) {
                 const recv_ready = (events & SelectEvent.read) != 0;
@@ -355,7 +362,7 @@ final class Server
 
     void del_user_pms(string username, bool include_received = false)
     {
-        Appender!(PM[]) pms_to_remove;
+        PM[] pms_to_remove;
         foreach (ref pm ; pms) {
             if (pm.from_username == username
                     || (include_received && pm.to_username == username))
@@ -523,12 +530,14 @@ final class Server
     {
         int[string] filtered_recommendations;
         auto recommendations_array = recommendations.byKeyValue.array;
-        recommendations_array.topN!(
+        recommendations_array.sort!(
             (ref a, ref b)
             => ascending ? a.value < b.value : a.value > b.value
-        )(max_length);
+        );
 
         foreach (i, ref item; recommendations_array) {
+            if (i >= max_length)
+                break;
             const rating = item.value;
             if (rating != 0) filtered_recommendations[item.key] = rating;
         }
@@ -590,12 +599,18 @@ final class Server
 
         output ~= name;
         output ~= text("\nUsers (", room.num_users, "):");
-        foreach (ref username ; room.usernames)
-            output ~= text("\n\t", username);
+
+        foreach (ref username ; room.usernames) {
+            output ~= "\n\t";
+            output ~= username;
+        }
 
         output ~= text("\nTickers (", room.num_tickers, "):");
-        foreach (ref ticker ; room.tickers_by_order)
-            output ~= text("\n\t[", ticker.username, "] ", ticker.content);
+
+        foreach (ref ticker ; room.tickers_by_order) {
+            output ~= text("\n\t[", ticker.username, "] ");
+            output ~= ticker.content;
+        }
 
         return output[];
     }
@@ -665,11 +680,13 @@ final class Server
         {
             case "connected":
                 output ~= text(users.length, " connected users.");
-                foreach (ref user ; users)
+                foreach (ref user ; users) {
+                    output ~= "\n\t";
+                    output ~= user.username;
                     output ~= text(
-                        "\n\t", user.username, " (client version: ",
-                        user.client_version, ")"
+                        " (client version: ", user.client_version, ")"
                     );
+                }
                 break;
 
             case "privileged":
@@ -679,9 +696,10 @@ final class Server
                 output ~= text(users.length, " privileged users.");
                 foreach (ref user ; users) {
                     const privileged_until = db.user_privileged_until(user);
+                    output ~= "\n\t";
+                    output ~= user;
                     output ~= text(
-                        "\n\t", user, " (until ",
-                        privileged_until.toSimpleString, ")"
+                        " (until ", privileged_until.toSimpleString, ")"
                     );
                 }
                 break;
@@ -693,21 +711,28 @@ final class Server
                 output ~= text(users.length, " banned users.");
                 foreach (ref user ; users) {
                     const banned_until = db.user_banned_until(user);
-                    if (banned_until == SysTime.fromUnixTime(long.max))
-                        output ~= text("\n\t", user, " (forever)");
-                    else
+                    if (banned_until == SysTime.fromUnixTime(long.max)) {
+                        output ~= "\n\t";
+                        output ~= user;
+                        output ~= " (forever)";
+                    }
+                    else {
+                        output ~= "\n\t";
+                        output ~= user;
                         output ~= text(
-                            "\n\t", user, " (until ",
-                            banned_until.toSimpleString, ")"
+                            " (until ", banned_until.toSimpleString, ")"
                         );
+                    }
                 }
                 break;
 
             case null:
                 const usernames = db.usernames;
                 output ~= text(usernames.length, " total users.");
-                foreach (ref username ; db.usernames)
-                    output ~= text("\n\t", username);
+                foreach (ref username ; db.usernames) {
+                    output ~= "\n\t";
+                    output ~= username;
+                }
                 break;
         }
         return output[];
@@ -721,35 +746,38 @@ final class Server
         auto client_version = "none";
         auto ip_address = "none";
         ushort listening_port;
-        auto obfuscation_type = "none";
         ushort obfuscated_port;
+        auto obfuscation_type = "none";
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
-        auto joined_global_room = "false";
-        const admin = db.is_admin(username);
-        auto banned = "false";
-        auto privileged = "false";
+        auto joined_global_room = "no";
+        auto admin = db.is_admin(username) ? "yes" : "no";
+        auto banned = "no";
+        auto privileged = "no";
         SysTime privileged_until;
-        bool supporter;
+        auto supporter = "no";
         uint upload_speed;
         uint shared_files, shared_folders;
 
         user = get_user(username);
         if (user !is null) {
-            status = user.status.text;
+            status = (user.status == UserStatus.away) ? "away" : "online";
             client_version = user.client_version;
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
-            obfuscation_type = user.obfuscation_type.text;
             obfuscated_port = user.obfuscated_port;
+            obfuscation_type = (
+                (user.obfuscation_type == ObfuscationType.normal) ? "normal"
+                : (cast(uint) user.obfuscation_type).text
+            );
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
             joined_rooms = user.joined_room_names.join(", ");
-            if (global_room.is_joined(username)) joined_global_room = "true";
+            if (global_room.is_joined(username)) joined_global_room = "yes";
             privileged_until = user.privileged_until;
-            supporter = user.supporter;
+            if (user.supporter) supporter = "yes";
             upload_speed = user.upload_speed;
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
@@ -757,7 +785,7 @@ final class Server
         else {
             const user_stats = db.user_stats(username);
             privileged_until = db.user_privileged_until(username);
-            supporter = privileged_until.stdTime > 0;
+            if (privileged_until.stdTime > 0) supporter = "yes";
             upload_speed = user_stats.upload_speed;
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;
@@ -888,7 +916,9 @@ final class Server
                 output ~= text(names.length, " admins.");
                 foreach (ref name ; names) {
                     const status = (name in users) ? "online" : "offline";
-                    output ~= text("\n\t", name, " (", status, ")");
+                    output ~= "\n\t";
+                    output ~= name;
+                    output ~= text(" (", status, ")");
                 }
 
                 server_pm(admin_username, output[]);
@@ -902,11 +932,14 @@ final class Server
             case "rooms":
                 Appender!string output;
                 output ~= text(rooms.length, " public rooms.");
-                foreach (ref room ; rooms)
+                foreach (ref room ; rooms) {
+                    output ~= "\n\t";
+                    output ~= room.name;
                     output ~= text(
-                        "\n\t", room.name, " (users: ", room.num_users,
-                        ", tickers: ", room.num_tickers, ")"
+                        " (users: ", room.num_users, ", tickers: ",
+                        room.num_tickers, ")"
                     );
+                }
                 server_pm(admin_username, output[]);
                 break;
 
@@ -985,7 +1018,7 @@ final class Server
                 else
                     response = text(
                         "Banned user ", username, " for ",
-                        duration.total!"days".days
+                        duration.total!"days".days.toString
                     );
 
                 server_pm(admin_username, response);
@@ -1042,7 +1075,7 @@ final class Server
                     admin_username,
                     text(
                         "Kicked user ", username, " for ",
-                        duration.total!"minutes".minutes
+                        duration.total!"minutes".minutes.toString
                     )
                 );
                 break;
@@ -1062,7 +1095,7 @@ final class Server
                         break;
                     }
                 }
-                Appender!(User[]) users_to_kick;
+                User[] users_to_kick;
                 foreach (ref user ; users)
                     if (user.username != admin_username)
                         users_to_kick ~= user;
@@ -1074,13 +1107,13 @@ final class Server
 
                 if (log_user) writeln(
                     "Admin ", blue, admin_username, norm, " kicked ALL ",
-                    users_to_kick[].length, " users for ", duration
+                    users_to_kick[].length, " users for ", duration.toString
                 );
                 server_pm(
                     admin_username,
                     text(
                         "Kicked all ", users_to_kick[].length, " users for ",
-                        duration.total!"minutes".minutes
+                        duration.total!"minutes".minutes.toString
                     )
                 );
                 break;
@@ -1124,7 +1157,7 @@ final class Server
                 server_pm(
                     admin_username,
                     text(
-                        "Added ", duration.total!"days".days,
+                        "Added ", duration.total!"days".days.toString,
                         " of privileges to user ", username
                     )
                 );
@@ -1170,7 +1203,7 @@ final class Server
                     );
                 else
                     response = text(
-                        "Removed ", duration.total!"days".days,
+                        "Removed ", duration.total!"days".days.toString,
                         " of privileges from user ", username
                     );
 
@@ -1222,7 +1255,7 @@ final class Server
             case "uptime":
                 const duration = (MonoTime.currTime - started_monotime);
                 const response = text(
-                    "Running for ", duration.total!"seconds".seconds,
+                    "Running for ", duration.total!"seconds".seconds.toString,
                     " since ", started_at.toSimpleString
                 );
                 server_pm(admin_username, response);
