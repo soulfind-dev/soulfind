@@ -6,27 +6,36 @@
 module soulfind.setup;
 @safe:
 
-import soulfind.cli : print_help, print_version;
+import soulfind.cli : CommandOption, parse_args, print_help, print_version;
 import soulfind.defines : default_db_filename, exit_message;
 import soulfind.setup.setup : Setup;
 import std.conv : text;
-import std.getopt : getopt, GetoptResult;
 import std.stdio : writeln;
-
-private string  db_filename = default_db_filename;
-private bool    show_version;
 
 int run(string[] args)
 {
-    GetoptResult result;
-    try {
-        result = getopt(
-            args,
-            "d|database", text(
+    string  db_filename = default_db_filename;
+    bool    show_version;
+    bool    show_help;
+
+    auto options = [
+        CommandOption(
+            "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
-            ),                             &db_filename,
-            "v|version",  "Show version.", &show_version
-        );
+            ), "path",
+            (value) { db_filename = value; }
+        ),
+        CommandOption(
+            "v", "version", "Show version.", null,
+            (_) { show_version = true; }
+        ),
+        CommandOption(
+            "h", "help", "Show this help message.", null,
+            (_) { show_help = true; }
+        )
+    ];
+    try {
+        parse_args(args, options);
     }
     catch (Exception e) {
         writeln(e.msg);
@@ -38,8 +47,8 @@ int run(string[] args)
         return 0;
     }
 
-    if (result.helpWanted) {
-        print_help("Soulfind server management tool", result.options);
+    if (show_help) {
+        print_help("Soulfind server management tool", options);
         return 0;
     }
 
