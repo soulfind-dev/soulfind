@@ -30,7 +30,7 @@ import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
 import std.stdio : writeln;
-import std.string : join, replace, strip;
+import std.string : join, replace, strip, toLower;
 
 final class User
 {
@@ -301,14 +301,13 @@ final class User
         if (item.length == 0 || item.length > max_interest_length)
             return;
 
-        if (likes(item))
-            return;
-
-        liked_items[item] = item;
+        item = item.toLower;
+        if (!likes(item)) liked_items[item] = item;
     }
 
     private void del_liked_item(string item)
     {
+        item = item.toLower;
         if (likes(item)) liked_items.remove(item);
     }
 
@@ -317,14 +316,13 @@ final class User
         if (item.length == 0 || item.length > max_interest_length)
             return;
 
-        if (hates(item))
-            return;
-
-        hated_items[item] = item;
+        item = item.toLower;
+        if (!hates(item)) hated_items[item] = item;
     }
 
     private void del_hated_item(string item)
     {
+        item = item.toLower;
         if (hates(item)) hated_items.remove(item);
     }
 
