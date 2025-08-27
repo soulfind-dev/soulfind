@@ -782,8 +782,8 @@ final class Server
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
 
-            if (user.obfuscation_type == ObfuscationType.normal)
-                obfuscation_type = "normal";
+            if (user.obfuscation_type == ObfuscationType.rotated)
+                obfuscation_type = "rotated";
             else if (user.obfuscation_type != ObfuscationType.none)
                 obfuscation_type = (cast(uint) user.obfuscation_type).text;
         }

@@ -30,8 +30,8 @@ const enum LoginRejectionReason : string
 
 const enum ObfuscationType : uint
 {
-    none    = 0,
-    normal  = 1
+    none     = 0,
+    rotated  = 1
 }
 
 const enum UserStatus : uint
