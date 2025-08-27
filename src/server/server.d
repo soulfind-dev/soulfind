@@ -676,7 +676,7 @@ final class Server
     private string user_list(string type = null)
     {
         Appender!string output;
-        final switch (type)
+        switch (type)
         {
             case "connected":
                 output ~= text(users.length, " connected users.");
@@ -734,6 +734,10 @@ final class Server
                     output ~= username;
                 }
                 break;
+
+            default:
+                output ~= "Syntax is : users [connected|banned|privileged]";
+
         }
         return output[];
     }
