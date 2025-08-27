@@ -767,10 +767,6 @@ final class Server
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
-            obfuscation_type = (
-                (user.obfuscation_type == ObfuscationType.normal) ? "normal"
-                : (cast(uint) user.obfuscation_type).text
-            );
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
@@ -781,6 +777,11 @@ final class Server
             upload_speed = user.upload_speed;
             shared_files = user.shared_files;
             shared_folders = user.shared_folders;
+
+            if (user.obfuscation_type == ObfuscationType.normal)
+                obfuscation_type = "normal";
+            else if (user.obfuscation_type != ObfuscationType.none)
+                obfuscation_type = (cast(uint) user.obfuscation_type).text;
         }
         else {
             const user_stats = db.user_stats(username);
