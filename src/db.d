@@ -93,7 +93,6 @@ final class Sdb
     sqlite3* db;
 
     const users_table   = "users";
-    const admins_table  = "admins";
     const config_table  = "config";
 
 
@@ -125,13 +124,7 @@ final class Sdb
             " folders INTEGER,",
             " banned INTEGER,",
             " privileges INTEGER",
-            ") WITHOUT ROWID;"
-        );
-
-        const admins_sql = text(
-            "CREATE TABLE IF NOT EXISTS ", admins_table,
-            "(username TEXT PRIMARY KEY,",
-            " level INTEGER NOT NULL",
+            " admin INTEGER",
             ") WITHOUT ROWID;"
         );
 
@@ -140,7 +133,7 @@ final class Sdb
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
-        query(admins_sql);
+        add_new_columns();
         init_config();
     }
 
@@ -149,6 +142,28 @@ final class Sdb
         if (log_db) writeln("DB: Shutting down...");
         close();
         shutdown();
+    }
+
+    private void add_new_columns()
+    {
+        // Temporary migration code to add new columns
+        const columns = query(text("PRAGMA table_info(", users_table, ");"));
+        bool has_admin;
+
+        foreach (ref column; columns) {
+            if (column.length < 1)
+                continue;
+
+            if (column[1] == "admin") {
+                has_admin = true;
+                break;
+            }
+        }
+
+        if (!has_admin)
+            query(text(
+                "ALTER TABLE ", users_table, " ADD COLUMN admin INTEGER;"
+            ));
     }
 
     private void init_config()
@@ -265,41 +280,6 @@ final class Sdb
         set_config_value("motd", motd);
     }
 
-    void add_admin(string username)
-    {
-        const sql = text(
-            "REPLACE INTO ", admins_table, "(username, level) VALUES(?, ?);"
-        );
-        const level = 0;
-        query(sql, [username, level.text]);
-
-        if (log_user) writeln("Added new admin ", blue, username, norm);
-    }
-
-    void del_admin(string username)
-    {
-        const sql = text("DELETE FROM ", admins_table, " WHERE username = ?;");
-        query(sql, [username]);
-
-        if (log_user) writeln("Removed admin ", blue, username, norm);
-    }
-
-    string[] admins()
-    {
-        const sql = text("SELECT username FROM ", admins_table, ";");
-        Appender!(string[]) admins;
-        foreach (ref record ; query(sql)) admins ~= record[0];
-        return admins[];
-    }
-
-    bool is_admin(string username)
-    {
-        const sql = text(
-            "SELECT 1 FROM ", admins_table, " WHERE username = ?;"
-        );
-        return query(sql, [username]).length > 0;
-    }
-
     private string hash_password(string password)
     {
         return digest!MD5(password).toHexString!(LetterCase.lower).idup;
@@ -357,6 +337,53 @@ final class Sdb
             "SELECT 1 FROM ", users_table, " WHERE username = ?;"
         );
         return query(sql, [username]).length > 0;
+    }
+
+    void add_admin(string username, Duration duration)
+    {
+        const sql = text(
+            "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
+        );
+        long admin_until;
+
+        if (duration == Duration.max)
+            admin_until = long.max;
+        else
+            admin_until = (
+                Clock.currTime.toUnixTime + duration.total!"seconds");
+
+        query(sql, [admin_until.text, username]);
+
+        if (log_user) writeln("Added admin ", blue, username, norm);
+    }
+
+    void del_admin(string username)
+    {
+        const sql = text(
+            "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
+        );
+        query(sql, [null, username]);
+
+        if (log_user) writeln("Removed admin ", blue, username, norm);
+    }
+
+    SysTime admin_until(string username)
+    {
+        const sql = text(
+            "SELECT admin FROM ", users_table, " WHERE username = ?;"
+        );
+        const res = query(sql, [username]);
+        long admin_until;
+
+        if (res.length > 0) {
+            try {
+                admin_until = res[0][0].to!long;
+                if (admin_until > 0)
+                    return SysTime.fromUnixTime(admin_until);
+            }
+            catch (ConvException) {}
+        }
+        return SysTime();
     }
 
     void add_user_privileges(string username, Duration duration)
