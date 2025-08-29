@@ -5,7 +5,7 @@
 module soulfind.select;
 @safe:
 
-import core.time : Duration;
+import std.datetime : Duration;
 import std.socket : socket_t;
 
 version (linux)         version = epoll;

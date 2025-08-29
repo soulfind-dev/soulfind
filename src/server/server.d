@@ -6,7 +6,6 @@
 module soulfind.server.server;
 @safe:
 
-import core.time : days, Duration, minutes, MonoTime, msecs, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
@@ -22,7 +21,8 @@ import soulfind.server.user : User;
 import std.algorithm.sorting : sort;
 import std.array : Appender, array;
 import std.conv : ConvException, text, to;
-import std.datetime.systime : Clock, SysTime;
+import std.datetime : Clock, days, Duration, minutes, MonoTime, msecs, seconds,
+                      SysTime;
 import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketOption, SocketOptionLevel, SocketOSException,
                     SocketShutdown, TcpSocket;

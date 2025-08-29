@@ -6,14 +6,13 @@
 module soulfind.setup.setup;
 @safe:
 
-import core.time : days, Duration;
 import soulfind.db : Sdb;
 import soulfind.defines : pbkdf2_iterations, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, text, to;
-import std.datetime.systime : Clock, SysTime;
+import std.datetime : Clock, days, Duration, SysTime;
 import std.stdio : readln, StdioException, write, writeln;
 import std.string : chomp, strip, toLower;
 

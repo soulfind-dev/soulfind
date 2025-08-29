@@ -6,14 +6,13 @@
 module soulfind.server.messages;
 @safe:
 
-import core.time : days, Duration;
 import soulfind.defines : blue, log_msg, norm;
 import soulfind.server.room : Ticker;
 import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
-import std.datetime.systime : SysTime;
+import std.datetime : days, Duration, SysTime;
 import std.stdio : writeln;
 import std.utf : UTFException, validate;
 

@@ -48,7 +48,6 @@ private void setup_signal_handler()
 {
     version (Posix) {
         import core.sys.posix.signal : sigaction, sigaction_t, SIGINT, SIGTERM;
-        import core.sys.posix.unistd : fork;
 
         extern(C) void handle_termination(int) {
             running = false;

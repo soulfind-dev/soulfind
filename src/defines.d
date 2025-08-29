@@ -6,7 +6,7 @@
 module soulfind.defines;
 @safe:
 
-import core.time : minutes, seconds;
+import std.datetime : minutes, seconds;
 import std.string : join, split;
 
 // Constants
