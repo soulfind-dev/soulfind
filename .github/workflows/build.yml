@@ -89,7 +89,7 @@ jobs:
         shell: sh
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up D (Linux)
         if: runner.os == 'Linux'
@@ -139,10 +139,10 @@ jobs:
       TAG_NAME: latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: dist/
 
