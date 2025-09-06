@@ -303,6 +303,7 @@ final class Setup
                 "Soulfind ", VERSION,
                 "\n\tCompiled with ", name, " ",
                 version_major, ".", version_minor,
+                "\n\tUsing SQLite ", db.sqlite_version,
                 "\n\nStats:",
                 "\n\t", db.num_users, " registered users",
                 "\n\t", db.num_users("privileges", Clock.currTime.toUnixTime),

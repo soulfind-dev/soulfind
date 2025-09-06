@@ -20,6 +20,8 @@ extern (C) {
     // missing in certain GDC versions.
     // https://github.com/dlang/phobos/blob/HEAD/etc/c/sqlite3.d
 
+    immutable(char)* sqlite3_libversion();
+
     enum
     {
         SQLITE_OK                       = 0,
@@ -88,10 +90,10 @@ final class SdbException : Exception
 
 final class Sdb
 {
-    sqlite3* db;
+    private sqlite3* db;
 
-    const users_table   = "users";
-    const config_table  = "config";
+    private const users_table   = "users";
+    private const config_table  = "config";
 
 
     this(string filename)
@@ -641,6 +643,12 @@ final class Sdb
             raise_sql_error(query, parameters, res);
 
         return ret[];
+    }
+
+    @trusted
+    string sqlite_version()
+    {
+        return sqlite3_libversion.fromStringz.idup;
     }
 
     @trusted
