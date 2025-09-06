@@ -5,6 +5,7 @@ name "soulfind"
 description "Soulseek server implementation in D"
 copyright "Copyright © 2005-2025, Soulfind Contributors"
 license "GPL-3.0-or-later"
+systemDependencies "sqlite3"
 
 configuration "default" {
     targetType "none"
