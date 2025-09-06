@@ -89,7 +89,7 @@ jobs:
         shell: sh
 
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up D (Linux)
         if: runner.os == 'Linux'
