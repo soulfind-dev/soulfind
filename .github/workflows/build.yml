@@ -126,3 +126,36 @@ jobs:
           path: |
             bin
             !bin/*test*
+
+  release:
+    needs: build
+    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      TAG_NAME: latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Zip artifacts
+        run: |
+          cd dist/
+          for dir in *; do
+            [ -f "$dir/soulfind" ] && chmod +x "$dir/soulfind"
+            [ -f "$dir/soulsetup" ] && chmod +x "$dir/soulsetup"
+            (cd "$dir" && zip -r "../$dir.zip" .)
+          done
+
+      - name: Create release
+        run: |
+          gh release delete "$TAG_NAME" --cleanup-tag || true
+          gh release create "$TAG_NAME" dist/*.zip
