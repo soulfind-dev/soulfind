@@ -39,12 +39,12 @@ jobs:
             config: static
 
           - os: macos-x86_64
-            image: macos-13
-            target: 10.12
+            image: macos-latest
+            target: -ax86_64-apple-macos10.12
 
           - os: macos-arm64
             image: macos-latest
-            target: 11
+            target: -aarm64-apple-macos11
 
           - os: windows-x86_64
             image: windows-latest
@@ -54,6 +54,9 @@ jobs:
 
         exclude:
           - os: linux-arm64
+            compiler: dmd
+
+          - os: macos-x86_64
             compiler: dmd
 
           - os: macos-x86_64
@@ -75,8 +78,6 @@ jobs:
             compiler: gdc
     runs-on: ${{ matrix.image }}
     container: ${{ matrix.container }}
-    env:
-      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
       # Workaround from https://github.com/actions/runner/issues/801#issuecomment-2394392502
       - name: Patch native Alpine NodeJS into Runner environment
@@ -109,10 +110,10 @@ jobs:
 
       - name: Build (Other)
         if: matrix.os != 'windows-arm64'
-        run: dub build -v --build=release-debug --config=${{ matrix.config }}
+        run: dub build -v --build=release-debug --config=${{ matrix.config }} ${{ matrix.target }}
 
       - name: Run tests
-        run: dub test
+        run: dub test ${{ matrix.target }}
 
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'
