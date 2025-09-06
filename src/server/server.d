@@ -6,13 +6,14 @@
 module soulfind.server.server;
 @safe:
 
-import core.time : days, Duration, minutes, MonoTime, seconds;
+import core.time : days, Duration, minutes, MonoTime, msecs, seconds;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
                           max_global_recommendations, max_room_name_length,
                           max_search_query_length, max_user_recommendations,
                           norm, red, server_username, VERSION;
+import soulfind.pwhash : process_password_tasks;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -49,7 +50,7 @@ final class Server
     {
         this.db                = new Sdb(db_filename);
         this.port              = port > 0 ? port : db.server_port;
-        this.selector          = new DefaultSelector(1.seconds);
+        this.selector          = new DefaultSelector(100.msecs);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
@@ -181,6 +182,9 @@ final class Server
                 );
                 user.sock = null;
             }
+
+            // Password hashing in thread/task pool, process results
+            process_password_tasks();
         }
         return 0;
     }

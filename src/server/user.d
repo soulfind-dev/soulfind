@@ -11,9 +11,11 @@ import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
                           max_chat_message_length, max_interest_length,
                           max_msg_size, max_room_name_length,
-                          max_username_length, norm, red, server_username,
-                          speed_weight, VERSION, wish_interval,
-                          wish_interval_privileged;
+                          max_username_length, norm, pbkdf2_iterations, red,
+                          server_username, speed_weight, VERSION,
+                          wish_interval, wish_interval_privileged;
+import soulfind.pwhash : create_salt, hash_password_async,
+                         verify_password_async;
 import soulfind.select : SelectEvent;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
@@ -25,7 +27,7 @@ import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.conv : ConvException, text, to;
 import std.datetime.systime : Clock, SysTime;
-import std.digest : digest, LetterCase, secureEqual, toHexString;
+import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.random : uniform;
 import std.socket : InternetAddress, Socket;
@@ -97,6 +99,50 @@ final class User
         return (MonoTime.currTime - connected_monotime) > login_timeout;
     }
 
+    void password_hashed(string password, string hash)
+    {
+        if (removed)
+            return;
+
+        if (status != UserStatus.offline) {
+            const notify_user = true;
+            change_password(password, hash, notify_user);
+            return;
+        }
+        finish_login(password, hash);
+    }
+
+    void password_upgraded(string password, string hash)
+    {
+        if (removed)
+            return;
+
+        change_password(password, hash);
+    }
+
+    void password_verified(string password, bool matches, uint iterations)
+    {
+        if (removed)
+            return;
+
+        if (!matches) {
+            reject_login(
+                LoginRejection(LoginRejectionReason.invalid_password)
+            );
+            return;
+        }
+
+        finish_login(password);
+
+        // Upgrade password strength
+        if (iterations < pbkdf2_iterations) {
+            const salt = create_salt();
+            hash_password_async(
+                password, salt, pbkdf2_iterations, &password_upgraded
+            );
+        }
+    }
+
     private string check_username(string username)
     {
         if (username.length == 0)
@@ -149,15 +195,87 @@ final class User
         }
 
         if (!user_exists) {
-            server.db.add_user(username, password);
+            const salt = create_salt();
+            hash_password_async(
+                password, salt, pbkdf2_iterations, &password_hashed
+            );
             return login_rejection;
         }
 
-        if (!server.db.user_verify_password(username, password)) {
-            login_rejection.reason = LoginRejectionReason.invalid_password;
-            return login_rejection;
-        }
+        const stored_hash = server.db.user_password_hash(username);
+        verify_password_async(stored_hash, password, &password_verified);
         return login_rejection;
+    }
+
+    private void reject_login(LoginRejection login_rejection)
+    {
+        scope response_msg = new SLogin(false, login_rejection);
+        send_message(response_msg);
+    }
+
+    private void finish_login(string password, string hash = null)
+    {
+        auto user = server.get_user(username);
+
+        if (user && user.status != UserStatus.offline) {
+            writeln(
+                "User ", red, username, norm, " already logged in, ",
+                "disconnecting"
+            );
+            scope relogged_msg = new SRelogged();
+            user.send_message(relogged_msg);
+            server.del_user(user);
+        }
+
+        if (hash !is null) server.db.add_user(username, hash);
+
+        const user_stats = server.db.user_stats(username);
+        upload_speed = user_stats.upload_speed;
+        shared_files = user_stats.shared_files;
+        shared_folders = user_stats.shared_folders;
+
+        refresh_privileges(false);
+        server.add_user(this);
+        watch(username);
+
+        // Empty list of users for privacy reasons. Clients can use
+        // other server messages to know if a user is privileged.
+        string[] privileged_users;
+        const md5_hash = digest!MD5(password)
+            .toHexString!(LetterCase.lower)
+            .idup;
+        scope response_msg = new SLogin(
+            true, login_rejection, motd, address.addr, md5_hash,
+            supporter
+        );
+        scope room_list_msg = new SRoomList(
+            server.room_stats, null, null, null
+        );
+        scope wish_interval_msg = new SWishlistInterval(
+            privileged ? wish_interval_privileged : wish_interval
+        );
+        scope privileged_users_msg = new SPrivilegedUsers(
+            privileged_users
+        );
+        send_message(response_msg);
+        send_message(room_list_msg);
+        send_message(wish_interval_msg);
+        send_message(privileged_users_msg);
+
+        update_status(UserStatus.online);
+        server.send_queued_pms(username);
+    }
+
+    private void change_password(string password, string hash,
+                                 bool notify_user = false)
+    {
+        server.db.user_update_password(username, hash);
+
+        if (!notify_user)
+            return;
+
+        scope response_msg = new SChangePassword(password);
+        send_message(response_msg);
     }
 
 
@@ -543,63 +661,14 @@ final class User
                 login_rejection = verify_login(username, msg.password);
                 if (banned_until.stdTime > 0) server.db.unban_user(username);
 
-                if (login_rejection.reason) {
-                    scope response_msg = new SLogin(false, login_rejection);
-                    send_message(response_msg);
-                    break;
-                }
-
-                auto user = server.get_user(username);
-
-                if (user && user.status != UserStatus.offline) {
-                    writeln(
-                        "User ", red, username, norm, " already logged in, ",
-                        "disconnecting"
-                    );
-                    scope relogged_msg = new SRelogged();
-                    user.send_message(relogged_msg);
-                    server.del_user(user);
-                }
-
                 client_version = text(
                     msg.major_version, ".", msg.minor_version
                 );
 
-                const user_stats = server.db.user_stats(username);
-                upload_speed = user_stats.upload_speed;
-                shared_files = user_stats.shared_files;
-                shared_folders = user_stats.shared_folders;
-
-                refresh_privileges(false);
-                server.add_user(this);
-                watch(username);
-
-                // Empty list of users for privacy reasons. Clients can use
-                // other server messages to know if a user is privileged.
-                string[] privileged_users;
-                const md5_hash = digest!MD5(msg.password)
-                    .toHexString!(LetterCase.lower)
-                    .idup;
-                scope response_msg = new SLogin(
-                    true, login_rejection, motd, address.addr, md5_hash,
-                    supporter
-                );
-                scope room_list_msg = new SRoomList(
-                    server.room_stats, null, null, null
-                );
-                scope wish_interval_msg = new SWishlistInterval(
-                    privileged ? wish_interval_privileged : wish_interval
-                );
-                scope privileged_users_msg = new SPrivilegedUsers(
-                    privileged_users
-                );
-                send_message(response_msg);
-                send_message(room_list_msg);
-                send_message(wish_interval_msg);
-                send_message(privileged_users_msg);
-
-                update_status(UserStatus.online);
-                server.send_queued_pms(username);
+                if (login_rejection.reason) {
+                    reject_login(login_rejection);
+                    break;
+                }
                 break;
 
             case SetWaitPort:
@@ -1180,10 +1249,10 @@ final class User
                 if (msg.password.length == 0)
                     break;
 
-                server.db.user_update_password(username, msg.password);
-
-                scope response_msg = new SChangePassword(msg.password);
-                send_message(response_msg);
+                const salt = create_salt();
+                hash_password_async(
+                    msg.password, salt, pbkdf2_iterations, &password_hashed
+                );
                 break;
 
             case PrivateRoomAddOperator:
