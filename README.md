@@ -123,11 +123,51 @@ soulfind --debug
 ```
 
 
-## Missing Features
+## Privacy
 
- - Rate limits
- - Private rooms
- - Distributed search network
+Since the Soulseek protocol does not support encryption, Soulfind does not use
+encryption for data delivery nor storage.
+
+### Stored Data
+
+Soulfind servers permanently store the following user data in the database:
+
+ - username
+ - password hash
+ - upload speed
+ - number of shared files
+ - number of shared folders
+ - ban expiration timestamp
+ - privilege expiration timestamp
+ - public room tickers
+
+Soulfind servers temporarily store the following information about connected
+users in memory:
+
+ - IP address
+ - listening port
+ - client version
+ - away status
+ - liked and hated items
+ - joined rooms
+ - watched users
+
+Soulfind only delivers chat room messages to connected users, and does not
+retain them after delivery.
+
+Soulfind temporarily stores private messages in memory until the recipient
+acknowledges them, and does not retain them after delivery. Soulfind does not
+give owners or admins the ability to access private messages by default.
+
+### Manage Data
+
+Users can inspect and delete their personal data on the server by sending
+commands in a private chat with the `server` user.
+
+The following commands are available:
+
+ - `exportdata`: Export personal data in JSON format (TODO)
+ - `deleteaccount`: Delete Soulseek account
 
 
 ## Authors
