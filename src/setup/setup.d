@@ -67,7 +67,7 @@ final class Setup
                     return;
                 }
 
-            writeln("Try a number which has an action assigned to it...");
+            write("\nTry a number which has an action assigned to it...");
         }
         while(true);
     }
