@@ -7,7 +7,7 @@ module soulfind.setup.setup;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : pbkdf2_iterations, VERSION;
+import soulfind.defines : blue, bold, norm, pbkdf2_iterations, red, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
@@ -47,13 +47,13 @@ final class Setup
 
     private void show_menu(string heading, MenuItem[] items)
     {
+        writeln("\n", heading, "\n");
+
+        foreach (ref item; items)
+            writeln(item.index, ". ", item.label);
+
         do {
-            writeln("\n", heading, "\n");
-
-            foreach (ref item; items)
-                writeln(item.index, ". ", item.label);
-
-            write("\nYour choice : ");
+            write("\n>", norm, " ");
             const choice = input.strip;
 
             if (choice is null) {
@@ -67,9 +67,7 @@ final class Setup
                     return;
                 }
 
-            writeln(
-                "Next time, try a number which has an action assigned to it..."
-            );
+            writeln("Try a number which has an action assigned to it...");
         }
         while(true);
     }
@@ -77,14 +75,14 @@ final class Setup
     private void main_menu()
     {
         show_menu(
-            text("Soulfind ", VERSION, " configuration"),
+            text(bold, "Soulfind server management tool", norm),
             [
-                MenuItem("0", "Admins",            &admins),
-                MenuItem("1", "Listen port",       &listen_port),
-                MenuItem("2", "Max users allowed", &max_users),
+                MenuItem("1", "Admins",            &admins),
+                MenuItem("2", "Listening port",    &listening_port),
                 MenuItem("3", "Private mode",      &private_mode),
-                MenuItem("4", "MOTD",              &motd),
-                MenuItem("5", "Registered users",  &registered_users),
+                MenuItem("4", "Max users allowed", &max_users),
+                MenuItem("5", "MOTD",              &motd),
+                MenuItem("6", "Registered users",  &registered_users),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -96,7 +94,7 @@ final class Setup
     private void admins()
     {
         show_menu(
-            text("Admins (", db.num_users("admin"), ")"),
+            text(bold, "Admins (", db.num_users("admin"), ")", norm),
             [
                 MenuItem("1", "Add/renew an admin", &add_admin),
                 MenuItem("2", "Remove an admin",    &del_admin),
@@ -108,32 +106,33 @@ final class Setup
 
     private void add_admin()
     {
-        write("Admin to add : ");
+        write("\nAdmin to add: ");
 
         const username = input.strip;
         if (!db.user_exists(username)) {
-            writeln("\nUser ", username, " is not registered");
+            writeln("\nUser ", red, username, norm, " is not registered");
+            admins();
             return;
         }
 
         Duration duration;
         do {
             try {
-                write("Number of days of admin status : ");
+                write("Number of days of admin status: ");
                 const value = input.strip.to!ulong;
                 const limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
                 break;
             }
             catch (ConvException) {
-                writeln("Invalid number or too many days");
+                writeln("\nInvalid number or too many days");
             }
         }
         while(true);
 
         db.add_admin(username, duration);
         writeln(
-            "Made ", username, " an admin until ",
+            "\nMade ", blue, username, norm, " an admin until ",
             db.admin_until(username).toSimpleString
         );
         admins();
@@ -141,13 +140,15 @@ final class Setup
 
     private void del_admin()
     {
-        write("Admin to remove : ");
+        write("\nAdmin to remove: ");
         const username = input.strip;
 
-        if (db.admin_until(username).stdTime > 0)
+        if (db.admin_until(username).stdTime > 0) {
             db.del_admin(username);
+            writeln("\nUser ", blue, username, norm, " is no longer an admin");
+        }
         else
-            writeln("\nUser ", username, " is not an admin");
+            writeln("\nUser ", red, username, norm, " is not an admin");
 
         admins();
     }
@@ -158,7 +159,7 @@ final class Setup
         const now = Clock.currTime;
 
         Appender!string output;
-        output ~= text("\nAdmins (", names.length, ")...");
+        output ~= text("\n", bold, "Admins: ", norm);
         foreach (ref name ; names) {
             const admin_until = db.admin_until(name);
             output ~= "\n\t";
@@ -175,20 +176,20 @@ final class Setup
     }
 
 
-    private void listen_port()
+    private void listening_port()
     {
         show_menu(
-            text("Listen port : ", db.server_port),
+            text(bold, "Listening port: ", blue, db.server_port, norm),
             [
-                MenuItem("1", "Change listen port", &set_listen_port),
-                MenuItem("q", "Return",             &main_menu)
+                MenuItem("1", "Change listening port", &set_listening_port),
+                MenuItem("q", "Return",                &main_menu)
             ]
         );
     }
 
-    private void set_listen_port()
+    private void set_listening_port()
     {
-        write("New listen port : ");
+        write("\nNew listening port: ");
 
         const value = input.strip;
         ushort port;
@@ -196,23 +197,29 @@ final class Setup
             port = value.to!ushort;
         }
         catch (ConvException) {
-            writeln("Please enter a port in the range ", 1, "-", ushort.max);
-            set_listen_port();
+            writeln("\nPlease enter a port in the range ", 1, "-", ushort.max);
+            set_listening_port();
             return;
         }
 
         db.set_server_port(port);
-        listen_port();
+        listening_port();
     }
 
     private void private_mode()
     {
         show_menu(
             text(
-                "Private mode : ",
-                db.server_private_mode ? "enabled" : "disabled",
-                "\n\nPrivate mode disables new user registrations from the",
-                " client."
+                bold, "Private mode: ",
+                db.server_private_mode ?
+                text(
+                    blue, "enabled", norm,
+                    "\n\tNot accepting user registrations."
+                ) :
+                text(
+                    red, "disabled", norm,
+                    "\n\tAccepting user registrations."
+                )
             ),
             [
                 MenuItem("1", "Toggle private mode", &toggle_private_mode),
@@ -230,7 +237,7 @@ final class Setup
     private void max_users()
     {
         show_menu(
-            text("Max users allowed : ", db.server_max_users),
+            text(bold, "Max users allowed: ", blue, db.server_max_users, norm),
             [
                 MenuItem("1", "Change max users", &set_max_users),
                 MenuItem("q", "Return",           &main_menu)
@@ -240,7 +247,7 @@ final class Setup
 
     private void set_max_users()
     {
-        write("Max users : ");
+        write("\nNew max users allowed: ");
 
         const value = input.strip;
         uint num_users;
@@ -248,7 +255,7 @@ final class Setup
             num_users = value.to!uint;
         }
         catch (ConvException) {
-            writeln("Please enter a valid number");
+            writeln("\nPlease enter a valid number");
             set_max_users();
             return;
         }
@@ -260,7 +267,7 @@ final class Setup
     private void motd()
     {
         show_menu(
-            text("Current message of the day :\n--\n", db.server_motd, "\n--"),
+            text(bold, "Message of the day:", norm, "\n", db.server_motd),
             [
                 MenuItem("1", "Change MOTD", &set_motd),
                 MenuItem("q", "Return",      &main_menu)
@@ -271,12 +278,12 @@ final class Setup
     private void set_motd()
     {
         writeln(
-            "\nYou can use the following variables :",
-            "\n\t%%sversion%%    : server version (", VERSION, ")",
-            "\n\t%%users%%       : number of connected users",
-            "\n\t%%username%%    : name of the connecting user",
-            "\n\t%%version%%     : version of the user's client software",
-            "\n\nNew MOTD (end with a dot on a single line) :\n--"
+            "\nAvailable variables:",
+            "\n\t%%sversion%% - server version (", VERSION, ")",
+            "\n\t%%users%%    - number of connected users",
+            "\n\t%%username%% - name of the connecting user",
+            "\n\t%%version%%  - version of the user's client software",
+            "\n\nNew MOTD (end with a dot on a single line):"
         );
 
         Appender!string motd_template;
@@ -295,32 +302,15 @@ final class Setup
         motd();
     }
 
-    private void server_info()
-    {
-        show_menu(
-            text(
-                "Soulfind ", VERSION,
-                "\n\tCompiled with ", name, " ",
-                version_major, ".", version_minor,
-                "\n\tUsing SQLite ", db.sqlite_version,
-                "\n\nStats:",
-                "\n\t", db.num_users, " registered users",
-                "\n\t", db.num_users("privileges", Clock.currTime.toUnixTime),
-                " privileged users",
-                "\n\t", db.num_users("banned", Clock.currTime.toUnixTime),
-                " banned users"
-            ),
-            [
-                MenuItem("1", "Recount", &server_info),
-                MenuItem("q", "Return", &main_menu)
-            ]
-        );
-    }
-
     private void registered_users()
     {
+        const now = Clock.currTime.toUnixTime;
         show_menu(
-            text("Registered users (", db.num_users, ")"),
+            text(
+                bold, "Registered users (", db.num_users, ")", norm,
+                "\n\tprivileged: ", db.num_users("privileges", now),
+                "\n\tbanned: ", db.num_users("banned", now)
+            ),
             [
                 MenuItem("1", "Add user",              &add_user),
                 MenuItem("2", "Show user info",        &user_info),
@@ -338,40 +328,42 @@ final class Setup
     private void add_user()
     {
         string username;
-        do {
-            write("Username : ");
-            username = input.strip;
-            if (username.length > 0)
-                break;
-            writeln("Please enter a username");
+        write("\nUsername: ");
+        username = input.strip;
+
+        if (username.length == 0) {
+            writeln("\nNo username provided");
+            registered_users();
+            return;
         }
-        while(true);
 
         if (db.user_exists(username)) {
-            writeln("\nUser ", username, " is already registered");
+            writeln("\nUser ", red, username, norm, " is already registered");
             registered_users();
             return;
         }
 
         string password;
         do {
-            write("Password : ");
+            write("Password: ");
             password = input.chomp;
             if (password.length > 0)
                 break;
-            writeln("Please enter a password");
+            writeln("\nPlease enter a password");
         }
         while(true);
 
         const salt = create_salt();
         const hash = hash_password(password, salt, pbkdf2_iterations);
         db.add_user(username, hash);
+
+        writeln("\nAdded user ", blue, username, norm);
         registered_users();
     }
 
     private void user_info()
     {
-        write("Username : ");
+        write("\nUsername: ");
 
         const username = input.strip;
         const now = Clock.currTime;
@@ -398,7 +390,7 @@ final class Setup
 
         if (stats.exists) {
             writeln(
-                "\n", username,
+                "\n", bold, username, norm,
                 "\n\tadmin: ", admin,
                 "\n\tbanned: ", banned,
                 "\n\tprivileged: ", privileged,
@@ -409,59 +401,66 @@ final class Setup
             );
         }
         else
-            writeln("\nUser ", username, " is not registered");
+            writeln("\nUser ", red, username, norm, " is not registered");
 
         registered_users();
     }
 
     private void change_user_password()
     {
-        write("User to change password of : ");
+        write("\nUser to change password of: ");
         const username = input.strip;
 
-        if (db.user_exists(username)) {
-            string password;
-            do {
-                write("Enter new password : ");
-                password = input.chomp;
-                if (password.length > 0)
-                    break;
-                writeln("Please enter a password");
-            }
-            while(true);
-
-            const salt = create_salt();
-            const hash = hash_password(password, salt, pbkdf2_iterations);
-            db.user_update_password(username, hash);
+        if (!db.user_exists(username)) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
         }
-        else
-            writeln("\nUser ", username, " is not registered");
 
+        string password;
+        do {
+            write("New password: ");
+            password = input.chomp;
+            if (password.length > 0)
+                break;
+            writeln("\nPlease enter a password");
+        }
+        while(true);
+
+        const salt = create_salt();
+        const hash = hash_password(password, salt, pbkdf2_iterations);
+        db.user_update_password(username, hash);
+
+        writeln("\nChanged user ", blue, username, norm, "'s password");
         registered_users();
     }
 
     private void unban_user()
     {
-        write("User to unban : ");
+        write("\nUser to unban: ");
         const username = input.strip;
 
-        if (db.user_banned_until(username).stdTime > 0)
+        if (db.user_banned_until(username).stdTime > 0) {
             db.unban_user(username);
+            writeln("\nUnbanned user ", blue, username, norm);
+        }
         else
-            writeln("\nUser ", username, " is not banned");
+            writeln("\nUser ", red, username, norm, " is not banned");
 
         registered_users();
     }
 
     private void remove_user()
     {
-        write("User to remove : ");
+        write("\nUser to remove: ");
         const username = input.strip;
 
-        if (db.user_exists(username))
+        if (db.user_exists(username)) {
             db.del_user(username);
+            writeln("\nRemoved user ", blue, username, norm);
+        }
         else
-            writeln("\nUser ", username, " is not registered");
+            writeln("\nUser ", red, username, norm, " is not registered");
 
         registered_users();
     }
@@ -471,7 +470,7 @@ final class Setup
         const names = db.usernames;
 
         Appender!string output;
-        output ~= text("\nRegistered users (", names.length, ")...");
+        output ~= text("\n", bold, "Registered users:", norm);
 
         foreach (ref name ; names) {
             output ~= "\n\t";
@@ -487,7 +486,7 @@ final class Setup
         const names = db.usernames("privileges", Clock.currTime.toUnixTime);
 
         Appender!string output;
-        output ~= text("\nPrivileged users (", names.length, ")...");
+        output ~= text("\n", bold, "Privileged users:", norm);
 
         foreach (ref name ; names) {
             const privileged_until = db.user_privileged_until(name);
@@ -505,7 +504,7 @@ final class Setup
         const names = db.usernames("banned", Clock.currTime.toUnixTime);
 
         Appender!string output;
-        output ~= text("\nBanned users (", names.length, ")...");
+        output ~= text("\n", bold, "Banned users: ", norm);
 
         foreach (ref name ; names) {
             const banned_until = db.user_banned_until(name);
@@ -523,5 +522,16 @@ final class Setup
 
         writeln(output[]);
         registered_users();
+    }
+
+    private void server_info()
+    {
+        writeln(
+            "\n", red, "\&hearts;", norm, " ", bold, "Soulfind ", VERSION,
+            norm, "\n\tCompiled with ", name, " ",
+            version_major, ".", version_minor,
+            "\n\tUsing SQLite ", db.sqlite_version
+        );
+        main_menu();
     }
 }

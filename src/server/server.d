@@ -740,7 +740,7 @@ final class Server
                 break;
 
             default:
-                output ~= "Syntax is : users [connected|banned|privileged]";
+                output ~= "Syntax is: users [connected|banned|privileged]";
 
         }
         return output[];
@@ -875,7 +875,7 @@ final class Server
             case "help":
                 server_pm(
                     sender_username,
-                    "Available commands :"
+                    "Available commands:"
                   ~ " None"
                 );
                 break;
@@ -895,7 +895,7 @@ final class Server
                 server_pm(
                     admin_username,
                     text(
-                        "Available commands :",
+                        "Available commands:",
                         "\n\nadmins\n\tList admins",
                         "\n\nusers [connected|banned|privileged]\n\tList",
                         " users",
@@ -958,7 +958,7 @@ final class Server
 
             case "userinfo":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is : userinfo <user>");
+                    server_pm(admin_username, "Syntax is: userinfo <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
@@ -976,7 +976,7 @@ final class Server
 
             case "roominfo":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is : roominfo <user>");
+                    server_pm(admin_username, "Syntax is: roominfo <user>");
                     break;
                 }
                 const name = command[1 .. $].join(" ");
@@ -993,7 +993,7 @@ final class Server
 
             case "ban":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is : ban [days] <user>");
+                    server_pm(admin_username, "Syntax is: ban [days] <user>");
                     break;
                 }
 
@@ -1039,7 +1039,7 @@ final class Server
 
             case "unban":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is : unban <user>");
+                    server_pm(admin_username, "Syntax is: unban <user>");
                     break;
                 }
                 const username = command[1 .. $].join(" ");
@@ -1053,7 +1053,7 @@ final class Server
             case "kick":
                 if (command.length < 2) {
                     server_pm(
-                        admin_username, "Syntax is : kick [minutes] <user>"
+                        admin_username, "Syntax is: kick [minutes] <user>"
                     );
                     break;
                 }
@@ -1103,7 +1103,7 @@ final class Server
                     }
                     catch (ConvException) {
                         server_pm(
-                            admin_username, "Syntax is : kickall [minutes]"
+                            admin_username, "Syntax is: kickall [minutes]"
                         );
                         break;
                     }
@@ -1135,7 +1135,7 @@ final class Server
                 if (command.length < 3) {
                     server_pm(
                         admin_username,
-                        "Syntax is : addprivileges <days> <user>"
+                        "Syntax is: addprivileges <days> <user>"
                     );
                     break;
                 }
@@ -1180,7 +1180,7 @@ final class Server
                 if (command.length < 2) {
                     server_pm(
                         admin_username,
-                        "Syntax is : removeprivileges [days] <user>"
+                        "Syntax is: removeprivileges [days] <user>"
                     );
                     break;
                 }
@@ -1226,7 +1226,7 @@ final class Server
             case "removetickers":
                 if (command.length < 2) {
                     server_pm(
-                        admin_username, "Syntax is : removetickers <user>"
+                        admin_username, "Syntax is: removetickers <user>"
                     );
                     break;
                 }
@@ -1248,7 +1248,7 @@ final class Server
             case "announcement":
                 if (command.length < 2) {
                     server_pm(
-                        admin_username, "Syntax is : announcement <message>"
+                        admin_username, "Syntax is: announcement <message>"
                     );
                     break;
                 }
@@ -1258,7 +1258,7 @@ final class Server
 
             case "message":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is : message <message>");
+                    server_pm(admin_username, "Syntax is: message <message>");
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
