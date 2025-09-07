@@ -20,7 +20,6 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
-import std.algorithm.searching : canFind;
 import std.array : Appender;
 import std.ascii : isPrintable;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
@@ -527,19 +526,27 @@ final class User
                 " contains leading or trailing spaces."
             );
 
-        if (room_name.canFind("  "))
-            return text(
-                "Could not create room. Reason: Room name ", room_name,
-                " contains multiple following spaces."
-            );
-
-        foreach (ref c ; room_name) if (!c.isPrintable)
-            // Only printable ASCII characters allowed
-            return text(
-                "Could not create room. Reason: Room name ", room_name,
-                " contains invalid characters."
-            );
-
+        bool found_space;
+        foreach (i, ref c ; room_name) {
+            if (!c.isPrintable) {
+                // Only printable ASCII characters allowed
+                return text(
+                    "Could not create room. Reason: Room name ", room_name,
+                    " contains invalid characters."
+                );
+            }
+            if (c != ' ') {
+                found_space = false;
+                continue;
+            }
+            if (found_space) {
+                return text(
+                    "Could not create room. Reason: Room name ", room_name,
+                    " contains multiple following spaces."
+                );
+            }
+            found_space = true;
+        }
         return null;
     }
 
