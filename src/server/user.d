@@ -603,7 +603,7 @@ final class User
             return false;
 
         in_buf ~= receive_buf[0 .. receive_len];
-        do {
+        while (true) {
             if (in_msg_size == -1) {
                 if (in_buf.length < uint.sizeof)
                     break;
@@ -621,7 +621,6 @@ final class User
                 break;
             proc_message();
         }
-        while (true);
 
         return true;
     }

@@ -52,7 +52,7 @@ final class Setup
         foreach (ref item; items)
             writeln(item.index, ". ", item.label);
 
-        do {
+        while (true) {
             write("\n>", norm, " ");
             const choice = input.strip;
 
@@ -69,7 +69,6 @@ final class Setup
 
             write("\nTry a number which has an action assigned to it...");
         }
-        while(true);
     }
 
     private void main_menu()
@@ -116,7 +115,7 @@ final class Setup
         }
 
         Duration duration;
-        do {
+        while (true) {
             try {
                 write("Number of days of admin status: ");
                 const value = input.strip.to!ulong;
@@ -128,7 +127,6 @@ final class Setup
                 writeln("\nInvalid number or too many days");
             }
         }
-        while(true);
 
         db.add_admin(username, duration);
         writeln(
@@ -288,7 +286,7 @@ final class Setup
 
         Appender!string motd_template;
         auto first = true;
-        do {
+        while (true) {
             const line = input.chomp;
             if (line.strip == ".")
                 break;
@@ -296,7 +294,6 @@ final class Setup
             motd_template ~= line;
             first = false;
         }
-        while(true);
 
         db.set_server_motd(motd_template[]);
         motd();
@@ -344,14 +341,13 @@ final class Setup
         }
 
         string password;
-        do {
+        while (true) {
             write("Password: ");
             password = input.chomp;
             if (password.length > 0)
                 break;
             writeln("\nPlease enter a password");
         }
-        while(true);
 
         const salt = create_salt();
         const hash = hash_password(password, salt, pbkdf2_iterations);
@@ -418,14 +414,13 @@ final class Setup
         }
 
         string password;
-        do {
+        while (true) {
             write("New password: ");
             password = input.chomp;
             if (password.length > 0)
                 break;
             writeln("\nPlease enter a password");
         }
-        while(true);
 
         const salt = create_salt();
         const hash = hash_password(password, salt, pbkdf2_iterations);
