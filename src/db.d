@@ -122,7 +122,7 @@ final class Sdb
             " files INTEGER,",
             " folders INTEGER,",
             " banned INTEGER,",
-            " privileges INTEGER",
+            " privileges INTEGER,",
             " admin INTEGER",
             ") WITHOUT ROWID;"
         );
