@@ -78,11 +78,11 @@ final class Setup
             text(bold, "Soulfind server management tool", norm),
             [
                 MenuItem("1", "Admins",            &admins),
-                MenuItem("2", "Listening port",    &listening_port),
-                MenuItem("3", "Private mode",      &private_mode),
-                MenuItem("4", "Max users allowed", &max_users),
-                MenuItem("5", "MOTD",              &motd),
-                MenuItem("6", "Registered users",  &registered_users),
+                MenuItem("2", "Registered users",  &registered_users),
+                MenuItem("3", "Listening port",    &listening_port),
+                MenuItem("4", "Private mode",      &private_mode),
+                MenuItem("5", "Max users allowed", &max_users),
+                MenuItem("6", "MOTD",              &motd),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
