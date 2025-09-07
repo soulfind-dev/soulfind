@@ -105,7 +105,6 @@ final class Server
 
         while (running) {
             const ready_sock_handles = selector.select();
-            User[] users_to_disconnect;
 
             foreach (sock_handle, events ; ready_sock_handles) {
                 const recv_ready = (events & SelectEvent.read) != 0;
@@ -131,21 +130,23 @@ final class Server
                         // In order to avoid closing connections early before
                         // delivering e.g. a Relogged message, we disconnect
                         // the user here after the output buffer is sent
-                        users_to_disconnect ~= user;
+                        disconnect_user(user);
                     }
                     else if (user.login_rejection.reason) {
                         recv_success = send_success = false;
                     }
                 }
 
-                if (!running || !recv_success || !send_success) {
+                if (!recv_success || !send_success) {
                     del_user(user);
-                    users_to_disconnect ~= user;
+                    disconnect_user(user);
                 }
             }
 
             const curr_time = MonoTime.currTime;
             if ((curr_time - last_user_check) >= check_user_interval) {
+                User[] timed_out_users;
+
                 foreach (ref user ; sock_users) {
                     if (user.username in users) {
                         // If the user was removed from the database, perform
@@ -162,29 +163,21 @@ final class Server
                     }
                     else if (user.login_timed_out) {
                         del_user(user);
-                        users_to_disconnect ~= user;
+                        timed_out_users ~= user;
                     }
                 }
+                foreach (ref user ; timed_out_users) disconnect_user(user);
                 last_user_check = curr_time;
-            }
-
-            foreach (ref user ; users_to_disconnect) {
-                selector.unregister(
-                    user.sock.handle, SelectEvent.read | SelectEvent.write
-                );
-                sock_users.remove(user.sock.handle);
-
-                user.sock.shutdown(SocketShutdown.BOTH);
-                user.sock.close();
-
-                if (log_user) writeln(
-                    "Closed connection to user ", user.username
-                );
-                user.sock = null;
             }
 
             // Password hashing in thread/task pool, process results
             process_password_tasks();
+        }
+
+        // Clean up connections
+        foreach (ref user ; sock_users.dup) {
+            del_user(user);
+            disconnect_user(user);
         }
         return 0;
     }
@@ -675,6 +668,25 @@ final class Server
     size_t num_users()
     {
         return users.length;
+    }
+
+    private void disconnect_user(User user)
+    {
+        if (user.sock is null)
+            return;
+
+        selector.unregister(
+            user.sock.handle, SelectEvent.read | SelectEvent.write
+        );
+        sock_users.remove(user.sock.handle);
+
+        user.sock.shutdown(SocketShutdown.BOTH);
+        user.sock.close();
+
+        if (log_user) writeln(
+            "Closed connection to user ", user.username
+        );
+        user.sock = null;
     }
 
     private string user_list(string type = null)
