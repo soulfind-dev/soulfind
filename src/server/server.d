@@ -296,6 +296,9 @@ final class Server
         if (query.length > max_search_query_length)
             return;
 
+        if (db.is_search_query_filtered(query))
+            return;
+
         scope msg = new SFileSearch(username, token, query);
         send_to_all(msg);
     }
@@ -310,6 +313,9 @@ final class Server
         if (user is null)
             return;
 
+        if (db.is_search_query_filtered(query))
+            return;
+
         scope msg = new SFileSearch(from_username, token, query);
         user.send_message(msg);
     }
@@ -322,6 +328,9 @@ final class Server
 
         auto room = get_room(room_name);
         if (room is null)
+            return;
+
+        if (db.is_search_query_filtered(query))
             return;
 
         scope msg = new SFileSearch(username, token, query);
