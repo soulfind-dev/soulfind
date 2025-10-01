@@ -18,6 +18,14 @@ const enum RoomType : int
     _private      = 1
 }
 
+const enum RoomMemberType : uint
+{
+    any           = -2,
+    non_existent  = -1,
+    normal        = 0,
+    operator      = 1
+}
+
 const enum SearchFilterType : uint
 {
     server  = 0,

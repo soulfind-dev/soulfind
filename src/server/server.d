@@ -582,11 +582,12 @@ final class Server
         return rooms[room_name];
     }
 
-    uint[string] room_stats(RoomType type)(string owner = null)
+    uint[string] room_stats(RoomType type)(string owner = null,
+                                           string member = null)
     {
         Room room;
         uint[string] stats;
-        foreach (ref room_name ; db.rooms!type(owner)) {
+        foreach (ref room_name ; db.rooms!type(owner, member)) {
             uint num_users;
             room = get_room(room_name);
 
@@ -795,6 +796,7 @@ final class Server
         ushort listening_port;
         ushort obfuscated_port;
         auto obfuscation_type = "none";
+        auto accept_room_invitations = "no";
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
@@ -815,6 +817,7 @@ final class Server
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
+            if (user.accept_room_invitations) accept_room_invitations = "yes";
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
@@ -865,6 +868,7 @@ final class Server
             "\n\tport: ", listening_port,
             "\n\tobfuscated port: ", obfuscated_port,
             "\n\tobfuscation type: ", obfuscation_type,
+            "\n\taccepts room invitations: ", accept_room_invitations,
             "\n\twatched users: ", watched_users,
             "\n\tliked items: ", liked_items,
             "\n\thated items: ", hated_items,

@@ -8,7 +8,7 @@ module soulfind.db;
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           default_private_mode, log_db, log_user, norm,
-                          RoomType, SearchFilterType;
+                          RoomMemberType, RoomType, SearchFilterType;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
@@ -95,6 +95,7 @@ final class Sdb
     private const users_table           = "users";
     private const config_table          = "config";
     private const rooms_table           = "rooms";
+    private const room_members_table    = "room_members";
     private const tickers_table         = "tickers";
     private const search_filters_table  = "search_filters";
     private const search_query_table    = "temp.search_query";
@@ -143,6 +144,19 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
+        const room_members_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", room_members_table,
+            "(username TEXT,",
+            " room TEXT,",
+            " type INTEGER NOT NULL,",
+            " PRIMARY KEY(username, room),",
+            " FOREIGN KEY(username) REFERENCES ", users_table, "(username) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE,",
+            " FOREIGN KEY(room) REFERENCES ", rooms_table, "(room) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE",
+            ");"
+        );
+
         const tickers_sql = text(
             "CREATE TABLE IF NOT EXISTS ", tickers_table,
             "(username TEXT,",
@@ -175,6 +189,7 @@ final class Sdb
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_sql);
         query(rooms_sql);
+        query(room_members_sql);
         query(tickers_sql);
         query(search_filters_sql);
         query(search_query_sql);
@@ -730,6 +745,9 @@ final class Sdb
 
     void add_room(RoomType type)(string room_name, string owner = null)
     {
+        if (type < 0)
+            return;
+
         const sql = text(
             "INSERT OR IGNORE INTO ", rooms_table,
             "(room, type, owner) VALUES(?, ?, ?);"
@@ -780,21 +798,101 @@ final class Sdb
         );
     }
 
-    string[] rooms(RoomType type)(string owner = null)
+    string[] rooms(RoomType type)(string owner = null,
+                                  string member = null,
+                                  string operator = null)
     {
-        auto sql = text("SELECT room FROM ", rooms_table, " WHERE type = ?");
-        string[] parameters = [text(cast(int) type)];
+        Appender!(string[]) rooms;
+        auto sql = text("SELECT r.room FROM ", rooms_table, " r");
+        const type_str = text(cast(int) type);
+        string[] parameters;
 
-        if (owner !is null && type == RoomType._private) {
-            sql ~= text(" AND owner = ?");
-            parameters ~= [owner];
+        if (type == RoomType._private) {
+            if (owner !is null) {
+                sql ~= text(" WHERE r.type = ? AND r.owner = ?");
+                parameters ~= [type_str, owner];
+            }
+            else if (member !is null || operator !is null) {
+                sql ~= text(
+                    " JOIN room_members m ON r.room = m.room",
+                    " WHERE r.type = ? AND m.username = ?"
+                );
+                parameters ~= [type_str, member];
+
+                if (operator !is null) {
+                    sql ~= " AND m.type = ?";
+                    parameters ~= [text(cast(uint) RoomMemberType.operator)];
+                }
+            }
+        }
+        if (parameters.length == 0) {
+            sql ~= text(" WHERE r.type = ?");
+            parameters ~= [type_str];
+        }
+        sql ~= ";";
+        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        return rooms[];
+    }
+
+    void add_room_member(RoomMemberType type)(string room_name,
+                                              string username)
+    {
+        if (type < 0)
+            return;
+
+        const sql = text(
+            "INSERT OR IGNORE INTO ", room_members_table,
+            "(username, room, type) VALUES(?, ?, ?);"
+        );
+        query(sql, [username, room_name, text(cast(int) type)]);
+    }
+
+    void del_room_member(string room_name, string username)
+    {
+        const sql = text(
+            "DELETE FROM ", room_members_table,
+            " WHERE username = ? AND room = ?;"
+        );
+        query(sql, [username, room_name]);
+    }
+
+    RoomMemberType get_room_member_type(string room_name, string username)
+    {
+        const sql = text(
+            "SELECT m.type FROM ", room_members_table, " m",
+            " JOIN ", rooms_table, " r ON m.room = r.room",
+            " WHERE r.room = ? AND r.type = ? AND m.username = ?;"
+        );
+        const res = query(sql, [
+            room_name,
+            text(cast(int) RoomType._private),
+            username
+        ]);
+        if (res.length > 0)
+            return cast(RoomMemberType) res[0][0].to!int;
+        return RoomMemberType.non_existent;
+    }
+
+    string[] room_members(RoomMemberType type)(string room_name)
+    {
+        Appender!(string[]) members;
+        auto sql = text(
+            "SELECT m.username FROM ", room_members_table, " m",
+            " JOIN rooms r ON m.room = r.room",
+            " WHERE r.room = ?",
+            " AND r.type = ?"
+        );
+        auto parameters = [room_name, text(cast(int) RoomType._private)];
+
+        if (type != RoomMemberType.any) {
+            sql ~= " AND m.type = ?";
+            parameters ~= [text(cast(int) type)];
         }
         sql ~= ";";
 
-        Appender!(string[]) rooms;
-        foreach (record ; query(sql, parameters))
-            rooms ~= record[0];
-        return rooms[];
+        const res = query(sql, parameters);
+        foreach (ref record ; res) members ~= record[0];
+        return members[];
     }
 
     void add_ticker(string room_name, string username, string content)
