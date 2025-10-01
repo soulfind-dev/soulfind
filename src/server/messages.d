@@ -135,6 +135,7 @@ const JoinGlobalRoom               = 150;
 const LeaveGlobalRoom              = 151;
 const GlobalRoomMessage            = 152;
 const RelatedSearch                = 153;   // Obsolete
+const ExcludedSearchPhrases        = 160;
 const CantConnectToPeer            = 1001;
 const CantCreateRoom               = 1003;
 
@@ -1642,6 +1643,17 @@ final class SRelatedSearch : SMessage
             write!string(term);
             write!uint(score);
         }
+    }
+}
+
+final class SExcludedSearchPhrases : SMessage
+{
+    this(string[] phrases) scope
+    {
+        super(ExcludedSearchPhrases);
+
+        write!uint(cast(uint) phrases.length);
+        foreach (ref phrase ; phrases) write!string(phrase);
     }
 }
 

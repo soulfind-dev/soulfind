@@ -7,14 +7,15 @@ module soulfind.setup.setup;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, norm, pbkdf2_iterations, red, VERSION;
+import soulfind.defines : blue, bold, norm, pbkdf2_iterations, red,
+                          SearchFilterType, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
 import std.stdio : readln, StdioException, write, writeln;
-import std.string : chomp, strip, toLower;
+import std.string : chomp, join, split, strip, toLower;
 
 struct MenuItem
 {
@@ -82,6 +83,7 @@ final class Setup
                 MenuItem("4", "Private mode",      &private_mode),
                 MenuItem("5", "Max users allowed", &max_users),
                 MenuItem("6", "MOTD",              &motd),
+                MenuItem("7", "Search filters",    &search_filters),
                 MenuItem("i", "Server info",       &server_info),
                 MenuItem("q", "Exit",              &exit)
             ]
@@ -299,6 +301,91 @@ final class Setup
         motd();
     }
 
+    private void search_filters()
+    {
+        const server = SearchFilterType.server;
+        const client = SearchFilterType.client;
+
+        show_menu(
+            text(
+                bold, "Filtered search phrases", norm,
+                "\n\tserver-side: ", db.num_search_filters!server,
+                "\n\tclient-side: ", db.num_search_filters!client
+            ),
+            [
+                MenuItem("1", "Filter server phrase",   &add_filter!server),
+                MenuItem("2", "Filter client phrase",   &add_filter!client),
+                MenuItem("3", "Unfilter server phrase", &del_filter!server),
+                MenuItem("4", "Unfilter client phrase", &del_filter!client),
+                MenuItem("5", "List server phrases",    &list_filters!server),
+                MenuItem("6", "List client phrases",    &list_filters!client),
+                MenuItem("q", "Return",                 &main_menu)
+            ]
+        );
+    }
+
+    private void add_filter(SearchFilterType type)()
+    {
+        const stype = type == SearchFilterType.server ? "server" : "client";
+        write("\nPhrase to filter ", stype, "-side: ");
+        const phrase = input.split.join(" ").toLower;
+
+        if (db.is_search_phrase_filtered!type(phrase)) {
+            writeln(
+                "\nPhrase ", red, phrase, norm, " is already filtered ",
+                stype, "-side"
+            );
+            search_filters();
+            return;
+        }
+
+        db.filter_search_phrase!type(phrase);
+
+        writeln("\nFiltered phrase ", blue, phrase, norm, " ", stype, "-side");
+        search_filters();
+    }
+
+    private void del_filter(SearchFilterType type)()
+    {
+        const stype = type == SearchFilterType.server ? "server" : "client";
+        write("\nPhrase to unfilter ", stype, "-side: ");
+        const phrase = input.split.join(" ").toLower;
+
+        if (db.is_search_phrase_filtered!type(phrase)) {
+            db.unfilter_search_phrase!type(phrase);
+            writeln(
+                "\nUnfiltered phrase ", blue, phrase, norm, " ", stype, "-side"
+            );
+        }
+        else
+            writeln(
+                "\nPhrase ", red, phrase, norm, " is not filtered ",
+                stype, "-side"
+            );
+
+        search_filters();
+    }
+
+    private void list_filters(SearchFilterType type)()
+    {
+        const phrases = db.search_filters!type;
+
+        Appender!string output;
+        output ~= text(
+            "\n", bold, "Filtered phrases (",
+            type == SearchFilterType.server ? "server" : "client",
+            "-side):", norm
+        );
+
+        foreach (phrase ; phrases) {
+            output ~= "\n\t";
+            output ~= phrase;
+        }
+
+        writeln(output[]);
+        search_filters();
+    }
+
     private void registered_users()
     {
         const now = Clock.currTime.toUnixTime;
@@ -313,7 +400,7 @@ final class Setup
                 MenuItem("2", "Show user info",        &user_info),
                 MenuItem("3", "Change user password",  &change_user_password),
                 MenuItem("4", "Unban user",            &unban_user),
-                MenuItem("5", "Remove user",           &remove_user),
+                MenuItem("5", "Remove user",           &del_user),
                 MenuItem("6", "List registered users", &list_registered),
                 MenuItem("7", "List privileged users", &list_privileged),
                 MenuItem("8", "List banned users",     &list_banned),
@@ -324,9 +411,8 @@ final class Setup
 
     private void add_user()
     {
-        string username;
         write("\nUsername: ");
-        username = input.strip;
+        const username = input.strip;
 
         if (username.length == 0) {
             writeln("\nNo username provided");
@@ -445,7 +531,7 @@ final class Setup
         registered_users();
     }
 
-    private void remove_user()
+    private void del_user()
     {
         write("\nUser to remove: ");
         const username = input.strip;

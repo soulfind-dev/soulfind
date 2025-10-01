@@ -11,6 +11,12 @@ import std.string : join, split;
 
 // Constants
 
+const enum SearchFilterType : uint
+{
+    server  = 0,
+    client  = 1
+}
+
 const VERSION                     = __DATE__.split.join("-");
 const default_db_filename         = "soulfind.db";
 const default_port                = 2242;
