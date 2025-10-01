@@ -812,6 +812,9 @@ final class User
                 if (room is null)
                     break;
 
+                if (!room.is_joined(username))
+                    break;
+
                 room.say(username, msg.message);
                 server.global_room.say(msg.room_name, username, msg.message);
                 break;
