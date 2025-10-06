@@ -122,8 +122,19 @@ final class Server
                 if (recv_ready)
                     recv_success = user.recv_buffer();
 
-                if (send_ready)
+                if (send_ready) {
                     send_success = user.send_buffer();
+                }
+                else if (!user.removed && user.login_verified
+                         && user.status == UserStatus.offline) {
+                    // In order to receive the SetWaitPort message from the
+                    // user in time, delay the initial status update and
+                    // broadcast to watching users as much as possible.
+                    // Otherwise we may end up sending the default dummy
+                    // listening port to watching users attempting to resume
+                    // file transfers.
+                    user.update_status(UserStatus.online);
+                }
 
                 if (!user.is_sending) {
                     if (user.removed) {

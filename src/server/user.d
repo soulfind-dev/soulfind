@@ -43,6 +43,7 @@ final class User
 
     UserStatus              status;
     string                  client_version;
+    bool                    login_verified;
     LoginRejection          login_rejection;
     SysTime                 privileged_until;
 
@@ -213,6 +214,7 @@ final class User
 
     private void finish_login(string password, string hash = null)
     {
+        login_verified = true;
         auto user = server.get_user(username);
 
         if (user && user.status != UserStatus.offline) {
@@ -265,7 +267,6 @@ final class User
         send_message(privileged_users_msg);
         send_message(excluded_phrases_msg);
 
-        update_status(UserStatus.online);
         server.send_queued_pms(username);
     }
 
@@ -631,22 +632,24 @@ final class User
             }
             if (in_buf.length < in_msg_size)
                 break;
-            proc_message();
+
+            if (!proc_message())
+                break;
         }
 
         return true;
     }
 
-    private void proc_message()
+    private bool proc_message()
     {
         auto msg_buf = in_buf[0 .. in_msg_size];
         const code = msg_buf.peek!(uint, Endian.littleEndian);
 
+        if (!login_verified && code != Login)
+            return false;
+
         in_buf = in_buf[in_msg_size .. $];
         in_msg_size = -1;
-
-        if (status == UserStatus.offline && code != Login)
-            return;
 
         switch (code) {
             case Login:
@@ -1333,7 +1336,7 @@ final class User
 
                 auto user = server.get_user(msg.username);
                 if (user is null)
-                    return;
+                    break;
 
                 scope response_msg = new SCantConnectToPeer(msg.token);
                 user.send_message!"log_redacted"(response_msg);
@@ -1347,5 +1350,6 @@ final class User
                 );
                 break;
         }
+        return true;
     }
 }
