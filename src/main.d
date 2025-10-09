@@ -6,7 +6,8 @@
 module soulfind.main;
 @safe:
 
-bool running = true;
+// Shared variable due to Ctrl+C creating a new thread on Windows
+shared bool running = true;
 
 @trusted
 private void increase_fd_limit()
