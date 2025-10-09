@@ -11,7 +11,7 @@ import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
                           max_global_recommendations, max_room_name_length,
                           max_search_query_length, max_user_recommendations,
-                          norm, red, server_username, VERSION;
+                          norm, red, RoomType, server_username, VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages;
@@ -341,6 +341,9 @@ final class Server
         if (room is null)
             return;
 
+        if (!db.has_room_access(room_name, username))
+            return;
+
         if (db.is_search_query_filtered(query))
             return;
 
@@ -564,17 +567,17 @@ final class Server
 
     // Rooms
 
-    Room add_room(string name)
+    Room add_room(string room_name)
     {
-        auto room = new Room(name);
-        rooms[name] = room;
+        auto room = new Room(room_name, db);
+        rooms[room_name] = room;
         return room;
     }
 
-    void del_room(string name)
+    void del_room(string room_name)
     {
-        if (name in rooms)
-            rooms.remove(name);
+        if (room_name in rooms)
+            rooms.remove(room_name);
     }
 
     void del_user_tickers(string username)
@@ -582,19 +585,30 @@ final class Server
         foreach (ref room ; rooms) room.del_ticker(username);
     }
 
-    Room get_room(string name)
+    Room get_room(string room_name)
     {
-        if (name !in rooms)
+        if (room_name !in rooms)
             return null;
 
-        return rooms[name];
+        return rooms[room_name];
     }
 
-    uint[string] room_stats()
+    uint[string] room_stats(RoomType type)(string owner = null,
+                                           string member = null)
     {
+        Room room;
         uint[string] stats;
-        foreach (ref room ; rooms)
-            stats[room.name] = cast(uint) room.num_users;
+        foreach (ref room_name ; db.rooms!type(owner, member)) {
+            uint num_users;
+            room = get_room(room_name);
+
+            if (room !is null)
+                num_users = cast(uint) room.num_users;
+            else if (type == RoomType._public)
+                continue;
+
+            stats[room_name] = num_users;
+        }
         return stats;
     }
 
@@ -609,24 +623,29 @@ final class Server
                 user.send_message!"log_disabled"(msg);
     }
 
-    private string room_info(string name)
+    private string room_info(string room_name)
     {
         Appender!string output;
-        auto room = rooms[name];
+        string[] usernames;
+        const tickers = db.room_tickers(room_name);
 
-        output ~= name;
-        output ~= text("\nUsers (", room.num_users, "):");
+        if (room_name in rooms)
+            usernames = rooms[room_name].usernames;
 
-        foreach (ref username ; room.usernames) {
+        output ~= room_name;
+        output ~= text("\nUsers (", usernames.length, "):");
+
+        foreach (ref username ; usernames) {
             output ~= "\n\t";
             output ~= username;
         }
 
-        output ~= text("\nTickers (", room.num_tickers, "):");
+        output ~= text("\nTickers (", tickers.length, "):");
 
-        foreach (ref ticker ; room.tickers_by_order) {
-            output ~= text("\n\t[", ticker.username, "] ");
-            output ~= ticker.content;
+        foreach (ref ticker ; tickers) {
+            const username = ticker[0], content = ticker[1];
+            output ~= text("\n\t[", username, "] ");
+            output ~= content;
         }
 
         return output[];
@@ -788,6 +807,7 @@ final class Server
         ushort listening_port;
         ushort obfuscated_port;
         auto obfuscation_type = "none";
+        auto accept_room_invitations = "no";
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
@@ -799,6 +819,7 @@ final class Server
         auto supporter = "no";
         uint upload_speed;
         uint shared_files, shared_folders;
+        const tickers = db.user_tickers(username);
 
         user = get_user(username);
         if (user !is null) {
@@ -807,6 +828,7 @@ final class Server
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
+            if (user.accept_room_invitations) accept_room_invitations = "yes";
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
@@ -846,7 +868,8 @@ final class Server
         if (privileged_until > now)
             privileged = text("until ", privileged_until.toSimpleString);
 
-        return text(
+        Appender!string output;
+        output ~= text(
             username,
             "\n",
             "\nSession info:",
@@ -856,6 +879,7 @@ final class Server
             "\n\tport: ", listening_port,
             "\n\tobfuscated port: ", obfuscated_port,
             "\n\tobfuscation type: ", obfuscation_type,
+            "\n\taccepts room invitations: ", accept_room_invitations,
             "\n\twatched users: ", watched_users,
             "\n\tliked items: ", liked_items,
             "\n\thated items: ", hated_items,
@@ -869,8 +893,19 @@ final class Server
             "\n\tsupporter: ", supporter,
             "\n\tupload speed: ", upload_speed,
             "\n\tfiles: ", shared_files,
-            "\n\tdirs: ", shared_folders
+            "\n\tdirs: ", shared_folders,
+            "\n\troom tickers: ", tickers.length
         );
+
+        if (tickers.length > 0) {
+            output ~= text("\nRoom tickers (", tickers.length, "):");
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= text("\n\t[", room_name, "] ", content);
+            }
+        }
+
+        return output[];
     }
 
     private void send_to_all(scope SMessage msg)
@@ -934,6 +969,10 @@ final class Server
                         "\n\nrooms\n\tList public rooms",
                         "\n\nuserinfo <user>\n\tShow info about user",
                         "\n\nroominfo <room>\n\tShow info about public room",
+                        "\n\nremovetickers <user>\n\tRemove user's public",
+                        " room tickers",
+                        "\n\nremoverooms\n\tRemove orphaned public rooms and",
+                        " tickers",
                         "\n\nban [days] <user>\n\tBan user",
                         "\n\nunban <user>\n\tUnban user",
                         "\n\nkick [minutes] <user>\n\tDisconnect user for",
@@ -944,8 +983,6 @@ final class Server
                         " user",
                         "\n\nremoveprivileges [days] <user>\n\tRemove",
                         " privileges from user",
-                        "\n\nremovetickers <user>\n\tRemove user's public ",
-                        " room tickers",
                         "\n\nannouncement <message>\n\tSend announcement to",
                         " online users",
                         "\n\nmessage <message>\n\tSend private message to",
@@ -976,15 +1013,21 @@ final class Server
 
             case "rooms":
                 Appender!string output;
-                output ~= text(rooms.length, " public rooms.");
-                foreach (ref room ; rooms) {
+                const names = db.rooms!(RoomType._public);
+                output ~= text(names.length, " public rooms.");
+                foreach (ref name ; names) {
+                    ulong num_users;
+                    if (name in rooms)
+                        num_users = rooms[name].num_users;
+
                     output ~= "\n\t";
-                    output ~= room.name;
+                    output ~= name;
                     output ~= text(
-                        " (users: ", room.num_users, ", tickers: ",
-                        room.num_tickers, ")"
+                        " (users: ", num_users, ", tickers: ",
+                        db.num_room_tickers(name), ")"
                     );
                 }
+
                 server_pm(admin_username, output[]);
                 break;
 
@@ -1008,12 +1051,12 @@ final class Server
 
             case "roominfo":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: roominfo <user>");
+                    server_pm(admin_username, "Syntax is: roominfo <room>");
                     break;
                 }
                 const name = command[1 .. $].join(" ");
 
-                if (name !in rooms) {
+                if (!db.get_room_type(name) != RoomType._public) {
                     server_pm(
                         admin_username,
                         text("Room ", name, " is not registered")
@@ -1021,6 +1064,49 @@ final class Server
                     break;
                 }
                 server_pm(admin_username, room_info(name));
+                break;
+
+            case "removetickers":
+                if (command.length < 2) {
+                    server_pm(
+                        admin_username, "Syntax is : removetickers <user>"
+                    );
+                    break;
+                }
+                const username = command[1 .. $].join(" ");
+                if (!db.user_exists(username)) {
+                    server_pm(
+                        admin_username,
+                        text("User ", username, " is not registered")
+                    );
+                    break;
+                }
+                del_user_tickers(username);
+                server_pm(
+                    admin_username,
+                    text("Removed user ", username, "'s public room tickers")
+                );
+                break;
+
+            case "removerooms":
+                Appender!(string[]) names;
+                foreach (name ; db.rooms!(RoomType._public)) {
+                    if (name !in rooms) {
+                        db.del_room(name);
+                        names ~= name;
+                    }
+                }
+
+                string response;
+                if (names[].length == 0)
+                    response = "No orphaned rooms";
+                else
+                    response = text(
+                        "Removed ", names[].length, " orphaned rooms: ",
+                        names[].join(", ")
+                    );
+
+                server_pm(admin_username, response);
                 break;
 
             case "ban":
@@ -1253,28 +1339,6 @@ final class Server
                     );
 
                 server_pm(admin_username, response);
-                break;
-
-            case "removetickers":
-                if (command.length < 2) {
-                    server_pm(
-                        admin_username, "Syntax is: removetickers <user>"
-                    );
-                    break;
-                }
-                const username = command[1 .. $].join(" ");
-                if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
-                        text("User ", username, " is not registered")
-                    );
-                    break;
-                }
-                del_user_tickers(username);
-                server_pm(
-                    admin_username,
-                    text("Removed user ", username, "'s public room tickers")
-                );
                 break;
 
             case "announcement":

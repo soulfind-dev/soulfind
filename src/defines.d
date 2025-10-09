@@ -11,6 +11,21 @@ import std.string : join, split;
 
 // Constants
 
+const enum RoomType : int
+{
+    non_existent  = -1,
+    _public       = 0,
+    _private      = 1
+}
+
+const enum RoomMemberType : uint
+{
+    any           = -2,
+    non_existent  = -1,
+    normal        = 0,
+    operator      = 1
+}
+
 const enum SearchFilterType : uint
 {
     server  = 0,

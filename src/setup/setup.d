@@ -398,12 +398,13 @@ final class Setup
             [
                 MenuItem("1", "Add user",              &add_user),
                 MenuItem("2", "Show user info",        &user_info),
-                MenuItem("3", "Change user password",  &change_user_password),
-                MenuItem("4", "Unban user",            &unban_user),
-                MenuItem("5", "Remove user",           &del_user),
-                MenuItem("6", "List registered users", &list_registered),
-                MenuItem("7", "List privileged users", &list_privileged),
-                MenuItem("8", "List banned users",     &list_banned),
+                MenuItem("3", "Show user tickers",     &user_tickers),
+                MenuItem("4", "Change user password",  &change_user_password),
+                MenuItem("5", "Unban user",            &unban_user),
+                MenuItem("6", "Remove user",           &del_user),
+                MenuItem("7", "List registered users", &list_registered),
+                MenuItem("8", "List privileged users", &list_privileged),
+                MenuItem("9", "List banned users",     &list_banned),
                 MenuItem("q", "Return",                &main_menu)
             ]
         );
@@ -457,6 +458,7 @@ final class Setup
         const privileged_until = db.user_privileged_until(username);
         const supporter = (privileged_until.stdTime > 0) ? "yes" : "no";
         const stats = db.user_stats(username);
+        const tickers = db.num_user_tickers(username);
 
         if (admin_until > now)
             admin = text("until ", admin_until.toSimpleString);
@@ -479,7 +481,8 @@ final class Setup
                 "\n\tsupporter: ", supporter,
                 "\n\tfiles: ", stats.shared_files,
                 "\n\tdirs: ", stats.shared_folders,
-                "\n\tupload speed: ", stats.upload_speed
+                "\n\tupload speed: ", stats.upload_speed,
+                "\n\troom tickers: ", tickers
             );
         }
         else
@@ -513,6 +516,31 @@ final class Setup
         db.user_update_password(username, hash);
 
         writeln("\nChanged user ", blue, username, norm, "'s password");
+        registered_users();
+    }
+
+    private void user_tickers()
+    {
+        write("Username : ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            Appender!string output;
+            const tickers = db.user_tickers(username);
+
+            output ~= text(
+                "\n", username, "'s public room tickers (", tickers.length,
+                ")..."
+            );
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= text("\n\t[", room_name, "] ", content);
+            }
+            writeln(output[]);
+        }
+        else
+            writeln("\nUser ", username, " is not registered");
+
         registered_users();
     }
 
