@@ -106,13 +106,6 @@ soulfind --debug
 ```
 
 
-## Missing Features
-
- - Rate limits
- - Private rooms
- - Distributed search network
-
-
 ## Authors
 
 Soulfind is free and open source software, released under the terms of the
