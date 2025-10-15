@@ -14,8 +14,37 @@ production.
 
 ## Download
 
+### Binaries
+
 The [Releases](https://github.com/soulfind-dev/soulfind/releases) page contains
-precompiled builds for Linux, Windows and macOS.
+precompiled binaries for Linux, Windows and macOS. This includes the server
+itself, `soulfind`, as well as the CLI server management tool, `soulsetup`.
+
+### Container Image
+
+If you prefer using containers, an image is available in the GitHub Container
+Registry. Start by pulling the image:
+
+```
+docker pull ghcr.io/soulfind-dev/soulfind
+```
+
+Finally, create and run the container:
+
+```
+docker run -d --name soulfind -v soulfind-data:/data -p 2242:2242 ghcr.io/soulfind-dev/soulfind
+```
+
+You can run the `soulsetup` server management tool separately:
+
+```
+docker run -it -v soulfind-data:/data --rm ghcr.io/soulfind-dev/soulfind soulsetup
+```
+
+> [!IMPORTANT]
+> If you change the listening port with `soulsetup`, recreate the container
+> using the `docker run` command, substituting `2242` with the new port.
+> Remember to remove the existing container first.
 
 
 ## Building
@@ -26,22 +55,22 @@ from source.
 
 ## Configuration
 
-Soulfind stores all its configuration in a SQLite database. On startup,
-Soulfind will look for the file `soulfind.db` by default, unless provided a
-different path as a `--database` argument.
+Soulfind stores all its configuration in a SQLite database, and looks for the
+file `soulfind.db` by default, unless provided a different path as a
+`--database` argument.
 
-The default config values are:
+Server owners can configure the server and add admins using the `soulsetup`
+CLI server management tool.
+
+Admins can interact with the server from a Soulseek client, by sending commands
+to the `server` user in a private chat (`help` to see all commands).
+
+### Default Configuration
 
  - port: `2242`
  - max_users: `65535`
  - private_mode: `false`
  - motd: `Soulfind <version>`
-
-Server owners can configure the server and add admins with the `soulsetup`
-utility.
-
-Admins can interact with the server by sending commands in a private
-chat with the `server` user (`help` to see all commands).
 
 
 ## Runtime Options
