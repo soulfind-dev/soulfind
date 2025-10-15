@@ -35,7 +35,7 @@ Finally, create and run the container:
 docker run -d --name soulfind -v soulfind-data:/data -p 2242:2242 ghcr.io/soulfind-dev/soulfind
 ```
 
-You can run the `soulsetup` server management tool separately:
+You can run the `soulsetup` CLI server management tool separately:
 
 ```
 docker run -it -v soulfind-data:/data --rm ghcr.io/soulfind-dev/soulfind soulsetup
