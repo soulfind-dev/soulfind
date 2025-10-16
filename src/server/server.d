@@ -32,7 +32,6 @@ import std.string : join, split;
 
 final class Server
 {
-    Selector                selector;
     GlobalRoom              global_room;
 
     private SysTime         started_at;
@@ -40,6 +39,7 @@ final class Server
     private MonoTime        last_user_check;
     private ushort          port;
     private Sdb             db;
+    private Selector        selector;
 
     private User[string]    users;
     private User[socket_t]  sock_users;
@@ -102,7 +102,7 @@ final class Server
             norm, " process ", process_id, " listening on port ", port
         );
 
-        selector.register(listen_sock.handle, SelectEvent.read);
+        register_socket(listen_sock, SelectEvent.read);
 
         while (running) {
             const ready_sock_handles = selector.select();
@@ -194,6 +194,16 @@ final class Server
         return 0;
     }
 
+    void register_socket(Socket sock, SelectEvent events)
+    {
+        selector.register(sock.handle, events);
+    }
+
+    void unregister_socket(Socket sock, SelectEvent events)
+    {
+        selector.unregister(sock.handle, events);
+    }
+
     private void accept(Socket listen_sock)
     {
         while (true) {
@@ -220,7 +230,7 @@ final class Server
                     InternetAddress.PORT_ANY
                 )
             );
-            selector.register(sock.handle, SelectEvent.read);
+            register_socket(sock, SelectEvent.read);
         }
     }
 
@@ -698,9 +708,7 @@ final class Server
         if (user.sock is null)
             return;
 
-        selector.unregister(
-            user.sock.handle, SelectEvent.read | SelectEvent.write
-        );
+        unregister_socket(user.sock, SelectEvent.read | SelectEvent.write);
         sock_users.remove(user.sock.handle);
 
         user.sock.shutdown(SocketShutdown.BOTH);
