@@ -812,14 +812,7 @@ final class User
                     break;
 
                 auto room = server.get_room(msg.room_name);
-                if (room is null)
-                    break;
-
-                if (!room.is_joined(username))
-                    break;
-
-                room.say(username, msg.message);
-                server.global_room.say(msg.room_name, username, msg.message);
+                if (room !is null) room.say(username, msg.message);
                 break;
 
             case JoinRoom:
@@ -1282,12 +1275,12 @@ final class User
 
             case JoinGlobalRoom:
                 scope msg = new UJoinGlobalRoom(msg_buf, username);
-                server.global_room.add_user(this);
+                server.add_global_room_user(this);
                 break;
 
             case LeaveGlobalRoom:
                 scope msg = new ULeaveGlobalRoom(msg_buf, username);
-                server.global_room.remove_user(username);
+                server.remove_global_room_user(username);
                 break;
 
             case RelatedSearch:

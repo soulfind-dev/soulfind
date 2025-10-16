@@ -32,14 +32,14 @@ import std.string : join, split;
 
 final class Server
 {
-    GlobalRoom              global_room;
-
     private SysTime         started_at;
     private MonoTime        started_monotime;
     private MonoTime        last_user_check;
     private ushort          port;
+
     private Sdb             db;
     private Selector        selector;
+    private GlobalRoom      global_room;
 
     private User[string]    users;
     private User[socket_t]  sock_users;
@@ -579,7 +579,7 @@ final class Server
 
     Room add_room(string name)
     {
-        auto room = new Room(name);
+        auto room = new Room(name, global_room);
         rooms[name] = room;
         return room;
     }
@@ -601,6 +601,16 @@ final class Server
             return null;
 
         return rooms[name];
+    }
+
+    void add_global_room_user(User user)
+    {
+        global_room.add_user(user);
+    }
+
+    void remove_global_room_user(string username)
+    {
+        global_room.remove_user(username);
     }
 
     uint[string] room_stats()
@@ -684,7 +694,7 @@ final class Server
         }
 
         user.leave_joined_rooms();
-        global_room.remove_user(username);
+        remove_global_room_user(username);
 
         user.update_status(UserStatus.offline);
         writeln("User ", red, username, norm, " logged out");

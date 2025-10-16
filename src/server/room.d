@@ -32,13 +32,15 @@ final class Room
 {
     string name;
 
+    private GlobalRoom      global_room;
     private User[string]    users;
     private Ticker[string]  tickers;
 
 
-    this(string name)
+    this(string name, GlobalRoom global_room)
     {
         this.name = name;
+        this.global_room = global_room;
     }
 
 
@@ -113,6 +115,7 @@ final class Room
 
         scope msg = new SSayChatroom(name, username, message);
         send_to_all(msg);
+        global_room.say(name, username, message);
     }
 
 
