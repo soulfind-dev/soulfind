@@ -126,7 +126,7 @@ final class Server
                 if (send_ready) {
                     send_success = user.send_buffer();
                 }
-                else if (!user.removed && user.login_verified
+                else if (!user.disconnecting && user.login_verified
                          && user.status == UserStatus.offline) {
                     // In order to receive the SetWaitPort message from the
                     // user in time, delay the initial status update and
@@ -138,11 +138,11 @@ final class Server
                 }
 
                 if (!user.is_sending) {
-                    if (user.removed) {
+                    if (user.disconnecting) {
                         // In order to avoid closing connections early before
                         // delivering e.g. a Relogged message, we disconnect
                         // the user here after the output buffer is sent
-                        disconnect_user(user);
+                        user.disconnect();
                     }
                     else if (user.login_rejection.reason) {
                         recv_success = send_success = false;
@@ -150,8 +150,8 @@ final class Server
                 }
 
                 if (!recv_success || !send_success) {
-                    del_user(user);
-                    disconnect_user(user);
+                    const wait_for_messages = false;
+                    user.disconnect(wait_for_messages);
                 }
             }
 
@@ -168,17 +168,22 @@ final class Server
                         // registering again.
                         const deleted = !db.user_exists(user.username);
                         if (deleted) {
+                            const include_received = true;
+                            del_user_pms(user.username, include_received);
+                            del_user_tickers(user.username);
+
                             scope relogged_msg = new SRelogged();
                             user.send_message(relogged_msg);
-                            del_user(user, deleted);
+                            user.disconnect();
                         }
                     }
-                    else if (user.login_timed_out) {
-                        del_user(user);
+                    else if (user.login_timed_out)
                         timed_out_users ~= user;
-                    }
                 }
-                foreach (ref user ; timed_out_users) disconnect_user(user);
+                foreach (ref user ; timed_out_users) {
+                    const wait_for_messages = false;
+                    user.disconnect(wait_for_messages);
+                }
                 last_user_check = curr_time;
             }
 
@@ -188,8 +193,8 @@ final class Server
 
         // Clean up connections
         foreach (ref user ; sock_users.dup) {
-            del_user(user);
-            disconnect_user(user);
+            const wait_for_messages = false;
+            user.disconnect(wait_for_messages);
         }
         return 0;
     }
@@ -202,6 +207,18 @@ final class Server
     void unregister_socket(Socket sock, SelectEvent events)
     {
         selector.unregister(sock.handle, events);
+    }
+
+    void close_user_socket(Socket sock)
+    {
+        if (sock.handle !in sock_users)
+            return;
+
+        sock_users.remove(sock.handle);
+        unregister_socket(sock, SelectEvent.read | SelectEvent.write);
+
+        sock.shutdown(SocketShutdown.BOTH);
+        sock.close();
     }
 
     private void accept(Socket listen_sock)
@@ -586,8 +603,7 @@ final class Server
 
     void del_room(string name)
     {
-        if (name in rooms)
-            rooms.remove(name);
+        if (name in rooms) rooms.remove(name);
     }
 
     void del_user_tickers(string username)
@@ -660,44 +676,13 @@ final class Server
 
     void add_user(User user)
     {
-        writeln(
-            db.admin_until(user.username) > Clock.currTime ?
-            "Admin " : "User ", blue, user.username, norm,
-            " logged in with client version ", bold, user.client_version, norm
-        );
-        users[user.username] = user;
+        if (!user.disconnecting && user.username !in users)
+            users[user.username] = user;
     }
 
-    void del_user(User user, bool delete_messages = false)
+    void del_user(string username)
     {
-        if (user.removed)
-            return;
-
-        user.removed = true;
-        const username = user.username;
-
-        if (username in users)
-            users.remove(username);
-
-        if (delete_messages) {
-            const include_received = true;
-            del_user_pms(username, include_received);
-            del_user_tickers(username);
-        }
-
-        if (user.status == UserStatus.offline) {
-            if (user.login_rejection.reason) writeln(
-                "User ", red, username, norm, " denied (", red,
-                user.login_rejection.reason, norm, ")"
-            );
-            return;
-        }
-
-        user.leave_joined_rooms();
-        remove_global_room_user(username);
-
-        user.update_status(UserStatus.offline);
-        writeln("User ", red, username, norm, " logged out");
+        if (username in users) users.remove(username);
     }
 
     User get_user(string username)
@@ -711,23 +696,6 @@ final class Server
     size_t num_users()
     {
         return users.length;
-    }
-
-    private void disconnect_user(User user)
-    {
-        if (user.sock is null)
-            return;
-
-        unregister_socket(user.sock, SelectEvent.read | SelectEvent.write);
-        sock_users.remove(user.sock.handle);
-
-        user.sock.shutdown(SocketShutdown.BOTH);
-        user.sock.close();
-
-        if (log_user) writeln(
-            "Closed connection to user ", user.username
-        );
-        user.sock = null;
     }
 
     private string user_list(string type = null)
@@ -1087,7 +1055,7 @@ final class Server
                 del_user_tickers(username);
 
                 auto user = get_user(username);
-                if (user !is null) del_user(user);
+                if (user !is null) user.disconnect();
 
                 string response;
                 if (duration == Duration.max)
@@ -1150,7 +1118,7 @@ final class Server
                 db.ban_user(username, duration);
 
                 auto user = get_user(username);
-                if (user !is null) del_user(user);
+                if (user !is null) user.disconnect();
 
                 send_pm(
                     server_username, admin_username,
@@ -1184,7 +1152,7 @@ final class Server
 
                 foreach (ref user ; users_to_kick) {
                     db.ban_user(user.username, duration);
-                    del_user(user);
+                    user.disconnect();
                 }
 
                 if (log_user) writeln(

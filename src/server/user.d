@@ -39,7 +39,7 @@ final class User
     InternetAddress         address;
     ObfuscationType         obfuscation_type;
     ushort                  obfuscated_port;
-    bool                    removed;
+    bool                    disconnecting;
 
     UserStatus              status;
     string                  client_version;
@@ -102,7 +102,7 @@ final class User
 
     void password_hashed(string password, string hash)
     {
-        if (removed)
+        if (disconnecting)
             return;
 
         if (status != UserStatus.offline) {
@@ -115,7 +115,7 @@ final class User
 
     void password_upgraded(string password, string hash)
     {
-        if (removed)
+        if (disconnecting)
             return;
 
         change_password(password, hash);
@@ -123,7 +123,7 @@ final class User
 
     void password_verified(string password, bool matches, uint iterations)
     {
-        if (removed)
+        if (disconnecting)
             return;
 
         if (!matches) {
@@ -142,6 +142,40 @@ final class User
                 password, salt, pbkdf2_iterations, &password_upgraded
             );
         }
+    }
+
+    void disconnect(bool wait_for_messages = true)
+    {
+        unwatch(username);
+        server.del_user(username);
+
+        if (!disconnecting) {
+            if (status == UserStatus.offline) {
+                if (login_rejection.reason) writeln(
+                    "User ", red, username, norm, " denied (", red,
+                    login_rejection.reason, norm, ")"
+                );
+            }
+            else {
+                foreach (ref name, ref _room ; joined_rooms) leave_room(name);
+                server.remove_global_room_user(username);
+
+                update_status(UserStatus.offline);
+                writeln("User ", red, username, norm, " logged out");
+            }
+        }
+        disconnecting = true;
+
+        if (wait_for_messages && is_sending)
+            return;
+
+        if (sock is null)
+            return;
+
+        server.close_user_socket(sock);
+
+        if (log_user) writeln("Closed connection to user ", username);
+        sock = null;
     }
 
     private string check_username(string username)
@@ -219,14 +253,14 @@ final class User
         login_verified = true;
         auto user = server.get_user(username);
 
-        if (user && user.status != UserStatus.offline) {
+        if (user !is null && user.status != UserStatus.offline) {
             writeln(
                 "User ", red, username, norm, " already logged in, ",
                 "disconnecting"
             );
             scope relogged_msg = new SRelogged();
             user.send_message(relogged_msg);
-            server.del_user(user);
+            user.disconnect();
         }
 
         if (hash !is null) db.add_user(username, hash);
@@ -237,6 +271,13 @@ final class User
         shared_folders = user_stats.shared_folders;
 
         refresh_privileges(false);
+
+        writeln(
+            db.admin_until(username) > Clock.currTime ?
+            "Admin " : "User ", blue, username, norm,
+            " logged in with client version ", bold, client_version, norm
+        );
+
         server.add_user(this);
         watch(username);
 
@@ -392,10 +433,6 @@ final class User
 
     private void unwatch(string target_username)
     {
-        if (target_username == username)
-            // Always watch our own username for updates
-            return;
-
         if (target_username in watched_users)
             watched_users.remove(target_username);
     }
@@ -495,11 +532,6 @@ final class User
             server.del_room(name);
 
         return true;
-    }
-
-    void leave_joined_rooms()
-    {
-        foreach (ref name, ref room ; joined_rooms) leave_room(name);
     }
 
     const joined_room_names()
@@ -637,7 +669,6 @@ final class User
             if (!proc_message())
                 break;
         }
-
         return true;
     }
 
@@ -776,6 +807,10 @@ final class User
             case UnwatchUser:
                 scope msg = new UUnwatchUser(msg_buf, username);
                 if (!msg.is_valid)
+                    break;
+
+                if (msg.username == username)
+                    // Always watch our own username for updates
                     break;
 
                 unwatch(msg.username);
@@ -1083,7 +1118,7 @@ final class User
             case GlobalUserList:
                 // The official server disconnects the user
                 scope msg = new UGlobalUserList(msg_buf, username);
-                server.del_user(this);
+                disconnect();
                 break;
 
             case CheckPrivileges:
