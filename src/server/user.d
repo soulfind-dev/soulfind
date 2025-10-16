@@ -6,7 +6,7 @@
 module soulfind.server.user;
 @safe:
 
-import soulfind.db : SdbUserStats;
+import soulfind.db : Sdb, SdbUserStats;
 import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
                           max_interest_length, max_msg_size,
                           max_room_name_length, max_username_length, norm,
@@ -52,6 +52,7 @@ final class User
     uint                    shared_folders;
 
     private Server          server;
+    private Sdb             db;
     private MonoTime        connected_monotime;
 
     private string[string]  liked_items;
@@ -66,9 +67,10 @@ final class User
     private ubyte[]         out_buf;
 
 
-    this(Server serv, Socket sock, InternetAddress address)
+    this(Server server, Sdb db, Socket sock, InternetAddress address)
     {
-        this.server              = serv;
+        this.server              = server;
+        this.db                  = db;
         this.sock                = sock;
         this.address             = address;
         this.connected_monotime  = MonoTime.currTime;
@@ -79,7 +81,7 @@ final class User
 
     string motd()
     {
-        return server.db.server_motd
+        return db.server_motd
             .replace("%sversion%", VERSION)
             .replace("%users%", server.num_users.text)
             .replace("%username%", username)
@@ -169,14 +171,14 @@ final class User
     private LoginRejection verify_login(string username, string password)
     {
         auto login_rejection = LoginRejection();
-        const user_exists = server.db.user_exists(username);
+        const user_exists = db.user_exists(username);
 
-        if (!user_exists && server.db.server_private_mode) {
+        if (!user_exists && db.server_private_mode) {
             login_rejection.reason = LoginRejectionReason.server_private;
             return login_rejection;
         }
 
-        if (server.num_users >= server.db.server_max_users) {
+        if (server.num_users >= db.server_max_users) {
             login_rejection.reason = LoginRejectionReason.server_full;
             return login_rejection;
         }
@@ -201,7 +203,7 @@ final class User
             return login_rejection;
         }
 
-        const stored_hash = server.db.user_password_hash(username);
+        const stored_hash = db.user_password_hash(username);
         verify_password_async(stored_hash, password, &password_verified);
         return login_rejection;
     }
@@ -227,9 +229,9 @@ final class User
             server.del_user(user);
         }
 
-        if (hash !is null) server.db.add_user(username, hash);
+        if (hash !is null) db.add_user(username, hash);
 
-        const user_stats = server.db.user_stats(username);
+        const user_stats = db.user_stats(username);
         upload_speed = user_stats.upload_speed;
         shared_files = user_stats.shared_files;
         shared_folders = user_stats.shared_folders;
@@ -258,7 +260,7 @@ final class User
             privileged_users
         );
         scope excluded_phrases_msg = new SExcludedSearchPhrases(
-            server.db.search_filters!(SearchFilterType.client)
+            db.search_filters!(SearchFilterType.client)
         );
         send_message(response_msg);
         send_message(room_list_msg);
@@ -272,7 +274,7 @@ final class User
     private void change_password(string password, string hash,
                                  bool notify_user = false)
     {
-        server.db.user_update_password(username, hash);
+        db.user_update_password(username, hash);
 
         if (!notify_user)
             return;
@@ -323,7 +325,7 @@ final class User
         stats.upload_speed = upload_speed;
         stats.updating_speed = true;
 
-        server.db.user_update_stats(username, stats);
+        db.user_update_stats(username, stats);
     }
 
     private void update_shared_stats(uint new_files, uint new_folders)
@@ -336,7 +338,7 @@ final class User
         stats.shared_folders = new_folders;
         stats.updating_shared = true;
 
-        server.db.user_update_stats(username, stats);
+        db.user_update_stats(username, stats);
     }
 
 
@@ -345,7 +347,7 @@ final class User
     void refresh_privileges(bool notify_user = true)
     {
         const was_privileged = privileged;
-        privileged_until = server.db.user_privileged_until(username);
+        privileged_until = db.user_privileged_until(username);
 
         if (!notify_user)
             return;
@@ -660,7 +662,7 @@ final class User
                     break;
 
                 username = msg.username;
-                const banned_until = server.db.user_banned_until(username);
+                const banned_until = db.user_banned_until(username);
 
                 if (banned_until > Clock.currTime)
                     // The official server doesn't send a response when a user
@@ -671,7 +673,7 @@ final class User
                     break;
 
                 login_rejection = verify_login(username, msg.password);
-                if (banned_until.stdTime > 0) server.db.unban_user(username);
+                if (banned_until.stdTime > 0) db.unban_user(username);
 
                 client_version = text(
                     msg.major_version, ".", msg.minor_version
@@ -755,7 +757,7 @@ final class User
                     user_exists = true;
                 }
                 else {
-                    const user_stats = server.db.user_stats(msg.username);
+                    const user_stats = db.user_stats(msg.username);
                     user_exists = user_stats.exists;
                     user_upload_speed = user_stats.upload_speed;
                     user_shared_files = user_stats.shared_files;
@@ -794,8 +796,7 @@ final class User
                 }
                 else if (msg.username != server_username) {
                     user_privileged = (
-                        server.db.user_privileged_until(msg.username)
-                        > Clock.currTime
+                        db.user_privileged_until(msg.username) > Clock.currTime
                     );
                 }
 
@@ -945,7 +946,7 @@ final class User
                     user_shared_folders = user.shared_folders;
                 }
                 else {
-                    const user_stats = server.db.user_stats(msg.username);
+                    const user_stats = db.user_stats(msg.username);
                     user_upload_speed = user_stats.upload_speed;
                     user_shared_files = user_stats.shared_files;
                     user_shared_folders = user_stats.shared_folders;
@@ -1166,8 +1167,7 @@ final class User
                     privileged = user.privileged;
                 else
                     privileged = (
-                        server.db.user_privileged_until(msg.username)
-                        > Clock.currTime
+                        db.user_privileged_until(msg.username) > Clock.currTime
                     );
 
                 scope response_msg = new SUserPrivileged(
@@ -1189,10 +1189,10 @@ final class User
                 if (duration.total!"days" < 1 || duration > privileges)
                     break;
 
-                server.db.add_user_privileges(msg.username, duration);
+                db.add_user_privileges(msg.username, duration);
                 user.refresh_privileges();
 
-                server.db.remove_user_privileges(username, duration);
+                db.remove_user_privileges(username, duration);
                 refresh_privileges();
                 break;
 

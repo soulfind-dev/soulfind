@@ -32,7 +32,6 @@ import std.string : join, split;
 
 final class Server
 {
-    Sdb                     db;
     Selector                selector;
     GlobalRoom              global_room;
 
@@ -40,6 +39,7 @@ final class Server
     private MonoTime        started_monotime;
     private MonoTime        last_user_check;
     private ushort          port;
+    private Sdb             db;
 
     private User[string]    users;
     private User[socket_t]  sock_users;
@@ -214,7 +214,7 @@ final class Server
 
             if (log_user) writeln("Connection attempt accepted");
             sock_users[sock.handle] = new User(
-                this, sock,
+                this, db, sock,
                 new InternetAddress(
                     (cast(InternetAddress)sock.remoteAddress).addr,
                     InternetAddress.PORT_ANY
