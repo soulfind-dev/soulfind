@@ -9,9 +9,10 @@ module soulfind.server.server;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
                           kick_duration, log_msg, log_user,
-                          max_global_recommendations, max_room_name_length,
-                          max_search_query_length, max_user_recommendations,
-                          norm, red, server_username, VERSION;
+                          max_chat_message_length, max_global_recommendations,
+                          max_room_name_length, max_search_query_length,
+                          max_user_recommendations, norm, red, server_username,
+                          VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages;
@@ -351,33 +352,65 @@ final class Server
 
     // Private Messages
 
-    PM add_pm(string message, string from_username, string to_username)
+    void send_pm(string from_username, string to_username, string message,
+                 bool online_only = false)
     {
-        auto pm = PM(
-            new_pm_id,
+        if (message.length > max_chat_message_length)
+            return;
+
+        uint id = cast(uint) pms.length;
+        while (id in pms) id++;
+
+        const pm = PM(
+            id,
             Clock.currTime,
             from_username,
             to_username,
             message
         );
 
-        pms[pm.id] = pm;
-        return pm;
+        if (get_user(to_username) !is null) {
+            // User is connected
+            const new_message = true;
+            pms[id] = pm;
+            deliver_pm(id, new_message);
+        }
+        else if (!online_only && db.user_exists(to_username)) {
+            // User exists but not connected
+            pms[id] = pm;
+        }
     }
 
     void del_pm(uint id, string to_username)
+    {
+        if (id in pms && pms[id].to_username == to_username)
+            pms.remove(id);
+    }
+
+    void deliver_queued_pms(string to_username)
+    {
+        foreach (ref pm ; pms)
+            if (pm.to_username == to_username) deliver_pm(pm.id);
+    }
+
+    private void deliver_pm(uint id, bool new_message = false)
     {
         if (id !in pms)
             return;
 
         const pm = pms[id];
-        if (pm.to_username != to_username)
+        auto user = get_user(pm.to_username);
+
+        if (user is null)
             return;
 
-        pms.remove(id);
+        scope msg = new SMessageUser(
+            id, pm.time, pm.from_username, pm.message, new_message
+        );
+        user.send_message!"log_redacted"(msg);
     }
 
-    void del_user_pms(string username, bool include_received = false)
+    private void del_user_pms(string username, bool include_received = false)
     {
         PM[] pms_to_remove;
         foreach (ref pm ; pms) {
@@ -386,36 +419,6 @@ final class Server
                 pms_to_remove ~= pm;
         }
         foreach (ref pm ; pms_to_remove) pms.remove(pm.id);
-    }
-
-    private uint new_pm_id()
-    {
-        uint id = cast(uint) pms.length;
-        while (id in pms) id++;
-        return id;
-    }
-
-    void send_pm(const PM pm, bool new_message)
-    {
-        auto user = get_user(pm.to_username);
-        if (user is null)
-            return;
-
-        scope msg = new SMessageUser(
-            pm.id, pm.time, pm.from_username, pm.message, new_message
-        );
-        user.send_message!"log_redacted"(msg);
-    }
-
-    void send_queued_pms(string username)
-    {
-        foreach (ref pm ; pms) {
-            if (pm.to_username != username)
-                continue;
-
-            const new_message = false;
-            send_pm(pm, new_message);
-        }
     }
 
 
@@ -905,8 +908,8 @@ final class Server
         if (command.length > 0) switch (command[0])
         {
             case "help":
-                server_pm(
-                    sender_username,
+                send_pm(
+                    server_username, sender_username,
                     "Available commands:"
                   ~ " None"
                 );
@@ -924,8 +927,8 @@ final class Server
         if (command.length > 0) switch (command[0])
         {
             case "help":
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text(
                         "Available commands:",
                         "\n\nadmins\n\tList admins",
@@ -966,12 +969,12 @@ final class Server
                     output ~= text(" (", status, ")");
                 }
 
-                server_pm(admin_username, output[]);
+                send_pm(server_username, admin_username, output[]);
                 break;
 
             case "users":
                 const type = (command.length > 1) ? command[1] : null;
-                server_pm(admin_username, user_list(type));
+                send_pm(server_username, admin_username, user_list(type));
                 break;
 
             case "rooms":
@@ -985,47 +988,58 @@ final class Server
                         room.num_tickers, ")"
                     );
                 }
-                server_pm(admin_username, output[]);
+                send_pm(server_username, admin_username, output[]);
                 break;
 
             case "userinfo":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: userinfo <user>");
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: userinfo <user>"
+                    );
                     break;
                 }
                 const username = command[1 .. $].join(" ");
 
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
                 }
 
-                server_pm(admin_username, user_info(username));
+                send_pm(
+                    server_username, admin_username, user_info(username)
+                );
                 break;
 
             case "roominfo":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: roominfo <user>");
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: roominfo <user>"
+                    );
                     break;
                 }
                 const name = command[1 .. $].join(" ");
 
                 if (name !in rooms) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("Room ", name, " is not registered")
                     );
                     break;
                 }
-                server_pm(admin_username, room_info(name));
+                send_pm(server_username, admin_username, room_info(name));
                 break;
 
             case "ban":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: ban [days] <user>");
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: ban [days] <user>"
+                    );
                     break;
                 }
 
@@ -1043,8 +1057,8 @@ final class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
@@ -1066,26 +1080,30 @@ final class Server
                         duration.total!"days".days.toString
                     );
 
-                server_pm(admin_username, response);
+                send_pm(server_username, admin_username, response);
                 break;
 
             case "unban":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: unban <user>");
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: unban <user>"
+                    );
                     break;
                 }
                 const username = command[1 .. $].join(" ");
                 db.unban_user(username);
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text("Unbanned user ", username)
                 );
                 break;
 
             case "kick":
                 if (command.length < 2) {
-                    server_pm(
-                        admin_username, "Syntax is: kick [minutes] <user>"
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: kick [minutes] <user>"
                     );
                     break;
                 }
@@ -1104,8 +1122,8 @@ final class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
@@ -1116,8 +1134,8 @@ final class Server
                 auto user = get_user(username);
                 if (user !is null) del_user(user);
 
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text(
                         "Kicked user ", username, " for ",
                         duration.total!"minutes".minutes.toString
@@ -1134,8 +1152,9 @@ final class Server
                         duration = (value > limit ? limit : value).minutes;
                     }
                     catch (ConvException) {
-                        server_pm(
-                            admin_username, "Syntax is: kickall [minutes]"
+                        send_pm(
+                            server_username, admin_username,
+                            "Syntax is: kickall [minutes]"
                         );
                         break;
                     }
@@ -1154,8 +1173,8 @@ final class Server
                     "Admin ", blue, admin_username, norm, " kicked ALL ",
                     users_to_kick[].length, " users for ", duration.toString
                 );
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text(
                         "Kicked all ", users_to_kick[].length, " users for ",
                         duration.total!"minutes".minutes.toString
@@ -1165,8 +1184,8 @@ final class Server
 
             case "addprivileges":
                 if (command.length < 3) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         "Syntax is: addprivileges <days> <user>"
                     );
                     break;
@@ -1179,16 +1198,17 @@ final class Server
                     duration = (value > limit ? limit : value).days;
                 }
                 catch (ConvException) {
-                    server_pm(
-                        admin_username, "Invalid number or too many days"
+                    send_pm(
+                        server_username, admin_username,
+                        "Invalid number or too many days"
                     );
                     break;
                 }
 
                 const username = command[2 .. $].join(" ");
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
@@ -1199,8 +1219,8 @@ final class Server
                 auto user = get_user(username);
                 if (user !is null) user.refresh_privileges();
 
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text(
                         "Added ", duration.total!"days".days.toString,
                         " of privileges to user ", username
@@ -1210,8 +1230,8 @@ final class Server
 
             case "removeprivileges":
                 if (command.length < 2) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         "Syntax is: removeprivileges [days] <user>"
                     );
                     break;
@@ -1229,8 +1249,8 @@ final class Server
                 }
 
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
@@ -1252,35 +1272,37 @@ final class Server
                         " of privileges from user ", username
                     );
 
-                server_pm(admin_username, response);
+                send_pm(server_username, admin_username, response);
                 break;
 
             case "removetickers":
                 if (command.length < 2) {
-                    server_pm(
-                        admin_username, "Syntax is: removetickers <user>"
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: removetickers <user>"
                     );
                     break;
                 }
                 const username = command[1 .. $].join(" ");
                 if (!db.user_exists(username)) {
-                    server_pm(
-                        admin_username,
+                    send_pm(
+                        server_username, admin_username,
                         text("User ", username, " is not registered")
                     );
                     break;
                 }
                 del_user_tickers(username);
-                server_pm(
-                    admin_username,
+                send_pm(
+                    server_username, admin_username,
                     text("Removed user ", username, "'s public room tickers")
                 );
                 break;
 
             case "announcement":
                 if (command.length < 2) {
-                    server_pm(
-                        admin_username, "Syntax is: announcement <message>"
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: announcement <message>"
                     );
                     break;
                 }
@@ -1290,11 +1312,15 @@ final class Server
 
             case "message":
                 if (command.length < 2) {
-                    server_pm(admin_username, "Syntax is: message <message>");
+                    send_pm(
+                        server_username, admin_username,
+                        "Syntax is: message <message>"
+                    );
                     break;
                 }
                 const msg = command[1 .. $].join(" ");
-                foreach (ref username ; db.usernames) server_pm(username, msg);
+                foreach (ref username ; db.usernames)
+                    send_pm(server_username, username, msg);
                 break;
 
             case "uptime":
@@ -1303,7 +1329,7 @@ final class Server
                     "Running for ", duration.total!"seconds".seconds.toString,
                     " since ", started_at.toSimpleString
                 );
-                server_pm(admin_username, response);
+                send_pm(server_username, admin_username, response);
                 break;
 
             default:
@@ -1312,17 +1338,10 @@ final class Server
         }
     }
 
-    void server_pm(string username, string message)
-    {
-        const pm = add_pm(message, server_username, username);
-        const new_message = true;
-        send_pm(pm, new_message);
-    }
-
     private void server_unknown_command(string username, string command)
     {
-        server_pm(
-            username,
+        send_pm(
+            server_username, username,
             text(
                 "Unknown command '", command, "'. ",
                 "Type 'help' to list available commands."

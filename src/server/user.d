@@ -8,11 +8,11 @@ module soulfind.server.user;
 
 import soulfind.db : SdbUserStats;
 import soulfind.defines : blue, bold, log_msg, log_user, login_timeout,
-                          max_chat_message_length, max_interest_length,
-                          max_msg_size, max_room_name_length,
-                          max_username_length, norm, pbkdf2_iterations, red,
-                          SearchFilterType, server_username, speed_weight,
-                          VERSION, wish_interval, wish_interval_privileged;
+                          max_interest_length, max_msg_size,
+                          max_room_name_length, max_username_length, norm,
+                          pbkdf2_iterations, red, SearchFilterType,
+                          server_username, speed_weight, VERSION,
+                          wish_interval, wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.select : SelectEvent;
@@ -257,9 +257,8 @@ final class User
         scope privileged_users_msg = new SPrivilegedUsers(
             privileged_users
         );
-        const type = SearchFilterType.client;
         scope excluded_phrases_msg = new SExcludedSearchPhrases(
-            server.db.search_filters!type
+            server.db.search_filters!(SearchFilterType.client)
         );
         send_message(response_msg);
         send_message(room_list_msg);
@@ -267,7 +266,7 @@ final class User
         send_message(privileged_users_msg);
         send_message(excluded_phrases_msg);
 
-        server.send_queued_pms(username);
+        server.deliver_queued_pms(username);
     }
 
     private void change_password(string password, string hash,
@@ -469,7 +468,7 @@ final class User
     {
         string fail_message = check_room_name(name);
         if (fail_message) {
-            server.server_pm(username, fail_message);
+            server.send_pm(server_username, username, fail_message);
             return;
         }
 
@@ -863,26 +862,11 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                if (msg.message.length > max_chat_message_length)
-                    break;
-
-                auto user = server.get_user(msg.username);
-
                 if (msg.username == server_username) {
                     server.user_command(username, msg.message);
+                    break;
                 }
-                else if (user !is null) {
-                    // User is connected
-                    const pm = server.add_pm(
-                        msg.message, username, msg.username
-                    );
-                    const new_message = true;
-                    server.send_pm(pm, new_message);
-                }
-                else if (server.db.user_exists(msg.username)) {
-                    // User exists but not connected
-                    server.add_pm(msg.message, username, msg.username);
-                }
+                server.send_pm(username, msg.username, msg.message);
                 break;
 
             case MessageAcked:
@@ -1288,21 +1272,12 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                if (msg.message.length > max_chat_message_length)
-                    break;
+                const online_only = true;
 
-                const new_message = true;
-
-                foreach (ref target_username ; msg.usernames) {
-                    const user = server.get_user(target_username);
-                    if (user is null)
-                        continue;
-
-                    const pm = server.add_pm(
-                        msg.message, username, target_username
+                foreach (ref to_username ; msg.usernames)
+                    server.send_pm(
+                        username, to_username, msg.message, online_only
                     );
-                    server.send_pm(pm, new_message);
-                }
                 break;
 
             case JoinGlobalRoom:
