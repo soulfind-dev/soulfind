@@ -23,7 +23,7 @@ enum SelectEvent
 
 class Selector
 {
-    private Duration               timeout;
+    private const Duration         timeout;
     private SelectEvent[socket_t]  fd_events;
 
     this(Duration timeout)
@@ -41,7 +41,7 @@ version (epoll) final class EpollSelector : Selector
     import core.sys.linux.epoll;
     import core.sys.posix.unistd : close;
 
-    private int            epoll_fd;
+    private const int      epoll_fd;
     private epoll_event[]  epoll_events;
     private size_t         max_events;
 
@@ -155,7 +155,7 @@ version (kqueue) final class KqueueSelector : Selector
     import core.sys.posix.time : time_t, timespec;
     import core.sys.posix.unistd : close;
 
-    private int         kqueue_fd;
+    private const int   kqueue_fd;
     private kevent_t[]  kevents;
     private size_t      max_events;
 

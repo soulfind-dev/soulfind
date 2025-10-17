@@ -144,7 +144,7 @@ const CantCreateRoom               = 1003;
 
 class UMessage
 {
-    uint             code;
+    const uint       code;
     bool             is_valid = true;
     private size_t   offset;
     private ubyte[]  in_buf;
@@ -921,7 +921,7 @@ final class UCantConnectToPeer : UMessage
 
 class SMessage
 {
-    uint                        code;
+    const uint                  code;
     private Appender!(ubyte[])  out_buf;
 
     this(uint code) scope

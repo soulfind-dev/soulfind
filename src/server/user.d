@@ -35,25 +35,25 @@ import std.string : join, replace, strip, toLower;
 final class User
 {
     string                  username;
-    Socket                  sock;
+    string                  client_version;
     InternetAddress         address;
     ObfuscationType         obfuscation_type;
     ushort                  obfuscated_port;
-    bool                    disconnecting;
 
     UserStatus              status;
-    string                  client_version;
-    bool                    login_verified;
     LoginRejection          login_rejection;
-    SysTime                 privileged_until;
+    bool                    login_verified;
+    bool                    disconnecting;
 
     uint                    upload_speed;  // in B/s
     uint                    shared_files;
     uint                    shared_folders;
+    SysTime                 privileged_until;
 
+    private const MonoTime  connected_monotime;
     private Server          server;
     private Sdb             db;
-    private MonoTime        connected_monotime;
+    private Socket          sock;
 
     private string[string]  liked_items;
     private string[string]  hated_items;

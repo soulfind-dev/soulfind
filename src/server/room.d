@@ -30,7 +30,7 @@ struct Ticker
 
 final class Room
 {
-    string name;
+    const string name;
 
     private GlobalRoom      global_room;
     private User[string]    users;

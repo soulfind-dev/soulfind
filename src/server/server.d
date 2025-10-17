@@ -32,10 +32,10 @@ import std.string : join, split;
 
 final class Server
 {
-    private SysTime         started_at;
-    private MonoTime        started_monotime;
+    private const SysTime   started_at;
+    private const MonoTime  started_monotime;
+    private const ushort    port;
     private MonoTime        last_user_check;
-    private ushort          port;
 
     private Sdb             db;
     private Selector        selector;
