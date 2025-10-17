@@ -116,11 +116,13 @@ final class Server
     void send_pm(string from_username, string to_username, string message,
                  bool connected_only = false)
     {
-        if (message.length > max_chat_message_length)
-            return;
+        if (from_username != server_username) {
+            if (message.length > max_chat_message_length)
+                return;
 
-        foreach (ref c ; message) if (c == '\n' || c == '\r')
-            return;
+            foreach (ref c ; message) if (c == '\n' || c == '\r')
+                return;
+        }
 
         const is_connected = get_user(to_username) !is null;
         if (!is_connected && (connected_only || !db.user_exists(to_username)))
