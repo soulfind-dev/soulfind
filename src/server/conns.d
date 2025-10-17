@@ -31,16 +31,16 @@ final class UserConnections
 {
     private Server          server;
     private Selector        selector;
-    private MessageHandler  messages;
+    private MessageHandler  msg_handler;
     private User[socket_t]  sock_users;
     private MonoTime        last_user_check;
 
 
     this(Server server)
     {
-        this.server    = server;
-        this.selector  = new DefaultSelector(100.msecs);
-        this.messages  = new MessageHandler(server);
+        this.server       = server;
+        this.selector     = new DefaultSelector(100.msecs);
+        this.msg_handler  = new MessageHandler(server);
     }
 
     bool listen(ushort port)
@@ -172,7 +172,7 @@ final class UserConnections
             if (log_user) writeln("Connection attempt accepted");
 
             sock_users[sock.handle] = new User(
-                server, new UserConnection(sock, selector, messages)
+                server, new UserConnection(sock, selector, msg_handler)
             );
         }
     }
@@ -185,18 +185,18 @@ final class UserConnection
 
     private Socket          sock;
     private Selector        selector;
-    private MessageHandler  messages;
+    private MessageHandler  msg_handler;
 
     private ubyte[]         in_buf;
     private long            in_msg_size = -1;
     private ubyte[]         out_buf;
 
 
-    this(Socket sock, Selector selector, MessageHandler messages)
+    this(Socket sock, Selector selector, MessageHandler msg_handler)
     {
         this.sock              = sock;
         this.selector          = selector;
-        this.messages          = messages;
+        this.msg_handler       = msg_handler;
         this.created_monotime  = MonoTime.currTime;
         this.address           = cast(InternetAddress) sock.remoteAddress;
 
@@ -385,7 +385,7 @@ final class UserConnection
     {
         auto msg_buf = in_buf[0 .. in_msg_size];
         const code = msg_buf.peek!(uint, Endian.littleEndian);
-        const success = messages.handle_message(target_user, code, msg_buf);
+        const success = msg_handler.handle_message(target_user, code, msg_buf);
 
         if (success) {
             in_buf = in_buf[in_msg_size .. $];
