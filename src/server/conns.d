@@ -31,7 +31,7 @@ final class UserConnections
 {
     private Server          server;
     private Selector        selector;
-    private MessageHandler  handler;
+    private MessageHandler  messages;
     private User[socket_t]  sock_users;
     private MonoTime        last_user_check;
 
@@ -40,7 +40,7 @@ final class UserConnections
     {
         this.server    = server;
         this.selector  = new DefaultSelector(100.msecs);
-        this.handler   = new MessageHandler(server);
+        this.messages  = new MessageHandler(server);
     }
 
     bool listen(ushort port)
@@ -172,7 +172,7 @@ final class UserConnections
             if (log_user) writeln("Connection attempt accepted");
 
             sock_users[sock.handle] = new User(
-                server, new UserConnection(sock, selector, handler)
+                server, new UserConnection(sock, selector, messages)
             );
         }
     }
@@ -185,18 +185,18 @@ final class UserConnection
 
     private Socket          sock;
     private Selector        selector;
-    private MessageHandler  handler;
+    private MessageHandler  messages;
 
     private ubyte[]         in_buf;
     private long            in_msg_size = -1;
     private ubyte[]         out_buf;
 
 
-    this(Socket sock, Selector selector, MessageHandler handler)
+    this(Socket sock, Selector selector, MessageHandler messages)
     {
         this.sock              = sock;
         this.selector          = selector;
-        this.handler           = handler;
+        this.messages          = messages;
         this.created_monotime  = MonoTime.currTime;
         this.address           = cast(InternetAddress) sock.remoteAddress;
 
@@ -385,7 +385,7 @@ final class UserConnection
     {
         auto msg_buf = in_buf[0 .. in_msg_size];
         const code = msg_buf.peek!(uint, Endian.littleEndian);
-        const success = handler.handle_message(target_user, code, msg_buf);
+        const success = messages.handle_message(target_user, code, msg_buf);
 
         if (success) {
             in_buf = in_buf[in_msg_size .. $];
