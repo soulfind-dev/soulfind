@@ -240,7 +240,7 @@ final class MessageHandler
                 break;
 
             if (msg.username == server_username) {
-                server.user_command(user.username, msg.message);
+                server.handle_command(user.username, msg.message);
                 break;
             }
             server.send_pm(user.username, msg.username, msg.message);

@@ -71,7 +71,7 @@ final class User
     {
         return server.db.server_motd
             .replace("%sversion%", VERSION)
-            .replace("%users%", server.num_users.text)
+            .replace("%users%", server.num_connected_users.text)
             .replace("%username%", username)
             .replace("%version%", client_version);
     }
@@ -104,7 +104,7 @@ final class User
             return;
         }
 
-        if (server.num_users >= server.db.server_max_users) {
+        if (server.num_connected_users >= server.db.server_max_users) {
             reject_login(LoginRejectionReason.server_full);
             return;
         }
