@@ -385,6 +385,9 @@ final class Server
         if (message.length > max_chat_message_length)
             return;
 
+        foreach (ref c ; message) if (c == '\n' || c == '\r')
+            return;
+
         const is_connected = get_user(to_username) !is null;
         if (!is_connected && (connected_only || !db.user_exists(to_username)))
             return;
