@@ -380,15 +380,19 @@ final class Server
     // Private Messages
 
     void send_pm(string from_username, string to_username, string message,
-                 bool online_only = false)
+                 bool connected_only = false)
     {
         if (message.length > max_chat_message_length)
+            return;
+
+        const is_connected = get_user(to_username) !is null;
+        if (!is_connected && (connected_only || !db.user_exists(to_username)))
             return;
 
         uint id = cast(uint) pms.length;
         while (id in pms) id++;
 
-        const pm = PM(
+        pms[id] = PM(
             id,
             Clock.currTime,
             from_username,
@@ -396,16 +400,11 @@ final class Server
             message
         );
 
-        if (get_user(to_username) !is null) {
-            // User is connected
-            const new_message = true;
-            pms[id] = pm;
-            deliver_pm(id, new_message);
-        }
-        else if (!online_only && db.user_exists(to_username)) {
-            // User exists but not connected
-            pms[id] = pm;
-        }
+        if (!is_connected)
+            return;
+
+        const new_message = true;
+        deliver_pm(id, new_message);
     }
 
     void del_pm(uint id, string to_username)

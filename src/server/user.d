@@ -1300,11 +1300,11 @@ final class User
                 if (!msg.is_valid)
                     break;
 
-                const online_only = true;
+                const connected_only = true;
 
                 foreach (ref to_username ; msg.usernames)
                     server.send_pm(
-                        username, to_username, msg.message, online_only
+                        username, to_username, msg.message, connected_only
                     );
                 break;
 
