@@ -65,8 +65,9 @@ int run(string[] args)
 
     if (enable_debug) log_db = log_msg = log_user = true;
 
-    auto server = new Server(db_filename, port);
-    const exit_code = server.listen();
+    auto server = new Server(db_filename);
+    const success = server.listen(port);
+    const exit_code = success ? 0 : 1;
 
     writeln("\n", exit_message);
     return exit_code;

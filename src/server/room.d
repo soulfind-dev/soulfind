@@ -8,6 +8,7 @@ module soulfind.server.room;
 
 import soulfind.defines : blue, log_msg, max_chat_message_length,
                           max_room_ticker_length, max_room_tickers, norm;
+import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
 import std.algorithm.sorting : sort;
@@ -99,7 +100,7 @@ final class Room
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
             ") to joined room members..."
         );
-        foreach (ref user ; users) user.send_message!"log_disabled"(msg);
+        foreach (ref user ; users) user.send_message!(Logging.disabled)(msg);
     }
 
 

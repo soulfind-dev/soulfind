@@ -7,14 +7,11 @@ module soulfind.server.server;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
-                          kick_duration, log_msg, log_user,
+import soulfind.defines : blue, kick_duration, log_msg, log_user,
                           max_chat_message_length, max_global_recommendations,
-                          max_room_name_length, max_search_query_length,
-                          max_user_recommendations, norm, red, server_username,
-                          VERSION;
-import soulfind.pwhash : process_password_tasks;
-import soulfind.select : DefaultSelector, SelectEvent, Selector;
+                          max_search_query_length, max_user_recommendations,
+                          norm, red, server_username;
+import soulfind.server.conns : Logging, UserConnection, UserConnections;
 import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
@@ -22,36 +19,29 @@ import soulfind.server.user : User;
 import std.algorithm.sorting : sort;
 import std.array : Appender, array;
 import std.conv : ConvException, text, to;
-import std.datetime : Clock, days, Duration, minutes, MonoTime, msecs, seconds,
+import std.datetime : Clock, days, Duration, minutes, MonoTime, seconds,
                       SysTime;
-import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
-                    SocketOption, SocketOptionLevel, SocketOSException,
-                    SocketShutdown, TcpSocket;
 import std.stdio : writeln;
 import std.string : join, split;
 
 final class Server
 {
+    Sdb                     db;
+
     private const SysTime   started_at;
     private const MonoTime  started_monotime;
-    private const ushort    port;
-    private MonoTime        last_user_check;
-
-    private Sdb             db;
-    private Selector        selector;
-    private GlobalRoom      global_room;
 
     private User[string]    users;
-    private User[socket_t]  sock_users;
+    private UserConnections conns;
     private PM[uint]        pms;
     private Room[string]    rooms;
+    private GlobalRoom      global_room;
 
 
-    this(string db_filename, ushort port = 0)
+    this(string db_filename)
     {
         this.db                = new Sdb(db_filename);
-        this.port              = port > 0 ? port : db.server_port;
-        this.selector          = new DefaultSelector(100.msecs);
+        this.conns             = new UserConnections(this);
         this.started_at        = Clock.currTime;
         this.started_monotime  = MonoTime.currTime;
         this.global_room       = new GlobalRoom();
@@ -60,271 +50,15 @@ final class Server
 
     // Connections
 
-    int listen()
+    bool listen(ushort port)
     {
-        version (unittest)
-            const running = true;
-        else
-            import soulfind.main : running;
-
-        auto listen_sock = new TcpSocket();
-        listen_sock.blocking = false;
-
-        version (Posix)
-            listen_sock.setOption(
-                SocketOptionLevel.SOCKET, SocketOption.REUSEADDR, 1);
-
-        try {
-            auto listen_address = new InternetAddress(port);
-            listen_sock.bind(listen_address);
-            listen_sock.listen(conn_backlog_length);
-        }
-        catch (SocketOSException e) {
-            const min_port = 1024;
-            writeln("Unable to bind socket to port ", port);
-            if (port < min_port) writeln(
-                "Are you trying to use a port less than ", min_port,
-                " while running as a user?"
-            );
-            return 1;
-        }
-
-        @trusted
-        size_t process_id () {
-            version (Windows)
-                import core.sys.windows.winbase : getpid = GetCurrentProcessId;
-            else version (Posix)
-                import core.sys.posix.unistd : getpid;
-            return getpid;
-        }
-        writeln(
-            red, "\&hearts;", norm, " ", bold, "Soulfind", " ", VERSION,
-            norm, " process ", process_id, " listening on port ", port
-        );
-
-        register_socket(listen_sock, SelectEvent.read);
-
-        while (running) {
-            const ready_sock_handles = selector.select();
-
-            foreach (sock_handle, events ; ready_sock_handles) {
-                const recv_ready = (events & SelectEvent.read) != 0;
-                const send_ready = (events & SelectEvent.write) != 0;
-
-                if (sock_handle == listen_sock.handle) {
-                    if (recv_ready) accept(listen_sock);
-                    continue;
-                }
-
-                auto user = sock_users[sock_handle];
-                bool recv_success = true;
-                bool send_success = true;
-
-                if (recv_ready)
-                    recv_success = user.recv_buffer();
-
-                if (send_ready) {
-                    send_success = user.send_buffer();
-                }
-                else if (!user.disconnecting && user.login_verified
-                         && user.status == UserStatus.offline) {
-                    // In order to receive the SetWaitPort message from the
-                    // user in time, delay the initial status update and
-                    // broadcast to watching users as much as possible.
-                    // Otherwise we may end up sending the default dummy
-                    // listening port to watching users attempting to resume
-                    // file transfers.
-                    user.update_status(UserStatus.online);
-                }
-
-                if (!user.is_sending) {
-                    if (user.disconnecting) {
-                        // In order to avoid closing connections early before
-                        // delivering e.g. a Relogged message, we disconnect
-                        // the user here after the output buffer is sent
-                        user.disconnect();
-                    }
-                    else if (user.login_rejection.reason) {
-                        recv_success = send_success = false;
-                    }
-                }
-
-                if (!recv_success || !send_success) {
-                    const wait_for_messages = false;
-                    user.disconnect(wait_for_messages);
-                }
-            }
-
-            const curr_time = MonoTime.currTime;
-            if ((curr_time - last_user_check) >= check_user_interval) {
-                User[] timed_out_users;
-
-                foreach (ref user ; sock_users) {
-                    if (user.username in users) {
-                        // If the user was removed from the database, perform
-                        // server-side removal and disconnection of deleted
-                        // users. Send a Relogged message first to prevent the
-                        // user's client from automatically reconnecting and
-                        // registering again.
-                        const deleted = !db.user_exists(user.username);
-                        if (deleted) {
-                            const include_received = true;
-                            del_user_pms(user.username, include_received);
-                            del_user_tickers(user.username);
-
-                            scope relogged_msg = new SRelogged();
-                            user.send_message(relogged_msg);
-                            user.disconnect();
-                        }
-                    }
-                    else if (user.login_timed_out)
-                        timed_out_users ~= user;
-                }
-                foreach (ref user ; timed_out_users) {
-                    const wait_for_messages = false;
-                    user.disconnect(wait_for_messages);
-                }
-                last_user_check = curr_time;
-            }
-
-            // Password hashing in thread/task pool, process results
-            process_password_tasks();
-        }
-
-        // Clean up connections
-        foreach (ref user ; sock_users.dup) {
-            const wait_for_messages = false;
-            user.disconnect(wait_for_messages);
-        }
-        return 0;
+        if (port == 0) port = db.server_port;
+        return conns.listen(port);
     }
 
-    void register_socket(Socket sock, SelectEvent events)
+    void close_connection(UserConnection conn)
     {
-        selector.register(sock.handle, events);
-    }
-
-    void unregister_socket(Socket sock, SelectEvent events)
-    {
-        selector.unregister(sock.handle, events);
-    }
-
-    void close_user_socket(Socket sock)
-    {
-        if (sock.handle !in sock_users)
-            return;
-
-        sock_users.remove(sock.handle);
-        unregister_socket(sock, SelectEvent.read | SelectEvent.write);
-
-        sock.shutdown(SocketShutdown.BOTH);
-        sock.close();
-    }
-
-    private void accept(Socket listen_sock)
-    {
-        while (true) {
-            Socket sock;
-            try
-                sock = listen_sock.accept();
-            catch (SocketAcceptException)
-                break;
-
-            if (!sock.isAlive)
-                break;
-
-            enable_keep_alive(sock);
-            sock.setOption(
-                SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1
-            );
-            sock.blocking = false;
-
-            if (log_user) writeln("Connection attempt accepted");
-            sock_users[sock.handle] = new User(
-                this, db, sock,
-                new InternetAddress(
-                    (cast(InternetAddress)sock.remoteAddress).addr,
-                    InternetAddress.PORT_ANY
-                )
-            );
-            register_socket(sock, SelectEvent.read);
-        }
-    }
-
-    private void enable_keep_alive(Socket sock)
-    {
-        int TCP_KEEPIDLE;
-        int TCP_KEEPINTVL;
-        int TCP_KEEPCNT;
-        int TCP_KEEPALIVE_ABORT_THRESHOLD;
-        int TCP_KEEPALIVE_THRESHOLD;
-
-        version (linux) {
-            TCP_KEEPIDLE                   = 0x4;
-            TCP_KEEPINTVL                  = 0x5;
-            TCP_KEEPCNT                    = 0x6;
-        }
-        version (OSX) {
-            TCP_KEEPIDLE                   = 0x10;   // TCP_KEEPALIVE on macOS
-            TCP_KEEPINTVL                  = 0x101;
-            TCP_KEEPCNT                    = 0x102;
-        }
-        version (Windows) {
-            TCP_KEEPIDLE                   = 0x03;
-            TCP_KEEPCNT                    = 0x10;
-            TCP_KEEPINTVL                  = 0x11;
-        }
-        version (FreeBSD) {
-            TCP_KEEPIDLE                   = 0x100;
-            TCP_KEEPINTVL                  = 0x200;
-            TCP_KEEPCNT                    = 0x400;
-        }
-        version (NetBSD) {
-            TCP_KEEPIDLE                   = 0x3;
-            TCP_KEEPINTVL                  = 0x5;
-            TCP_KEEPCNT                    = 0x6;
-        }
-        version (DragonFlyBSD) {
-            TCP_KEEPIDLE                   = 0x100;
-            TCP_KEEPINTVL                  = 0x200;
-            TCP_KEEPCNT                    = 0x400;
-        }
-        version (Solaris) {
-            TCP_KEEPALIVE_THRESHOLD        = 0x16;
-            TCP_KEEPALIVE_ABORT_THRESHOLD  = 0x17;
-        }
-
-        const idle = 60;
-        const interval = 5;
-        const count = 10;
-
-        if (TCP_KEEPIDLE)
-            sock.setOption(
-                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPIDLE, idle
-            );
-        if (TCP_KEEPINTVL)
-            sock.setOption(
-                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPINTVL,
-                interval
-            );
-        if (TCP_KEEPCNT)
-            sock.setOption(
-                SocketOptionLevel.TCP, cast(SocketOption) TCP_KEEPCNT, count
-            );
-        if (TCP_KEEPALIVE_THRESHOLD)
-            sock.setOption(
-                SocketOptionLevel.TCP,
-                cast(SocketOption) TCP_KEEPALIVE_THRESHOLD,
-                idle * 1000              // milliseconds
-            );
-        if (TCP_KEEPALIVE_ABORT_THRESHOLD)
-            sock.setOption(
-                SocketOptionLevel.TCP,
-                cast(SocketOption) TCP_KEEPALIVE_ABORT_THRESHOLD,
-                count * interval * 1000  // milliseconds
-            );
-
-        sock.setOption(SocketOptionLevel.SOCKET, SocketOption.KEEPALIVE, true);
+        conns.close_connection(conn);
     }
 
 
@@ -436,10 +170,10 @@ final class Server
         scope msg = new SMessageUser(
             id, pm.time, pm.from_username, pm.message, new_message
         );
-        user.send_message!"log_redacted"(msg);
+        user.send_message!(Logging.redacted)(msg);
     }
 
-    private void del_user_pms(string username, bool include_received = false)
+    void del_user_pms(string username, bool include_received = false)
     {
         PM[] pms_to_remove;
         foreach (ref pm ; pms) {
@@ -647,7 +381,7 @@ final class Server
         );
         foreach (ref user ; users)
             if (user.joined_same_room(sender_username))
-                user.send_message!"log_disabled"(msg);
+                user.send_message!(Logging.disabled)(msg);
     }
 
     private string room_info(string name)
@@ -870,7 +604,7 @@ final class Server
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
             ") to all users..."
         );
-        foreach (ref user ; users) user.send_message!"log_disabled"(msg);
+        foreach (ref user ; users) user.send_message!(Logging.disabled)(msg);
     }
 
     void send_to_watching(string sender_username, scope SMessage msg)
@@ -882,7 +616,7 @@ final class Server
         foreach (ref user ; users)
             if (user.is_watching(sender_username)
                     || user.joined_same_room(sender_username))
-                user.send_message!"log_disabled"(msg);
+                user.send_message!(Logging.disabled)(msg);
     }
 
     void user_command(string sender_username, string message)

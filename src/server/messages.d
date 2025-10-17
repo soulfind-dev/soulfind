@@ -1303,7 +1303,7 @@ final class SGetGlobalRecommendations : SMessage
 
 final class SUserInterests : SMessage
 {
-    this(string user, string[string] likes, string[string] hates) scope
+    this(string user, string[] likes, string[] hates) scope
     {
         super(UserInterests);
 
