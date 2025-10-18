@@ -76,18 +76,6 @@ final class User
             .replace("%version%", client_version);
     }
 
-    bool login_timed_out()
-    {
-        if (status != UserStatus.offline)
-            return false;
-
-        // Login attempts always time out for banned users. Add jitter to
-        // login timeout to spread out reconnect attempts after e.g. kicking
-        // all online users, which also bans them for a few minutes.
-        const login_timeout = login_timeout + uniform(0, 30).seconds;
-        return (MonoTime.currTime - conn.created_monotime) > login_timeout;
-    }
-
     bool should_update_login_status()
     {
         return (
@@ -224,6 +212,23 @@ final class User
         send_message(relogged_msg);
         disconnect();
 
+        return true;
+    }
+
+    bool disconnect_unauthenticated()
+    {
+        if (status != UserStatus.offline)
+            return false;
+
+        // Login attempts always time out for banned users. Add jitter to
+        // login timeout to spread out reconnect attempts after e.g. kicking
+        // all online users, which also bans them for a few minutes.
+        const login_timeout = login_timeout + uniform(0, 30).seconds;
+        if ((MonoTime.currTime - conn.created_monotime) < login_timeout)
+            return false;
+
+        const wait_for_messages = false;
+        disconnect(wait_for_messages);
         return true;
     }
 

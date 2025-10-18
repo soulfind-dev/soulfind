@@ -76,19 +76,15 @@ final class UserConnections
                 user.handle_io_events(recv_ready, send_ready);
             }
 
-            // Handle orphaned and timed out users
+            // Handle orphaned and unauthenticated users
             const curr_time = MonoTime.currTime;
             if ((curr_time - last_user_check) >= check_user_interval) {
-                User[] timed_out_users;
-
-                foreach (ref user ; sock_users) {
+                foreach (ref user ; sock_users.dup) {
                     const orphaned = user.disconnect_orphan();
-                    if (!orphaned && user.login_timed_out)
-                        timed_out_users ~= user;
-                }
-                foreach (ref user ; timed_out_users) {
-                    const wait_for_messages = false;
-                    user.disconnect(wait_for_messages);
+                    if (orphaned)
+                        continue;
+
+                    user.disconnect_unauthenticated();
                 }
                 server.update_search_filters();
                 last_user_check = curr_time;
