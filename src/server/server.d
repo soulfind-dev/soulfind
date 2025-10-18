@@ -10,7 +10,7 @@ import soulfind.db : Sdb;
 import soulfind.defines : blue, kick_duration, log_msg, log_user,
                           max_chat_message_length, max_global_recommendations,
                           max_search_query_length, max_user_recommendations,
-                          norm, red, server_username;
+                          norm, red, SearchFilterType, server_username;
 import soulfind.server.cmdhandler : CommandHandler;
 import soulfind.server.conns : Logging, UserConnection, UserConnections;
 import soulfind.server.messages;
@@ -35,6 +35,7 @@ final class Server
     private User[string]    users;
     private PM[uint]        pms;
     private Room[string]    rooms;
+    private string[]        search_filters;
 
 
     this(string db_filename)
@@ -108,6 +109,28 @@ final class Server
 
         scope msg = new SFileSearch(username, token, query);
         room.send_to_all(msg);
+    }
+
+    void send_search_filters(string username)
+    {
+        auto user = get_user(username);
+        if (user is null)
+            return;
+
+        scope msg = new SExcludedSearchPhrases(search_filters);
+        user.send_message(msg);
+    }
+
+    void update_search_filters()
+    {
+        string[] new_filters;  // Satisfy the linter
+        new_filters = db.search_filters!(SearchFilterType.client);
+        if (new_filters == search_filters)
+            return;
+
+        search_filters = new_filters;
+        scope msg = new SExcludedSearchPhrases(search_filters);
+        send_to_all(msg);
     }
 
 

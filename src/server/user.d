@@ -10,8 +10,8 @@ import soulfind.db : Sdb, SdbUserStats;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_username_length, norm, pbkdf2_iterations, red,
-                          SearchFilterType, server_username, speed_weight,
-                          VERSION, wish_interval, wish_interval_privileged;
+                          server_username, speed_weight, VERSION,
+                          wish_interval, wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
@@ -311,15 +311,12 @@ final class User
         scope privileged_users_msg = new SPrivilegedUsers(
             privileged_users
         );
-        scope excluded_phrases_msg = new SExcludedSearchPhrases(
-            server.db.search_filters!(SearchFilterType.client)
-        );
         send_message(response_msg);
         send_message(room_list_msg);
         send_message(wish_interval_msg);
         send_message(privileged_users_msg);
-        send_message(excluded_phrases_msg);
 
+        server.send_search_filters(username);
         server.deliver_queued_pms(username);
     }
 

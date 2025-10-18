@@ -90,6 +90,7 @@ final class UserConnections
                     const wait_for_messages = false;
                     user.disconnect(wait_for_messages);
                 }
+                server.update_search_filters();
                 last_user_check = curr_time;
             }
 
