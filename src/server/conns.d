@@ -76,7 +76,7 @@ final class UserConnections
                 user.handle_io_events(recv_ready, send_ready);
             }
 
-            // Handle orphaned and unauthenticated users
+            // Handle orphaned, unauthenticated and banned users
             const curr_time = MonoTime.currTime;
             if ((curr_time - last_user_check) >= check_user_interval) {
                 foreach (ref user ; sock_users.dup) {
@@ -86,6 +86,10 @@ final class UserConnections
 
                     const unauthenticated = user.disconnect_unauthenticated();
                     if (unauthenticated)
+                        continue;
+
+                    const banned = user.disconnect_banned();
+                    if (banned)
                         continue;
 
                     user.refresh_privileges();

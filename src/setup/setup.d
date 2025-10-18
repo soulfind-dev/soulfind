@@ -402,10 +402,11 @@ final class Setup
                 MenuItem("4",  "Remove user",           &del_user),
                 MenuItem("5",  "Add privileges",        &add_privileges),
                 MenuItem("6",  "Remove privileges",     &del_privileges),
-                MenuItem("7",  "Unban user",            &unban_user),
-                MenuItem("8",  "List registered users", &list_registered),
-                MenuItem("9",  "List privileged users", &list_privileged),
-                MenuItem("10", "List banned users",     &list_banned),
+                MenuItem("7",  "Ban user",              &ban_user),
+                MenuItem("8",  "Unban user",            &unban_user),
+                MenuItem("9",  "List registered users", &list_registered),
+                MenuItem("10", "List privileged users", &list_privileged),
+                MenuItem("11", "List banned users",     &list_banned),
                 MenuItem("q",  "Return",                &main_menu)
             ]
         );
@@ -562,7 +563,7 @@ final class Setup
 
         writeln(
             "Added ", duration.total!"days".days.toString,
-            " of privileges to user ", username
+            " of privileges to user ", blue, username, norm
         );
         registered_users();
     }
@@ -580,15 +581,15 @@ final class Setup
 
         Duration duration;
         while (true) {
+            write("Number of days to remove (empty = all): ");
+            const user_input = input.strip;
+
+            if (user_input.length == 0) {
+                duration = Duration.max;
+                break;
+            }
+
             try {
-                write("Number of days to remove (empty for all): ");
-                const user_input = input.strip;
-
-                if (user_input.length == 0) {
-                    duration = Duration.max;
-                    break;
-                }
-
                 const value = user_input.to!ulong;
                 const limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
@@ -601,16 +602,57 @@ final class Setup
 
         db.remove_user_privileges(username, duration);
 
-        string response;
         if (duration == Duration.max)
-            response = text("Removed all privileges from user ", username);
+            writeln("Removed all privileges from user ", blue, username, norm);
         else
-            response = text(
+            writeln(
                 "Removed ", duration.total!"days".days.toString,
-                " of privileges from user ", username
+                " of privileges from user ", blue, username, norm
             );
 
-        writeln(response);
+        registered_users();
+    }
+
+    private void ban_user()
+    {
+        write("User to ban: ");
+        const username = input.strip;
+
+        if (!db.user_exists(username)) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
+        }
+
+        Duration banned_until;
+        while (true) {
+            write("Number of days to ban user (empty = forever): ");
+            const duration = input.strip;
+
+            if (duration.length == 0) {
+                banned_until = Duration.max;
+                break;
+            }
+
+            try {
+                banned_until = duration.to!uint.days;
+                break;
+            }
+            catch (ConvException) {
+                writeln("\nInvalid number or too many days");
+            }
+        }
+
+        db.ban_user(username, banned_until);
+
+        if (banned_until == Duration.max)
+            writeln("\nBanned user ", blue, username, norm, " forever");
+        else
+            writeln(
+                "\nBanned user ", blue, username, norm, " until ",
+                banned_until
+            );
+
         registered_users();
     }
 

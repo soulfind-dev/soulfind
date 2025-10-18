@@ -232,6 +232,20 @@ final class User
         return true;
     }
 
+    bool disconnect_banned()
+    {
+        if (!authenticated)
+            return false;
+
+        if (server.db.user_banned_until(username) <= Clock.currTime)
+            return false;
+
+        server.del_user_pms(username);
+        server.del_user_tickers(username);
+        disconnect();
+        return true;
+    }
+
     private string check_username(string username)
     {
         if (username.length == 0)
