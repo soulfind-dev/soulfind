@@ -468,14 +468,17 @@ final class Sdb
         long admin_until;
 
         if (res.length > 0) {
-            try {
-                admin_until = res[0][0].to!long;
-                if (admin_until > 0)
-                    return SysTime.fromUnixTime(admin_until);
-            }
+            try admin_until = res[0][0].to!long;
             catch (ConvException) {}
         }
-        return SysTime();
+
+        if (admin_until == 0)
+            return SysTime();
+
+        if (admin_until >= SysTime.max.toUnixTime)
+            return SysTime.max;
+
+        return SysTime.fromUnixTime(admin_until);
     }
 
     void add_user_privileges(string username, Duration duration)
@@ -536,14 +539,17 @@ final class Sdb
         long privileged_until;
 
         if (res.length > 0) {
-            try {
-                privileged_until = res[0][0].to!long;
-                if (privileged_until > 0)
-                    return SysTime.fromUnixTime(privileged_until);
-            }
+            try privileged_until = res[0][0].to!long;
             catch (ConvException) {}
         }
-        return SysTime();
+
+        if (privileged_until == 0)
+            return SysTime();
+
+        if (privileged_until >= SysTime.max.toUnixTime)
+            return SysTime.max;
+
+        return SysTime.fromUnixTime(privileged_until);
     }
 
     void ban_user(string username, Duration duration)
@@ -583,14 +589,17 @@ final class Sdb
         long banned_until;
 
         if (res.length > 0) {
-            try {
-                banned_until = res[0][0].to!long;
-                if (banned_until > 0)
-                    return SysTime.fromUnixTime(banned_until);
-            }
+            try banned_until = res[0][0].to!long;
             catch (ConvException) {}
         }
-        return SysTime();
+
+        if (banned_until == 0)
+            return SysTime();
+
+        if (banned_until >= SysTime.max.toUnixTime)
+            return SysTime.max;
+
+        return SysTime.fromUnixTime(banned_until);
     }
 
     SdbUserStats user_stats(string username)

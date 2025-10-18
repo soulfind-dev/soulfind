@@ -16,7 +16,7 @@ import soulfind.server.server : Server;
 import soulfind.server.user : User;
 import std.array : array;
 import std.conv : text;
-import std.datetime : Clock;
+import std.datetime : Clock, SysTime;
 import std.socket : InternetAddress;
 import std.stdio : writeln;
 
@@ -55,7 +55,7 @@ final class MessageHandler
                 // server.
                 break;
 
-            if (banned_until.stdTime > 0) server.db.unban_user(msg.username);
+            if (banned_until > SysTime()) server.db.unban_user(msg.username);
             user.client_version = text(
                 msg.major_version, ".", msg.minor_version
             );

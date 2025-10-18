@@ -442,7 +442,7 @@ final class CommandHandler
             output ~= text(users.length, " banned users.");
             foreach (ref user ; users) {
                 const banned_until = server.db.user_banned_until(user);
-                if (banned_until == SysTime.fromUnixTime(long.max)) {
+                if (banned_until == SysTime.max) {
                     output ~= "\n\t";
                     output ~= user;
                     output ~= " (forever)";
@@ -523,7 +523,7 @@ final class CommandHandler
         else {
             const user_stats = server.db.user_stats(username);
             privileged_until = server.db.user_privileged_until(username);
-            if (privileged_until.stdTime > 0) supporter = "yes";
+            if (privileged_until > SysTime()) supporter = "yes";
             upload_speed = user_stats.upload_speed;
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;
@@ -534,7 +534,7 @@ final class CommandHandler
             admin = text("until ", admin_until.toSimpleString);
 
         const banned_until = server.db.user_banned_until(username);
-        if (banned_until == SysTime.fromUnixTime(long.max))
+        if (banned_until == SysTime.max)
             banned = "forever";
 
         else if (banned_until > now)

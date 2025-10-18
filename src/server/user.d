@@ -21,7 +21,7 @@ import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import std.ascii : isPrintable;
 import std.conv : text;
-import std.datetime : Clock, Duration, MonoTime, seconds;
+import std.datetime : Clock, Duration, MonoTime, seconds, SysTime;
 import std.digest : digest, LetterCase, toHexString;
 import std.digest.md : MD5;
 import std.random : uniform;
@@ -446,7 +446,7 @@ final class User
 
     bool supporter()
     {
-        return privileged_until.stdTime > 0;
+        return privileged_until > SysTime();
     }
 
     Duration privileges()

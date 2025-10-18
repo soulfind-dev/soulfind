@@ -143,7 +143,7 @@ final class Setup
         write("\nAdmin to remove: ");
         const username = input.strip;
 
-        if (db.admin_until(username).stdTime > 0) {
+        if (db.admin_until(username) > SysTime()) {
             db.del_admin(username);
             writeln("\nUser ", blue, username, norm, " is no longer an admin");
         }
@@ -486,13 +486,13 @@ final class Setup
         const banned_until = db.user_banned_until(username);
         auto privileged = "no";
         const privileged_until = db.user_privileged_until(username);
-        const supporter = (privileged_until.stdTime > 0) ? "yes" : "no";
+        const supporter = (privileged_until > SysTime()) ? "yes" : "no";
         const stats = db.user_stats(username);
 
         if (admin_until > now)
             admin = text("until ", admin_until.toSimpleString);
 
-        if (banned_until == SysTime.fromUnixTime(long.max))
+        if (banned_until == SysTime.max)
             banned = "forever";
 
         else if (banned_until > now)
@@ -661,7 +661,7 @@ final class Setup
         write("\nUser to unban: ");
         const username = input.strip;
 
-        if (db.user_banned_until(username).stdTime > 0) {
+        if (db.user_banned_until(username) > SysTime()) {
             db.unban_user(username);
             writeln("\nUnbanned user ", blue, username, norm);
         }
@@ -714,7 +714,7 @@ final class Setup
 
         foreach (ref name ; names) {
             const banned_until = db.user_banned_until(name);
-            if (banned_until != SysTime.fromUnixTime(long.max)) {
+            if (banned_until != SysTime.max) {
                 output ~= "\n\t";
                 output ~= name;
                 output ~= text(" (until ", banned_until.toSimpleString, ")");
