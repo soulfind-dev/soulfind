@@ -624,22 +624,17 @@ final class User
             update_status(UserStatus.online);
         }
 
-        if (!conn.is_sending) {
-            if (disconnecting) {
-                // In order to avoid closing connections early before
-                // delivering e.g. a Relogged message, we disconnect
-                // the user here after the output buffer is sent
-                disconnect();
-            }
-            else if (login_rejection.reason) {
-                recv_success = send_success = false;
-            }
-        }
+        const io_success = recv_success && send_success;
+        if (io_success && conn.is_sending)
+            // In order to avoid closing connections early before delivering
+            // e.g. a Relogged message, wait until the output buffer is sent
+            return;
 
-        if (!recv_success || !send_success) {
-            const wait_for_messages = false;
-            disconnect(wait_for_messages);
-        }
+        if (io_success && !disconnecting && !login_rejection.reason)
+            return;
+
+        const wait_for_messages = false;
+        disconnect(wait_for_messages);
     }
 
     void send_message(Logging log = Logging.all)(scope SMessage msg)
