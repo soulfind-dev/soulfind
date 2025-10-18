@@ -128,7 +128,7 @@ final class User
         if (disconnecting)
             return;
 
-        if (status != UserStatus.offline) {
+        if (authenticated) {
             const notify_user = true;
             change_password(password, hash, notify_user);
             return;
@@ -171,7 +171,7 @@ final class User
         server.del_user(username);
 
         if (!disconnecting) {
-            if (status == UserStatus.offline) {
+            if (!authenticated) {
                 if (login_rejection.reason) writeln(
                     "User ", red, username, norm, " denied (", red,
                     login_rejection.reason, norm, ")"
@@ -217,7 +217,7 @@ final class User
 
     bool disconnect_unauthenticated()
     {
-        if (status != UserStatus.offline)
+        if (authenticated)
             return false;
 
         // Login attempts always time out for banned users. Add jitter to
@@ -283,7 +283,7 @@ final class User
         authenticated = true;
         auto user = server.get_user(username);
 
-        if (user !is null && user.status != UserStatus.offline) {
+        if (user !is null && user.authenticated) {
             writeln(
                 "User ", red, username, norm, " already logged in, ",
                 "disconnecting"
@@ -414,6 +414,9 @@ final class User
 
     void refresh_privileges(bool notify_user = true)
     {
+        if (!authenticated)
+            return;
+
         const was_privileged = privileged;
         const previous_privileged_until = privileged_until;
         privileged_until = server.db.user_privileged_until(username);

@@ -41,7 +41,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (user.status != UserStatus.offline)
+            if (user.authenticated)
                 break;
 
             user.username = msg.username;
