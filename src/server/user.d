@@ -614,7 +614,7 @@ final class User
         if (send_ready) {
             send_success = conn.send_buffer();
         }
-        else if (!should_update_login_status) {
+        else if (should_update_login_status) {
             // In order to receive the SetWaitPort message from the
             // user in time, delay the initial status update and
             // broadcast to watching users as much as possible.
