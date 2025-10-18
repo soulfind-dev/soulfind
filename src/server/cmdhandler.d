@@ -81,10 +81,6 @@ final class CommandHandler
                     " [", kick_duration.total!"minutes", "] minutes",
                     "\n\nkickall [minutes]\n\tDisconnect active users for",
                     " [", kick_duration.total!"minutes", "] minutes",
-                    "\n\naddprivileges <days> <user>\n\tAdd privileges to",
-                    " user",
-                    "\n\nremoveprivileges [days] <user>\n\tRemove",
-                    " privileges from user",
                     "\n\nremovetickers <user>\n\tRemove user's public room",
                     " tickers",
                     "\n\nannouncement <message>\n\tSend announcement to",
@@ -306,94 +302,6 @@ final class CommandHandler
                     duration.total!"minutes".minutes.toString
                 )
             );
-            break;
-
-        case "addprivileges":
-            if (args.length < 3) {
-                respond(
-                    admin_username,
-                    "Syntax is: addprivileges <days> <user>"
-                );
-                break;
-            }
-
-            Duration duration;
-            try {
-                const value = args[1].to!ulong;
-                const limit = ushort.max;
-                duration = (value > limit ? limit : value).days;
-            }
-            catch (ConvException) {
-                respond(admin_username, "Invalid number or too many days");
-                break;
-            }
-
-            const username = args[2 .. $].join(" ");
-            if (!server.db.user_exists(username)) {
-                respond(
-                    admin_username,
-                    text("User ", username, " is not registered")
-                );
-                break;
-            }
-
-            server.db.add_user_privileges(username, duration);
-
-            auto user = server.get_user(username);
-            if (user !is null) user.refresh_privileges();
-
-            respond(
-                admin_username,
-                text(
-                    "Added ", duration.total!"days".days.toString,
-                    " of privileges to user ", username
-                )
-            );
-            break;
-
-        case "removeprivileges":
-            if (args.length < 2) {
-                respond(
-                    admin_username,
-                    "Syntax is: removeprivileges [days] <user>"
-                );
-                break;
-            }
-
-            Duration duration;
-            string username;
-            try {
-                duration = args[1].to!ulong.days;
-                username = args[2 .. $].join(" ");
-            }
-            catch (ConvException) {
-                duration = Duration.max;
-                username = args[1 .. $].join(" ");
-            }
-
-            if (!server.db.user_exists(username)) {
-                respond(
-                    admin_username,
-                    text("User ", username, " is not registered")
-                );
-                break;
-            }
-
-            server.db.remove_user_privileges(username, duration);
-
-            auto user = server.get_user(username);
-            if (user !is null) user.refresh_privileges();
-
-            string response;
-            if (duration == Duration.max)
-                response = text("Removed all privileges from user ", username);
-            else
-                response = text(
-                    "Removed ", duration.total!"days".days.toString,
-                    " of privileges from user ", username
-                );
-
-            respond(admin_username, response);
             break;
 
         case "removetickers":

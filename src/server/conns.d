@@ -84,9 +84,13 @@ final class UserConnections
                     if (orphaned)
                         continue;
 
-                    user.disconnect_unauthenticated();
+                    const unauthenticated = user.disconnect_unauthenticated();
+                    if (unauthenticated)
+                        continue;
+
+                    user.refresh_privileges();
                 }
-                server.update_search_filters();
+                server.refresh_search_filters();
                 last_user_check = curr_time;
             }
 

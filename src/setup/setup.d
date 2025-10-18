@@ -396,15 +396,17 @@ final class Setup
                 "\n\tbanned: ", db.num_users("banned", now)
             ),
             [
-                MenuItem("1", "Add user",              &add_user),
-                MenuItem("2", "Show user info",        &user_info),
-                MenuItem("3", "Change user password",  &change_user_password),
-                MenuItem("4", "Unban user",            &unban_user),
-                MenuItem("5", "Remove user",           &del_user),
-                MenuItem("6", "List registered users", &list_registered),
-                MenuItem("7", "List privileged users", &list_privileged),
-                MenuItem("8", "List banned users",     &list_banned),
-                MenuItem("q", "Return",                &main_menu)
+                MenuItem("1",  "Add user",              &add_user),
+                MenuItem("2",  "Change user password",  &change_user_password),
+                MenuItem("3",  "Show user info",        &user_info),
+                MenuItem("4",  "Remove user",           &del_user),
+                MenuItem("5",  "Add privileges",        &add_privileges),
+                MenuItem("6",  "Remove privileges",     &del_privileges),
+                MenuItem("7",  "Unban user",            &unban_user),
+                MenuItem("8",  "List registered users", &list_registered),
+                MenuItem("9",  "List privileged users", &list_privileged),
+                MenuItem("10", "List banned users",     &list_banned),
+                MenuItem("q",  "Return",                &main_menu)
             ]
         );
     }
@@ -440,6 +442,34 @@ final class Setup
         db.add_user(username, hash);
 
         writeln("\nAdded user ", blue, username, norm);
+        registered_users();
+    }
+
+    private void change_user_password()
+    {
+        write("\nUser to change password of: ");
+        const username = input.strip;
+
+        if (!db.user_exists(username)) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
+        }
+
+        string password;
+        while (true) {
+            write("New password: ");
+            password = input.chomp;
+            if (password.length > 0)
+                break;
+            writeln("\nPlease enter a password");
+        }
+
+        const salt = create_salt();
+        const hash = hash_password(password, salt, pbkdf2_iterations);
+        db.user_update_password(username, hash);
+
+        writeln("\nChanged user ", blue, username, norm, "'s password");
         registered_users();
     }
 
@@ -488,9 +518,24 @@ final class Setup
         registered_users();
     }
 
-    private void change_user_password()
+    private void del_user()
     {
-        write("\nUser to change password of: ");
+        write("\nUser to remove: ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            db.del_user(username);
+            writeln("\nRemoved user ", blue, username, norm);
+        }
+        else
+            writeln("\nUser ", red, username, norm, " is not registered");
+
+        registered_users();
+    }
+
+    private void add_privileges()
+    {
+        write("\nUser to grant privileges: ");
         const username = input.strip;
 
         if (!db.user_exists(username)) {
@@ -499,20 +544,73 @@ final class Setup
             return;
         }
 
-        string password;
+        Duration duration;
         while (true) {
-            write("New password: ");
-            password = input.chomp;
-            if (password.length > 0)
+            try {
+                write("Number of days to add: ");
+                const value = input.strip.to!ulong;
+                const limit = ushort.max;
+                duration = (value > limit ? limit : value).days;
                 break;
-            writeln("\nPlease enter a password");
+            }
+            catch (ConvException) {
+                writeln("\nInvalid number or too many days");
+            }
         }
 
-        const salt = create_salt();
-        const hash = hash_password(password, salt, pbkdf2_iterations);
-        db.user_update_password(username, hash);
+        db.add_user_privileges(username, duration);
 
-        writeln("\nChanged user ", blue, username, norm, "'s password");
+        writeln(
+            "Added ", duration.total!"days".days.toString,
+            " of privileges to user ", username
+        );
+        registered_users();
+    }
+
+    private void del_privileges()
+    {
+        write("\nUser to remove privileges from: ");
+        const username = input.strip;
+
+        if (!db.user_exists(username)) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
+        }
+
+        Duration duration;
+        while (true) {
+            try {
+                write("Number of days to remove (empty for all): ");
+                const user_input = input.strip;
+
+                if (user_input.length == 0) {
+                    duration = Duration.max;
+                    break;
+                }
+
+                const value = user_input.to!ulong;
+                const limit = ushort.max;
+                duration = (value > limit ? limit : value).days;
+                break;
+            }
+            catch (ConvException) {
+                writeln("\nInvalid number or too many days");
+            }
+        }
+
+        db.remove_user_privileges(username, duration);
+
+        string response;
+        if (duration == Duration.max)
+            response = text("Removed all privileges from user ", username);
+        else
+            response = text(
+                "Removed ", duration.total!"days".days.toString,
+                " of privileges from user ", username
+            );
+
+        writeln(response);
         registered_users();
     }
 
@@ -527,21 +625,6 @@ final class Setup
         }
         else
             writeln("\nUser ", red, username, norm, " is not banned");
-
-        registered_users();
-    }
-
-    private void del_user()
-    {
-        write("\nUser to remove: ");
-        const username = input.strip;
-
-        if (db.user_exists(username)) {
-            db.del_user(username);
-            writeln("\nRemoved user ", blue, username, norm);
-        }
-        else
-            writeln("\nUser ", red, username, norm, " is not registered");
 
         registered_users();
     }

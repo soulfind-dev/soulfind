@@ -121,7 +121,7 @@ final class Server
         user.send_message(msg);
     }
 
-    void update_search_filters()
+    void refresh_search_filters()
     {
         string[] new_filters;  // Satisfy the linter
         new_filters = db.search_filters!(SearchFilterType.client);

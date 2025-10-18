@@ -401,9 +401,10 @@ final class User
     void refresh_privileges(bool notify_user = true)
     {
         const was_privileged = privileged;
+        const previous_privileged_until = privileged_until;
         privileged_until = server.db.user_privileged_until(username);
 
-        if (!notify_user)
+        if (!notify_user || privileged_until == previous_privileged_until)
             return;
 
         if (privileged != was_privileged) {
