@@ -411,7 +411,11 @@ final class User
             scope wish_interval_msg = new SWishlistInterval(
                 privileged ? wish_interval_privileged : wish_interval
             );
+            scope status_msg = new SGetUserStatus(
+                username, status, privileged
+            );
             send_message(wish_interval_msg);
+            server.send_to_watching(username, status_msg);
         }
 
         scope privileges_msg = new SCheckPrivileges(privileges);
