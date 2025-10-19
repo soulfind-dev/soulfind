@@ -50,8 +50,10 @@ final class Setup
     {
         writeln("\n", heading, "\n");
 
-        foreach (ref item; items)
-            writeln(item.index, ". ", item.label);
+        foreach (ref item; items) {
+            const index = item.index;
+            writeln(index, ".", index.length > 1 ? " " : "  ", item.label);
+        }
 
         while (true) {
             write("\n>", norm, " ");
