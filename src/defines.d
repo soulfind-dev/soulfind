@@ -38,6 +38,7 @@ const max_search_query_length     = 256;
 const max_username_length         = 30;
 const max_global_recommendations  = 200;
 const max_user_recommendations    = 100;
+const max_user_interests          = 30;
 const max_room_tickers            = 200;
 const speed_weight                = 50;
 const pbkdf2_iterations           = 100000;

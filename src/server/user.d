@@ -9,9 +9,10 @@ module soulfind.server.user;
 import soulfind.db : Sdb, SdbUserStats;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
-                          max_username_length, norm, pbkdf2_iterations, red,
-                          server_username, speed_weight, VERSION,
-                          wish_interval, wish_interval_privileged;
+                          max_user_interests, max_username_length, norm,
+                          pbkdf2_iterations, red, server_username,
+                          speed_weight, VERSION, wish_interval,
+                          wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
@@ -497,6 +498,9 @@ final class User
 
     void add_liked_item(string item)
     {
+        if (liked_items.length >= max_user_interests)
+            return;
+
         if (item.length == 0 || item.length > max_interest_length)
             return;
 
@@ -512,6 +516,9 @@ final class User
 
     void add_hated_item(string item)
     {
+        if (hated_items.length >= max_user_interests)
+            return;
+
         if (item.length == 0 || item.length > max_interest_length)
             return;
 
