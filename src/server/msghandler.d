@@ -41,7 +41,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (user.authenticated)
+            if (user.authenticated || user.hashing_password)
                 break;
 
             user.username = msg.username;
@@ -621,13 +621,13 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (msg.password.length == 0)
+            if (msg.password.length == 0 || user.hashing_password)
                 break;
 
+            user.hashing_password = true;
             const salt = create_salt();
             hash_password_async(
-                msg.password, salt, pbkdf2_iterations,
-                &user.password_hashed
+                msg.password, salt, pbkdf2_iterations, &user.password_hashed
             );
             break;
 

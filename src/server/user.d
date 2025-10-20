@@ -39,6 +39,7 @@ final class User
 
     UserStatus              status;
     LoginRejection          login_rejection;
+    bool                    hashing_password;
     bool                    authenticated;
     bool                    disconnecting;
 
@@ -112,6 +113,7 @@ final class User
         }
 
         if (!user_exists) {
+            hashing_password = true;
             const salt = create_salt();
             hash_password_async(
                 password, salt, pbkdf2_iterations, &password_hashed
@@ -119,12 +121,15 @@ final class User
             return;
         }
 
+        hashing_password = true;
         const stored_hash = server.db.user_password_hash(username);
         verify_password_async(stored_hash, password, &password_verified);
     }
 
     void password_hashed(string password, string hash)
     {
+        hashing_password = false;
+
         if (disconnecting)
             return;
 
@@ -138,6 +143,8 @@ final class User
 
     void password_upgraded(string password, string hash)
     {
+        hashing_password = false;
+
         if (disconnecting)
             return;
 
@@ -146,6 +153,8 @@ final class User
 
     void password_verified(string password, bool matches, uint iterations)
     {
+        hashing_password = false;
+
         if (disconnecting)
             return;
 
@@ -158,6 +167,7 @@ final class User
 
         // Upgrade password strength
         if (iterations < pbkdf2_iterations) {
+            hashing_password = true;
             const salt = create_salt();
             hash_password_async(
                 password, salt, pbkdf2_iterations, &password_upgraded
