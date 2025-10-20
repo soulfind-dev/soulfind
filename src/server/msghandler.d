@@ -143,7 +143,7 @@ final class MessageHandler
                 user_shared_folders = user_stats.shared_folders;
             }
 
-            user.watch(msg.username);
+            if (user_exists) user.watch(msg.username);
 
             scope response_msg = new SWatchUser(
                 msg.username, user_exists, user_status, user_upload_speed,
