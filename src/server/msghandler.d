@@ -223,8 +223,11 @@ final class MessageHandler
                 break;
 
             auto target_user = server.get_user(msg.username);
-            if (target_user is null)
+            if (target_user is null) {
+                scope response_msg = new SCantConnectToPeer(msg.token);
+                user.send_message(response_msg);
                 break;
+            }
 
             scope response_msg = new SConnectToPeer(
                 user.username, msg.type, user.address.addr,
