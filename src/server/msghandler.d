@@ -8,7 +8,7 @@ module soulfind.server.msghandler;
 
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
-                          server_username;
+                          RoomType, server_username;
 import soulfind.pwhash : create_salt, hash_password_async;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
@@ -202,7 +202,10 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            user.join_room(msg.room_name);
+            if (msg.room_type == RoomType._private)
+                user.join_room!(RoomType._private)(msg.room_name);
+            else
+                user.join_room!(RoomType._public)(msg.room_name);
             break;
 
         case LeaveRoom:
@@ -458,10 +461,7 @@ final class MessageHandler
 
         case RoomList:
             scope msg = new URoomList(msg_buf, user.username);
-            scope response_msg = new SRoomList(
-                server.room_stats, null, null, null
-            );
-            user.send_message(response_msg);
+            server.send_room_list(user.username);
             break;
 
         case GlobalUserList:
@@ -608,6 +608,13 @@ final class MessageHandler
             scope msg = new UPrivateRoomDisown(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            if (server.db.get_room_owner(msg.room_name) != user.username)
+                break;
+
+            server.db.del_room(msg.room_name);
+            server.db.add_room!(RoomType._public)(msg.room_name);
+            server.send_room_list(user.username);
             break;
 
         case PrivateRoomToggle:

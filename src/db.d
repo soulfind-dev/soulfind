@@ -8,7 +8,7 @@ module soulfind.db;
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           default_private_mode, log_db, log_user, norm,
-                          SearchFilterType;
+                          RoomType, SearchFilterType;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
@@ -94,6 +94,8 @@ final class Sdb
 
     private const users_table           = "users";
     private const config_table          = "config";
+    private const rooms_table           = "rooms";
+    private const tickers_table         = "tickers";
     private const search_filters_table  = "search_filters";
     private const search_query_table    = "temp.search_query";
 
@@ -115,9 +117,10 @@ final class Sdb
         db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
         db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
+        query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
 
-        const users_sql = text(
+        const users_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", users_table,
             "(username TEXT PRIMARY KEY,",
             " password TEXT NOT NULL,",
@@ -130,7 +133,30 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
-        const search_filters_sql = text(
+        const rooms_table_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", rooms_table,
+            "(room TEXT PRIMARY KEY,",
+            " type INTEGER NOT NULL,",
+            " owner TEXT,",
+            " FOREIGN KEY(owner) REFERENCES ", users_table, "(username) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE",
+            ") WITHOUT ROWID;"
+        );
+
+        const tickers_table_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", tickers_table,
+            "(room TEXT,",
+            " username TEXT,",
+            " content TEXT NOT NULL,",
+            " PRIMARY KEY(room, username),",
+            " FOREIGN KEY(room) REFERENCES ", rooms_table, "(room) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE,",
+            " FOREIGN KEY(username) REFERENCES ", users_table, "(username) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE",
+            ");"
+        );
+
+        const search_filters_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", search_filters_table,
             "(type INTEGER,",
             " phrase TEXT,",
@@ -138,18 +164,32 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
-        const search_query_sql = text(
+        const search_query_table_sql = text(
             "CREATE VIRTUAL TABLE ", search_query_table,
             " USING fts5(query);"
+        );
+
+        const rooms_type_index_sql = text(
+            "CREATE INDEX IF NOT EXISTS ", rooms_table, "_type_index ",
+            " ON ", rooms_table, "(type);"
+        );
+
+        const rooms_owner_type_index_sql = text(
+            "CREATE INDEX IF NOT EXISTS ", rooms_table, "_owner_type_index ",
+            " ON ", rooms_table, "(owner, type);"
         );
 
         foreach (ref problem ; query("PRAGMA integrity_check;"))
             if (log_db) writeln("DB: Check [", problem[0], "]");
 
         query("PRAGMA optimize=0x10002;");  // =all tables
-        query(users_sql);
-        query(search_filters_sql);
-        query(search_query_sql);
+        query(users_table_sql);
+        query(rooms_table_sql);
+        query(tickers_table_sql);
+        query(search_filters_table_sql);
+        query(search_query_table_sql);
+        query(rooms_type_index_sql);
+        query(rooms_owner_type_index_sql);
         add_new_columns();
         init_config();
     }
@@ -160,6 +200,9 @@ final class Sdb
         close();
         shutdown();
     }
+
+
+    // Migration
 
     private void add_new_columns()
     {
@@ -182,6 +225,9 @@ final class Sdb
                 "ALTER TABLE ", users_table, " ADD COLUMN admin INTEGER;"
             ));
     }
+
+
+    // Config
 
     private void init_config()
     {
@@ -297,6 +343,9 @@ final class Sdb
         set_config_value("motd", motd);
     }
 
+
+    // Search Filters
+
     void filter_search_phrase(SearchFilterType type)(string phrase)
     {
         const sql = text(
@@ -357,8 +406,8 @@ final class Sdb
 
     bool is_search_query_filtered(string search_query)
     {
-    	// For each filtered phrase, check if its words are present anywhere
-    	// in the search query
+        // For each filtered phrase, check if its words are present anywhere
+        // in the search query
         const insert_sql = text(
             "REPLACE INTO ", search_query_table, "(rowid, query) VALUES (1, ?)"
         );
@@ -383,6 +432,9 @@ final class Sdb
         query(insert_sql, [search_query]);
         return query(query_sql, [text(cast(uint) type)]).length > 0;
     }
+
+
+    // Users
 
     void add_user(string username, string hash)
     {
@@ -693,6 +745,184 @@ final class Sdb
         sql ~= ";";
         return query(sql, parameters)[0][0].to!size_t;
     }
+
+
+    // Rooms
+
+    void add_room(RoomType type)(string room_name, string owner = null)
+    {
+        if (type < 0)
+            return;
+
+        const sql = text(
+            "INSERT OR IGNORE INTO ", rooms_table,
+            "(room, type, owner) VALUES(?, ?, ?);"
+        );
+        query(sql, [room_name, text(cast(int) type), owner]);
+    }
+
+    void del_room(string room_name)
+    {
+        const sql = text("DELETE FROM ", rooms_table, " WHERE room = ?;");
+        query(sql, [room_name]);
+    }
+
+    RoomType get_room_type(string room_name)
+    {
+        const sql = text("SELECT type FROM ", rooms_table, " WHERE room = ?;");
+        const res = query(sql, [room_name]);
+        if (res.length > 0)
+            return cast(RoomType) res[0][0].to!int;
+        return RoomType.non_existent;
+    }
+
+    string get_room_owner(string room_name)
+    {
+        const sql = text(
+            "SELECT owner FROM ", rooms_table, " WHERE room = ? AND type = ?;"
+        );
+        const res = query(sql, [room_name, text(cast(int) RoomType._private)]);
+        return res.length > 0 ? res[0][0] : null;
+    }
+
+    bool has_room_access(string room_name, string username)
+    {
+        const sql = text(
+            "SELECT type, owner FROM ", rooms_table, " WHERE room = ?;"
+        );
+        const res = query(sql, [room_name]);
+        if (res.length == 0)
+            return true;
+
+        const record = res[0];
+        const type = cast(RoomType) record[0].to!int;
+        const owner = record[1];
+
+        return (
+            type == RoomType._public
+            || (type == RoomType._private && owner == username)
+        );
+    }
+
+    string[] rooms(RoomType type)(string owner = null)
+    {
+        Appender!(string[]) rooms;
+        auto sql = text("SELECT room FROM ", rooms_table);
+        string[] parameters;
+
+        if (type != RoomType.any) {
+            sql ~= " WHERE type = ?";
+            parameters ~= [text(cast(int) type)];
+        }
+        if (owner !is null) {
+            const operator = (type == RoomType.any) ? "WHERE" : "AND";
+            sql ~= text(" ", operator, " owner = ?");
+            parameters ~= [owner];
+        }
+        sql ~= ";";
+
+        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        return rooms[];
+    }
+
+    void add_ticker(string room_name, string username, string content)
+    {
+        const sql = text(
+            "INSERT INTO ", tickers_table,
+            "(room, username, content) VALUES(?, ?, ?);"
+        );
+        query(sql, [room_name, username, content]);
+    }
+
+    string get_ticker(string room_name, string username)
+    {
+        const sql = text(
+            "SELECT content FROM ", tickers_table,
+            " WHERE room = ? AND username = ?;"
+        );
+        const res = query(sql, [room_name, username]);
+        return res.length > 0 ? res[0][0] : null;
+    }
+
+    void del_ticker(string room_name, string username)
+    {
+        const sql = text(
+            "DELETE FROM ", tickers_table, " WHERE room = ? AND username = ?;"
+        );
+        query(sql, [room_name, username]);
+    }
+
+    string del_oldest_ticker(string room_name)
+    {
+        const sql = text(
+            "SELECT username FROM ", tickers_table, " WHERE room = ? LIMIT 1;"
+        );
+        const res = query(sql, [room_name]);
+        string username;
+
+        if (res.length > 0) {
+            username = res[0][0];
+            del_ticker(room_name, username);
+        }
+        return username;
+    }
+
+    string[][] room_tickers(string room_name)
+    {
+        const sql = text(
+            "SELECT username, content FROM ", tickers_table, " WHERE room = ?;"
+        );
+        return query(sql, [room_name]);
+    }
+
+    string[][] user_tickers(RoomType type)(string username)
+    {
+        auto sql = text(
+            "SELECT t.room, t.content FROM ", tickers_table, " t",
+            " JOIN ", rooms_table, " r ON t.room = r.room",
+            " WHERE t.username = ?"
+        );
+        auto parameters = [username];
+
+        if (type != RoomType.any) {
+            sql ~= " AND r.type = ?";
+            parameters ~= [text(cast(int) type)];
+        }
+        sql ~= ";";
+
+        return query(sql, parameters);
+    }
+
+    ulong num_room_tickers(string room_name)
+    {
+        const sql = text(
+            "SELECT COUNT(1) FROM ", tickers_table, " WHERE room = ?;"
+        );
+        const res = query(sql, [room_name]);
+        return res.length > 0 ? res[0][0].to!ulong : 0;
+    }
+
+    ulong num_user_tickers(RoomType type)(string username)
+    {
+        auto sql = text(
+            "SELECT COUNT(1) FROM ", tickers_table, " t",
+            " JOIN ", rooms_table, " r ON t.room = r.room",
+            " WHERE t.username = ?"
+        );
+        auto parameters = [username];
+
+        if (type != RoomType.any) {
+            sql ~= " AND r.type = ?";
+            parameters ~= [text(cast(int) type)];
+        }
+        sql ~= ";";
+
+        const res = query(sql, parameters);
+        return res.length > 0 ? res[0][0].to!ulong : 0;
+    }
+
+
+    // SQLite
 
     private void raise_sql_error(string query = null,
                                  const string[] parameters = null,

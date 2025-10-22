@@ -6,8 +6,10 @@
 module soulfind.server.room;
 @safe:
 
+import soulfind.db : Sdb;
 import soulfind.defines : blue, log_msg, max_chat_message_length,
-                          max_room_ticker_length, max_room_tickers, norm;
+                          max_room_ticker_length, max_room_tickers, norm,
+                          RoomType;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
@@ -16,31 +18,21 @@ import std.array : Appender;
 import std.datetime.systime : Clock, SysTime;
 import std.stdio : writeln;
 
-struct Ticker
-{
-    string   username;
-    SysTime  time;
-    string   content;
-
-    int opCmp(ref const Ticker t) const
-    {
-        return (t.time > time) - (t.time < time);
-    }
-
-}
-
 final class Room
 {
-    const string name;
+    const string            name;
+    const RoomType          type;
 
+    private Sdb             db;
     private GlobalRoom      global_room;
     private User[string]    users;
-    private Ticker[string]  tickers;
 
 
-    this(string name, GlobalRoom global_room)
+    this(string name, RoomType type, Sdb db, GlobalRoom global_room)
     {
         this.name = name;
+        this.type = type;
+        this.db = db;
         this.global_room = global_room;
     }
 
@@ -58,8 +50,10 @@ final class Room
             name, user.username, user.status, user.upload_speed,
             user.shared_files, user.shared_folders
         );
-        scope join_room_msg = new SJoinRoom(name, users);
-        scope tickers_msg = new SRoomTicker(name, tickers_by_order);
+        scope join_room_msg = new SJoinRoom(
+            name, users, db.get_room_owner(name), null
+        );
+        scope tickers_msg = new SRoomTicker(name, tickers);
 
         send_to_all(joined_room_msg);
         user.send_message(join_room_msg);
@@ -133,21 +127,17 @@ final class Room
         if (content.length > max_room_ticker_length)
             return;
 
-        if (username in tickers && tickers[username].content == content)
-            return;
-
-        del_ticker(username);
+        const old_content = get_ticker(username);
+        if (old_content !is null)
+            if (content != old_content)
+                del_ticker(username);
 
         if (content.length == 0)
             return;
 
-        tickers[username] = Ticker(
-            username,
-            Clock.currTime,
-            content
-        );
+        db.add_ticker(name, username, content);
 
-        if (tickers.length >= max_room_tickers)
+        if (num_tickers >= max_room_tickers)
             del_oldest_ticker ();
 
         scope msg = new SRoomTickerAdd(name, username, content);
@@ -156,10 +146,10 @@ final class Room
 
     void del_ticker(string username)
     {
-        if (username !in tickers)
+        if (get_ticker(username) is null)
             return;
 
-        tickers.remove(username);
+        db.del_ticker(name, username);
 
         scope msg = new SRoomTickerRemove(name, username);
         send_to_all(msg);
@@ -167,25 +157,27 @@ final class Room
 
     private void del_oldest_ticker()
     {
-        Ticker found_ticker;
-        foreach (ref ticker ; tickers) {
-            if (ticker.time < found_ticker.time) found_ticker = ticker;
-        }
-        del_ticker(found_ticker.username);
+        const username = db.del_oldest_ticker(name);
+        if (username is null)
+            return;
+
+        scope msg = new SRoomTickerRemove(name, username);
+        send_to_all(msg);
     }
 
-    Ticker[] tickers_by_order()
+    private string get_ticker(string username)
     {
-        Ticker[] sorted_tickers;
-        foreach (ref ticker ; tickers.byValue) sorted_tickers ~= ticker;
-        sorted_tickers.sort();
-
-        return sorted_tickers;
+        return db.get_ticker(name, username);
     }
 
-    size_t num_tickers()
+    private string[][] tickers()
     {
-        return tickers.length;
+        return db.room_tickers(name);
+    }
+
+    private ulong num_tickers()
+    {
+        return db.num_room_tickers(name);
     }
 }
 

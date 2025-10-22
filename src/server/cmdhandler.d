@@ -7,8 +7,10 @@ module soulfind.server.cmdhandler;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : blue, kick_duration, log_user, norm, server_username;
+import soulfind.defines : blue, kick_duration, log_user, norm, RoomType,
+                          server_username;
 import soulfind.server.messages;
+import soulfind.server.room : Room;
 import soulfind.server.server : Server;
 import soulfind.server.user : User;
 import std.array : Appender;
@@ -75,14 +77,16 @@ final class CommandHandler
                     "\n\nrooms\n\tList public rooms",
                     "\n\nuserinfo <user>\n\tShow info about user",
                     "\n\nroominfo <room>\n\tShow info about public room",
+                    "\n\nremovetickers <user>\n\tRemove user's public room",
+                    " tickers",
+                    "\n\nremoverooms\n\tRemove orphaned public rooms and",
+                    " tickers",
                     "\n\nban [days] <user>\n\tBan user",
                     "\n\nunban <user>\n\tUnban user",
                     "\n\nkick [minutes] <user>\n\tDisconnect user for",
                     " [", kick_duration.total!"minutes", "] minutes",
                     "\n\nkickall [minutes]\n\tDisconnect active users for",
                     " [", kick_duration.total!"minutes", "] minutes",
-                    "\n\nremovetickers <user>\n\tRemove user's public room",
-                    " tickers",
                     "\n\nannouncement <message>\n\tSend announcement to",
                     " online users",
                     "\n\nmessage <message>\n\tSend private message to all",
@@ -117,14 +121,20 @@ final class CommandHandler
             break;
 
         case "rooms":
+            Room room;
             Appender!string output;
-            output ~= text(server.num_joined_rooms, " public rooms.");
-            foreach (ref room ; server.joined_rooms) {
+            const names = server.db.rooms!(RoomType._public);
+            output ~= text(names.length, " public rooms.");
+            foreach (ref name ; names) {
+                ulong num_users;
+                room = server.get_room(name);
+                if (room !is null) num_users = room.num_users;
+
                 output ~= "\n\t";
-                output ~= room.name;
+                output ~= name;
                 output ~= text(
-                    " (users: ", room.num_users, ", tickers: ",
-                    room.num_tickers, ")"
+                    " (users: ", num_users, ", tickers: ",
+                    server.db.num_room_tickers(name), ")"
                 );
             }
             respond(admin_username, output[]);
@@ -150,12 +160,12 @@ final class CommandHandler
 
         case "roominfo":
             if (args.length < 2) {
-                respond(admin_username, "Syntax is: roominfo <user>");
+                respond(admin_username, "Syntax is: roominfo <room>");
                 break;
             }
             const name = args[1 .. $].join(" ");
 
-            if (server.get_room(name) is null) {
+            if (server.db.get_room_type(name) != RoomType._public) {
                 respond(
                     admin_username,
                     text("Room ", name, " is not registered")
@@ -163,6 +173,47 @@ final class CommandHandler
                 break;
             }
             respond(admin_username, room_info(name));
+            break;
+
+        case "removetickers":
+            if (args.length < 2) {
+                respond(admin_username, "Syntax is: removetickers <user>");
+                break;
+            }
+            const username = args[1 .. $].join(" ");
+            if (!server.db.user_exists(username)) {
+                respond(
+                    admin_username,
+                    text("User ", username, " is not registered")
+                );
+                break;
+            }
+            server.del_user_tickers!(RoomType._public)(username);
+            respond(
+                admin_username,
+                text("Removed user ", username, "'s public room tickers")
+            );
+            break;
+
+        case "removerooms":
+            Appender!(string[]) names;
+            foreach (name ; server.db.rooms!(RoomType._public)) {
+                if (server.get_room(name) is null) {
+                    server.db.del_room(name);
+                    names ~= name;
+                }
+            }
+
+            string response;
+            if (names[].length == 0)
+                response = "No orphaned rooms";
+            else
+                response = text(
+                    "Removed ", names[].length, " orphaned rooms: ",
+                    names[].join(", ")
+                );
+
+            respond(admin_username, response);
             break;
 
         case "ban":
@@ -194,7 +245,7 @@ final class CommandHandler
 
             server.db.ban_user(username, duration);
             server.del_user_pms(username);
-            server.del_user_tickers(username);
+            server.del_user_tickers!(RoomType.any)(username);
 
             auto user = server.get_user(username);
             if (user !is null) user.disconnect();
@@ -304,26 +355,6 @@ final class CommandHandler
             );
             break;
 
-        case "removetickers":
-            if (args.length < 2) {
-                respond(admin_username, "Syntax is: removetickers <user>");
-                break;
-            }
-            const username = args[1 .. $].join(" ");
-            if (!server.db.user_exists(username)) {
-                respond(
-                    admin_username,
-                    text("User ", username, " is not registered")
-                );
-                break;
-            }
-            server.del_user_tickers(username);
-            respond(
-                admin_username,
-                text("Removed user ", username, "'s public room tickers")
-            );
-            break;
-
         case "announcement":
             if (args.length < 2) {
                 respond(admin_username, "Syntax is: announcement <message>");
@@ -380,24 +411,26 @@ final class CommandHandler
         server.send_to_all(msg);
     }
 
-    private string room_info(string name)
+    private string room_info(string room_name)
     {
         Appender!string output;
-        auto room = server.get_room(name);
+        string[] usernames;
+        const tickers = server.db.room_tickers(room_name);
 
-        output ~= name;
-        output ~= text("\nUsers (", room.num_users, "):");
+        output ~= room_name;
+        output ~= text("\nUsers (", usernames.length, "):");
 
-        foreach (ref username ; room.usernames) {
+        foreach (ref username ; usernames) {
             output ~= "\n\t";
             output ~= username;
         }
 
-        output ~= text("\nTickers (", room.num_tickers, "):");
+        output ~= text("\nTickers (", tickers.length, "):");
 
-        foreach (ref ticker ; room.tickers_by_order) {
-            output ~= text("\n\t[", ticker.username, "] ");
-            output ~= ticker.content;
+        foreach (ref ticker ; tickers) {
+            const username = ticker[0], content = ticker[1];
+            output ~= text("\n\t[", username, "] ");
+            output ~= content;
         }
 
         return output[];
@@ -493,6 +526,7 @@ final class CommandHandler
         auto supporter = "no";
         uint upload_speed;
         uint shared_files, shared_folders;
+        const tickers = server.db.user_tickers!(RoomType._public)(username);
 
         user = server.get_user(username);
         if (user !is null) {
@@ -504,7 +538,8 @@ final class CommandHandler
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
-            joined_rooms = user.joined_room_names.join(", ");
+            joined_rooms = user.joined_room_names!(RoomType._public)
+                .join(", ");
 
             if (server.is_global_room_joined(username))
                 joined_global_room = "yes";
@@ -543,7 +578,8 @@ final class CommandHandler
         if (privileged_until > now)
             privileged = text("until ", privileged_until.toSimpleString);
 
-        return text(
+        Appender!string output;
+        output ~= text(
             username,
             "\n",
             "\nSession info:",
@@ -556,7 +592,7 @@ final class CommandHandler
             "\n\twatched users: ", watched_users,
             "\n\tliked items: ", liked_items,
             "\n\thated items: ", hated_items,
-            "\n\tjoined rooms: ", joined_rooms,
+            "\n\tjoined public rooms: ", joined_rooms,
             "\n\tjoined global room: ", joined_global_room,
             "\n",
             "\nPresistent info:",
@@ -566,7 +602,18 @@ final class CommandHandler
             "\n\tsupporter: ", supporter,
             "\n\tupload speed: ", upload_speed,
             "\n\tfiles: ", shared_files,
-            "\n\tdirs: ", shared_folders
+            "\n\tdirs: ", shared_folders,
+            "\n\tpublic tickers: ", tickers.length
         );
+
+        if (tickers.length > 0) {
+            output ~= text("\n\nPublic room tickers (", tickers.length, "):");
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= text("\n\t[", room_name, "] ", content);
+            }
+        }
+
+        return output[];
     }
 }

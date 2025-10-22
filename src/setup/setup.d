@@ -8,7 +8,7 @@ module soulfind.setup.setup;
 
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, norm, pbkdf2_iterations, red,
-                          SearchFilterType, VERSION;
+                          RoomType, SearchFilterType, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
@@ -400,15 +400,16 @@ final class Setup
             [
                 MenuItem("1",  "Add user",              &add_user),
                 MenuItem("2",  "Change user password",  &change_user_password),
-                MenuItem("3",  "Show user info",        &user_info),
-                MenuItem("4",  "Remove user",           &del_user),
-                MenuItem("5",  "Add privileges",        &add_privileges),
-                MenuItem("6",  "Remove privileges",     &del_privileges),
-                MenuItem("7",  "Ban user",              &ban_user),
-                MenuItem("8",  "Unban user",            &unban_user),
-                MenuItem("9",  "List registered users", &list_registered),
-                MenuItem("10", "List privileged users", &list_privileged),
-                MenuItem("11", "List banned users",     &list_banned),
+                MenuItem("3",  "Show user's info",      &user_info),
+                MenuItem("4",  "Show user's tickers",   &user_tickers),
+                MenuItem("5",  "Remove user",           &del_user),
+                MenuItem("6",  "Add privileges",        &add_privileges),
+                MenuItem("7",  "Remove privileges",     &del_privileges),
+                MenuItem("8",  "Ban user",              &ban_user),
+                MenuItem("9",  "Unban user",            &unban_user),
+                MenuItem("10", "List registered users", &list_registered),
+                MenuItem("11", "List privileged users", &list_privileged),
+                MenuItem("12", "List banned users",     &list_banned),
                 MenuItem("q",  "Return",                &main_menu)
             ]
         );
@@ -490,6 +491,7 @@ final class Setup
         const privileged_until = db.user_privileged_until(username);
         const supporter = (privileged_until > SysTime()) ? "yes" : "no";
         const stats = db.user_stats(username);
+        const tickers = db.num_user_tickers!(RoomType.any)(username);
 
         if (admin_until > now)
             admin = text("until ", admin_until.toSimpleString);
@@ -512,8 +514,35 @@ final class Setup
                 "\n\tsupporter: ", supporter,
                 "\n\tfiles: ", stats.shared_files,
                 "\n\tdirs: ", stats.shared_folders,
-                "\n\tupload speed: ", stats.upload_speed
+                "\n\tupload speed: ", stats.upload_speed,
+                "\n\troom tickers: ", tickers
             );
+        }
+        else
+            writeln("\nUser ", red, username, norm, " is not registered");
+
+        registered_users();
+    }
+
+    private void user_tickers()
+    {
+        write("\nUsername: ");
+        const username = input.strip;
+
+        if (db.user_exists(username)) {
+            Appender!string output;
+            const tickers = db.user_tickers!(RoomType.any)(username);
+            output ~= text(
+                "\n", bold, username, "'s room tickers (", tickers.length, ")",
+                norm
+            );
+
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= text("\n\t[", room_name, "] ", content);
+            }
+
+            writeln(output[]);
         }
         else
             writeln("\nUser ", red, username, norm, " is not registered");
