@@ -45,6 +45,21 @@ dub build --config=static
 Once compiled, binaries are available in the `bin/` folder.
 
 
+## Compiling and Running
+
+To compile and run the server in a single command:
+
+```sh
+dub run :server
+```
+
+To compile and run the CLI server management tool in a single command:
+
+```sh
+dub run :setup
+```
+
+
 ## Using a Different Compiler
 
 Set the DC environment variable to use a specific compiler:
