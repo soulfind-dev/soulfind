@@ -365,14 +365,17 @@ final class Server
         if (room !is null)
             return room;
 
-        if (db.get_room_type(room_name) == RoomType.non_existent) {
+        auto stored_type = db.get_room_type(room_name);
+        if (stored_type == RoomType.non_existent) {
             db.add_room!type(room_name, username);
 
             if (type == RoomType._private)
                 send_room_list(username);
+
+            stored_type = type;
         }
 
-        room = new Room(room_name, type, db, global_room);
+        room = new Room(room_name, stored_type, db, global_room);
         rooms[room_name] = room;
         return room;
     }
