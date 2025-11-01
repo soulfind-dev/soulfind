@@ -867,7 +867,9 @@ final class Sdb
     string[][] room_tickers(string room_name)
     {
         const sql = text(
-            "SELECT username, content FROM ", tickers_table, " WHERE room = ?;"
+            "SELECT username, content FROM ", tickers_table,
+            " WHERE room = ?",
+            " ORDER BY rowid;"
         );
         return query(sql, [room_name]);
     }
@@ -885,7 +887,7 @@ final class Sdb
             sql ~= " AND r.type = ?";
             parameters ~= [text(cast(int) type)];
         }
-        sql ~= ";";
+        sql ~= " ORDER BY t.rowid;";
 
         return query(sql, parameters);
     }
