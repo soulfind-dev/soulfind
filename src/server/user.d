@@ -567,7 +567,6 @@ final class User
             	server_username, username,
                 text("Room (", room_name, ") is registered as public.")
             );
-            return;
         }
         else if (room.type == RoomType._private && !room.is_member(username)) {
             scope response_msg = new SCantCreateRoom(room_name);

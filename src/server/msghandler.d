@@ -613,7 +613,6 @@ final class MessageHandler
                 break;
 
             server.db.del_room(msg.room_name);
-            server.db.add_room!(RoomType._public)(msg.room_name);
             server.send_room_list(user.username);
             break;
 
