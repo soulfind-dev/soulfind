@@ -382,8 +382,15 @@ final class Server
 
     void del_room(string room_name)
     {
-        if (room_name in rooms)
-            rooms.remove(room_name);
+        Room room;  // Satisfy linter
+        room = get_room(room_name);
+        if (room is null)
+            return;
+
+        if (room.type == RoomType._public && room.num_tickers == 0)
+            db.del_room(room_name);
+
+        rooms.remove(room_name);
     }
 
     void del_user_tickers(RoomType type)(string username)

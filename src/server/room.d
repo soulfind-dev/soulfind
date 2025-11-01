@@ -160,6 +160,11 @@ final class Room
         send_to_all(msg);
     }
 
+    ulong num_tickers()
+    {
+        return db.num_room_tickers(name);
+    }
+
     private void del_oldest_ticker()
     {
         const username = db.del_oldest_ticker(name);
@@ -178,11 +183,6 @@ final class Room
     private string[][] tickers()
     {
         return db.room_tickers(name);
-    }
-
-    private ulong num_tickers()
-    {
-        return db.num_room_tickers(name);
     }
 }
 
