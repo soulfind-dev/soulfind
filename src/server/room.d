@@ -31,7 +31,7 @@ final class Room
     this(string name, RoomType type, Sdb db, GlobalRoom global_room)
     {
         this.name = name;
-        this.type = type;
+        this.type = type < 0 ? RoomType._public : type;
         this.db = db;
         this.global_room = global_room;
     }
@@ -74,6 +74,11 @@ final class Room
     bool is_joined(string username)
     {
         return (username in users) ? true : false;
+    }
+
+    bool is_member(string username)
+    {
+        return is_joined(username) || db.is_room_member(name, username);
     }
 
     string[] usernames()

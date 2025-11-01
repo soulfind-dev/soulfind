@@ -751,8 +751,8 @@ final class Sdb
 
     void add_room(RoomType type)(string room_name, string owner = null)
     {
-        if (type < 0)
-            return;
+        const type = type < 0 ? RoomType._public : type;
+        if (type != RoomType._private) owner = null;
 
         const sql = text(
             "INSERT OR IGNORE INTO ", rooms_table,
@@ -785,23 +785,20 @@ final class Sdb
         return res.length > 0 ? res[0][0] : null;
     }
 
-    bool has_room_access(string room_name, string username)
+    bool is_room_member(string room_name, string username)
     {
         const sql = text(
             "SELECT type, owner FROM ", rooms_table, " WHERE room = ?;"
         );
         const res = query(sql, [room_name]);
         if (res.length == 0)
-            return true;
+            return false;
 
         const record = res[0];
         const type = cast(RoomType) record[0].to!int;
         const owner = record[1];
 
-        return (
-            type == RoomType._public
-            || (type == RoomType._private && owner == username)
-        );
+        return type == RoomType._private && owner == username;
     }
 
     string[] rooms(RoomType type)(string owner = null)

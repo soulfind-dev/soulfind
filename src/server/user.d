@@ -555,30 +555,21 @@ final class User
 
     void join_room(RoomType type)(string room_name)
     {
-        if (type < 0)
-            return;
-
         string fail_message = check_room_name(room_name);
         if (fail_message) {
             server.send_pm(server_username, username, fail_message);
             return;
         }
 
-        const existing_type = server.db.get_room_type(room_name);
-        if (existing_type == RoomType.non_existent) {
-            const owner = (type == RoomType._private) ? username : null;
-            server.db.add_room!type(room_name, owner);
-            server.send_room_list(username);
-        }
-        else if (existing_type == RoomType._public
-                && type == RoomType._private) {
+        auto room = server.add_room!type(room_name, username);
+        if (room.type == RoomType._public && type == RoomType._private) {
             server.send_pm(
             	server_username, username,
                 text("Room (", room_name, ") is registered as public.")
             );
             return;
         }
-        else if (!server.db.has_room_access(room_name, username)) {
+        else if (room.type == RoomType._private && !room.is_member(username)) {
             scope response_msg = new SCantCreateRoom(room_name);
             send_message(response_msg);
             server.send_pm(
@@ -590,9 +581,6 @@ final class User
             );
             return;
         }
-
-        auto room = server.get_room(room_name);
-        if (room is null) room = server.add_room!type(room_name);
 
         joined_rooms[room_name] = room;
         room.add_user(this);

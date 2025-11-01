@@ -105,7 +105,7 @@ final class Server
         if (room is null)
             return;
 
-        if (!db.has_room_access(room_name, username))
+        if (room.type == RoomType._private && !room.is_member(username))
             return;
 
         if (db.is_search_query_filtered(query))
@@ -359,12 +359,20 @@ final class Server
 
     // Rooms
 
-    Room add_room(RoomType type)(string room_name)
+    Room add_room(RoomType type)(string room_name, string username = null)
     {
-        if (type < 0)
-            return null;
+        auto room = get_room(room_name);
+        if (room !is null)
+            return room;
 
-        auto room = new Room(room_name, type, db, global_room);
+        if (db.get_room_type(room_name) == RoomType.non_existent) {
+            db.add_room!type(room_name, username);
+
+            if (type == RoomType._private)
+                send_room_list(username);
+        }
+
+        room = new Room(room_name, type, db, global_room);
         rooms[room_name] = room;
         return room;
     }
