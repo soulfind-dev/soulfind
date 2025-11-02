@@ -130,6 +130,7 @@ final class Sdb
             " banned INTEGER,",
             " privileges INTEGER,",
             " admin INTEGER",
+            " unsearchable INTEGER",
             ") WITHOUT ROWID;"
         );
 
@@ -209,6 +210,7 @@ final class Sdb
         // Temporary migration code to add new columns
         const columns = query(text("PRAGMA table_info(", users_table, ");"));
         bool has_admin;
+        bool has_unsearchable;
 
         foreach (ref column; columns) {
             if (column.length < 1)
@@ -216,13 +218,24 @@ final class Sdb
 
             if (column[1] == "admin") {
                 has_admin = true;
-                break;
+                continue;
+            }
+
+            if (column[1] == "unsearchable") {
+                has_unsearchable = true;
+                continue;
             }
         }
 
         if (!has_admin)
             query(text(
                 "ALTER TABLE ", users_table, " ADD COLUMN admin INTEGER;"
+            ));
+
+        if (!has_unsearchable)
+            query(text(
+                "ALTER TABLE ", users_table,
+                " ADD COLUMN unsearchable INTEGER;"
             ));
     }
 
@@ -374,6 +387,17 @@ final class Sdb
         );
     }
 
+    void set_user_unsearchable(string username, bool unsearchable)
+    {
+        const sql = text(
+            "UPDATE ", users_table, " SET unsearchable = ? WHERE username = ?;"
+        );
+
+        query(
+            sql, [unsearchable ? unsearchable.to!ubyte.text : null, username]
+        );
+    }
+
     string[] search_filters(SearchFilterType type)()
     {
         const sql = text(
@@ -431,6 +455,21 @@ final class Sdb
 
         query(insert_sql, [search_query]);
         return query(query_sql, [text(cast(uint) type)]).length > 0;
+    }
+
+    bool is_user_unsearchable(string username)
+    {
+        const sql = text(
+            "SELECT unsearchable FROM ", users_table, " WHERE username = ?;"
+        );
+        const res = query(sql, [username]);
+        bool unsearchable;
+
+        if (res.length > 0)
+            try unsearchable = cast(bool) res[0][0].to!ubyte;
+            catch (ConvException) {}
+
+        return unsearchable;
     }
 
 

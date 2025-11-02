@@ -37,6 +37,7 @@ final class Server
     private PM[uint]        pms;
     private Room[string]    rooms;
     private string[]        search_filters;
+    private string[string]  unsearchable_users;
 
 
     this(string db_filename)
@@ -75,13 +76,16 @@ final class Server
             return;
 
         scope msg = new SFileSearch(username, token, query);
-        send_to_all(msg);
+        send_to_all(msg, unsearchable_users);
     }
 
     void search_user_files(uint token, string query, string from_username,
                            string to_username)
     {
         if (query.length > max_search_query_length)
+            return;
+
+        if (to_username in unsearchable_users)
             return;
 
         auto user = get_user(to_username);
@@ -112,7 +116,7 @@ final class Server
             return;
 
         scope msg = new SFileSearch(username, token, query);
-        room.send_to_all(msg);
+        room.send_to_all(msg, unsearchable_users);
     }
 
     void send_search_filters(string username)
@@ -135,6 +139,13 @@ final class Server
         search_filters = new_filters;
         scope msg = new SExcludedSearchPhrases(search_filters);
         send_to_all(msg);
+    }
+
+    void refresh_unsearchable_users()
+    {
+        unsearchable_users.clear();
+        foreach (ref username ; db.usernames("unsearchable"))
+            unsearchable_users[username] = username;
     }
 
 
@@ -530,13 +541,15 @@ final class Server
         return users.length;
     }
 
-    void send_to_all(scope SMessage msg)
+    void send_to_all(scope SMessage msg, string[string] excluded_users = null)
     {
         if (log_msg) writeln(
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
             ") to all users..."
         );
-        foreach (ref user ; users) user.send_message!(Logging.disabled)(msg);
+        foreach (ref user ; users)
+            if (user.username !in excluded_users)
+                user.send_message!(Logging.disabled)(msg);
     }
 
     void send_to_watching(string sender_username, scope SMessage msg)

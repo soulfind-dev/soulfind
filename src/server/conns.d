@@ -95,6 +95,7 @@ final class UserConnections
                     user.refresh_privileges();
                 }
                 server.refresh_search_filters();
+                server.refresh_unsearchable_users();
                 last_user_check = curr_time;
             }
 

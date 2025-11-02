@@ -93,13 +93,15 @@ final class Room
         return users.length;
     }
 
-    void send_to_all(scope SMessage msg)
+    void send_to_all(scope SMessage msg, string[string] excluded_users = null)
     {
         if (log_msg) writeln(
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
             ") to joined room members..."
         );
-        foreach (ref user ; users) user.send_message!(Logging.disabled)(msg);
+        foreach (ref user ; users)
+            if (user.username !in excluded_users)
+                user.send_message!(Logging.disabled)(msg);
     }
 
 
