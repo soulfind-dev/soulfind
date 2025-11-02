@@ -79,8 +79,6 @@ final class CommandHandler
                     "\n\nroominfo <room>\n\tShow info about public room",
                     "\n\nremovetickers <user>\n\tRemove user's public room",
                     " tickers",
-                    "\n\nremoverooms\n\tRemove orphaned public rooms and",
-                    " tickers",
                     "\n\nban [days] <user>\n\tBan user",
                     "\n\nunban <user>\n\tUnban user",
                     "\n\nkick [minutes] <user>\n\tDisconnect user for",
@@ -193,27 +191,6 @@ final class CommandHandler
                 admin_username,
                 text("Removed user ", username, "'s public room tickers")
             );
-            break;
-
-        case "removerooms":
-            Appender!(string[]) names;
-            foreach (name ; server.db.rooms!(RoomType._public)) {
-                if (server.get_room(name) is null) {
-                    server.db.del_room(name);
-                    names ~= name;
-                }
-            }
-
-            string response;
-            if (names[].length == 0)
-                response = "No orphaned rooms";
-            else
-                response = text(
-                    "Removed ", names[].length, " orphaned rooms: ",
-                    names[].join(", ")
-                );
-
-            respond(admin_username, response);
             break;
 
         case "ban":
