@@ -60,19 +60,19 @@ final class UserConnections
             import soulfind.main : running;
 
         while (running) {
-            const ready_sock_handles = selector.select();
+            const ready_fds = selector.select();
 
             // Process ready sockets
-            foreach (sock_handle, events ; ready_sock_handles) {
-                const recv_ready = (events & SelectEvent.read) != 0;
-                const send_ready = (events & SelectEvent.write) != 0;
+            foreach (ready_fd ; ready_fds) {
+                const recv_ready = (ready_fd.events & SelectEvent.read) != 0;
+                const send_ready = (ready_fd.events & SelectEvent.write) != 0;
 
-                if (sock_handle == listen_sock.handle) {
+                if (ready_fd.fd == listen_sock.handle) {
                     if (recv_ready) accept(listen_sock);
                     continue;
                 }
 
-                auto user = sock_users[sock_handle];
+                auto user = sock_users[ready_fd.fd];
                 user.handle_io_events(recv_ready, send_ready);
             }
 

@@ -21,10 +21,17 @@ enum SelectEvent
     write  = 1 << 1
 }
 
+struct ReadyFD
+{
+    socket_t     fd;
+    SelectEvent  events;
+}
+
 class Selector
 {
     private const Duration         timeout;
     private SelectEvent[socket_t]  fd_events;
+    private ReadyFD[]              ready_fds;
 
     this(Duration timeout)
     {
@@ -33,7 +40,7 @@ class Selector
 
     abstract void register(socket_t fd, SelectEvent events);
     abstract void unregister(socket_t fd, SelectEvent events);
-    abstract SelectEvent[socket_t] select();
+    abstract ReadyFD[] select();
 }
 
 version (epoll) final class EpollSelector : Selector
@@ -93,22 +100,27 @@ version (epoll) final class EpollSelector : Selector
         control(EPOLL_CTL_MOD, fd, event);
     }
 
-    override SelectEvent[socket_t] select()
+    override ReadyFD[] select()
     {
-        SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
+        if (num_fds <= 0)
+            return null;
 
-        if (num_fds > 0) foreach (n; 0 .. num_fds) {
+        if (ready_fds.length < num_fds)
+            ready_fds.length = num_fds;
+
+        foreach (n; 0 .. num_fds) {
             const event = epoll_events[n];
-            const fd = cast(socket_t) event.data.fd;
+            ready_fds[n].fd = cast(socket_t) event.data.fd;
+            ready_fds[n].events = cast(SelectEvent) 0;
 
             if (event.events & (EPOLLIN | EPOLLERR | EPOLLHUP))
-                ready_fds[fd] |= SelectEvent.read;
+                ready_fds[n].events |= SelectEvent.read;
 
             if (event.events & EPOLLOUT)
-                ready_fds[fd] |= SelectEvent.write;
+                ready_fds[n].events |= SelectEvent.write;
         }
-        return ready_fds;
+        return ready_fds[0 .. num_fds];
     }
 
     private epoll_event create_epoll_event(socket_t fd, SelectEvent events)
@@ -215,22 +227,27 @@ version (kqueue) final class KqueueSelector : Selector
         control(changes[0 .. num_changes]);
     }
 
-    override SelectEvent[socket_t] select()
+    override ReadyFD[] select()
     {
-        SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
+        if (num_fds <= 0)
+            return null;
 
-        if (num_fds > 0) foreach (n; 0 .. num_fds) {
+        if (ready_fds.length < num_fds)
+            ready_fds.length = num_fds;
+
+        foreach (n; 0 .. num_fds) {
             const event = kevents[n];
-            const fd = cast(socket_t) event.ident;
+            ready_fds[n].fd = cast(socket_t) event.ident;
+            ready_fds[n].events = cast(SelectEvent) 0;
 
             if (event.filter == EVFILT_READ)
-                ready_fds[fd] |= SelectEvent.read;
+                ready_fds[n].events |= SelectEvent.read;
 
             if (event.filter == EVFILT_WRITE)
-                ready_fds[fd] |= SelectEvent.write;
+                ready_fds[n].events |= SelectEvent.write;
         }
-        return ready_fds;
+        return ready_fds[0 .. num_fds];
     }
 
     @trusted
@@ -271,7 +288,6 @@ final class PollSelector : Selector
         import core.sys.posix.poll;
     }
 
-    private SelectEvent[socket_t]  fd_events;
     private pollfd[]               pollfds;
 
     this(Duration timeout)
@@ -313,24 +329,32 @@ final class PollSelector : Selector
         pollfds[idx] = create_pollfd(fd, remaining_events);
     }
 
-    override SelectEvent[socket_t] select()
+    override ReadyFD[] select()
     {
-        SelectEvent[socket_t] ready_fds;
         const num_fds = wait();
+        if (num_fds <= 0)
+            return null;
 
-        if (num_fds > 0) foreach (ref pfd; pollfds) {
+        if (ready_fds.length < num_fds)
+            ready_fds.length = num_fds;
+
+        int n;
+        foreach (ref pfd; pollfds) {
             if (pfd.revents == 0)
                 continue;
 
-            const fd = cast(socket_t) pfd.fd;
+            ready_fds[n].fd = cast(socket_t) pfd.fd;
+            ready_fds[n].events = cast(SelectEvent) 0;
 
             if (pfd.revents & (POLLIN | POLLERR | POLLHUP))
-                ready_fds[fd] |= SelectEvent.read;
+                ready_fds[n].events |= SelectEvent.read;
 
             if (pfd.revents & POLLOUT)
-                ready_fds[fd] |= SelectEvent.write;
+                ready_fds[n].events |= SelectEvent.write;
+
+            n++;
         }
-        return ready_fds;
+        return ready_fds[0 .. num_fds];
     }
 
     private pollfd create_pollfd(socket_t fd, SelectEvent events)
