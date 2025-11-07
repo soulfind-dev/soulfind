@@ -310,20 +310,56 @@ final class Setup
 
         show_menu(
             text(
-                bold, "Filtered search phrases", norm,
-                "\n\tserver-side: ", db.num_search_filters!server,
-                "\n\tclient-side: ", db.num_search_filters!client
+                bold, "Search filters", norm,
+                "\n\tfiltered users: ",      db.num_users("unsearchable"),
+                "\n\tserver-side phrases: ", db.num_search_filters!server,
+                "\n\tclient-side phrases: ", db.num_search_filters!client
             ),
             [
-                MenuItem("1", "Filter server phrase",   &add_filter!server),
-                MenuItem("2", "Filter client phrase",   &add_filter!client),
-                MenuItem("3", "Unfilter server phrase", &del_filter!server),
-                MenuItem("4", "Unfilter client phrase", &del_filter!client),
-                MenuItem("5", "List server phrases",    &list_filters!server),
-                MenuItem("6", "List client phrases",    &list_filters!client),
+                MenuItem("1", "Filter user",            &filter_user),
+                MenuItem("2", "Unfilter user",          &unfilter_user),
+                MenuItem("3", "Filter server phrase",   &add_filter!server),
+                MenuItem("4", "Unfilter server phrase", &del_filter!server),
+                MenuItem("5", "Filter client phrase",   &add_filter!client),
+                MenuItem("6", "Unfilter client phrase", &del_filter!client),
+                MenuItem("7", "List filtered users",    &list_filtered_users),
+                MenuItem("8", "List server phrases",    &list_filters!server),
+                MenuItem("9", "List client phrases",    &list_filters!client),
                 MenuItem("q", "Return",                 &main_menu)
             ]
         );
+    }
+
+    private void filter_user()
+    {
+        write("User to filter: ");
+        const username = input.strip;
+
+        if (!db.user_exists(username)) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            search_filters();
+            return;
+        }
+
+        db.set_user_unsearchable(username, true);
+
+        writeln("\nFiltered user ", blue, username, norm);
+        search_filters();
+    }
+
+    private void unfilter_user()
+    {
+        write("\nUser to unfilter: ");
+        const username = input.strip;
+
+        if (db.is_user_unsearchable(username)) {
+            db.set_user_unsearchable(username, false);
+            writeln("\nUnfiltered user ", blue, username, norm);
+        }
+        else
+            writeln("\nUser ", red, username, norm, " is not filtered");
+
+        search_filters();
     }
 
     private void add_filter(SearchFilterType type)()
@@ -331,15 +367,6 @@ final class Setup
         const stype = type == SearchFilterType.server ? "server" : "client";
         write("\nPhrase to filter ", stype, "-side: ");
         const phrase = input.split.join(" ").toLower;
-
-        if (db.is_search_phrase_filtered!type(phrase)) {
-            writeln(
-                "\nPhrase ", red, phrase, norm, " is already filtered ",
-                stype, "-side"
-            );
-            search_filters();
-            return;
-        }
 
         db.filter_search_phrase!type(phrase);
 
@@ -365,6 +392,22 @@ final class Setup
                 stype, "-side"
             );
 
+        search_filters();
+    }
+
+    private void list_filtered_users()
+    {
+        const names = db.usernames("unsearchable");
+
+        Appender!string output;
+        output ~= text("\n", bold, "Filtered users:", norm);
+
+        foreach (ref name ; names) {
+            output ~= "\n\t";
+            output ~= name;
+        }
+
+        writeln(output[]);
         search_filters();
     }
 
@@ -487,6 +530,7 @@ final class Setup
         const admin_until = db.admin_until(username);
         auto banned = "no";
         const banned_until = db.user_banned_until(username);
+        const unsearchable = db.is_user_unsearchable(username) ? "yes" : "no";
         auto privileged = "no";
         const privileged_until = db.user_privileged_until(username);
         const supporter = (privileged_until > SysTime()) ? "yes" : "no";
@@ -510,6 +554,7 @@ final class Setup
                 "\n", bold, username, norm,
                 "\n\tadmin: ", admin,
                 "\n\tbanned: ", banned,
+                "\n\tunsearchable: ", unsearchable,
                 "\n\tprivileged: ", privileged,
                 "\n\tsupporter: ", supporter,
                 "\n\tfiles: ", stats.shared_files,
