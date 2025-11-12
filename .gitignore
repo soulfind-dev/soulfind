@@ -6,5 +6,7 @@
 bin/
 obj/
 *.db
+*.db-shm
+*.db-wal
 *.lst
 dub_platform_probe_*

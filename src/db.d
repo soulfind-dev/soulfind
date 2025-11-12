@@ -117,6 +117,8 @@ final class Sdb
         db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
         db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
+        query("PRAGMA journal_mode = WAL;");
+        query("PRAGMA synchronous = NORMAL;");
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
 
