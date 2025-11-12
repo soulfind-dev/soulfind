@@ -1,9 +1,3 @@
-<!--  
-  SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors  
-  SPDX-FileCopyrightText: 2005 SeeSchloss  
-  SPDX-License-Identifier: GPL-3.0-or-later  
--->
-
 # ❤️ Soulfind
 
 Soulseek server implementation in D
