@@ -971,7 +971,7 @@ final class Sdb
     // SQLite
 
     private void raise_sql_error(string query = null,
-                                 const string[] parameters = null,
+                                 string[] parameters = null,
                                  int res = 0)
     {
         const error_code = extended_error_code(db);
@@ -991,7 +991,7 @@ final class Sdb
         );
     }
 
-    private string[][] query(string query, const string[] parameters = null)
+    private string[][] query(string query, string[] parameters = null)
     {
         Appender!(string[][]) ret;
         sqlite3_stmt* stmt;
