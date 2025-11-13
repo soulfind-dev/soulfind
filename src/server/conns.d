@@ -5,8 +5,9 @@
 module soulfind.server.conns;
 @safe:
 
-import soulfind.defines : blue, bold, check_user_interval, conn_backlog_length,
-                          log_msg, log_user, max_msg_size, norm, red, VERSION;
+import soulfind.defines : blue, bold, conn_backlog_length, log_msg, log_user,
+                          max_msg_size, norm, red, user_check_interval,
+                          VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages : SMessage;
@@ -73,27 +74,18 @@ final class UserConnections
                 }
 
                 auto user = sock_users[ready_fd.fd];
+                user.refresh_state();
                 user.handle_io_events(recv_ready, send_ready);
             }
 
-            // Handle orphaned, unauthenticated and banned users
+            // Check expired login attempts and unsearchable users
             const curr_time = MonoTime.currTime;
-            if ((curr_time - last_user_check) >= check_user_interval) {
-                foreach (ref user ; sock_users.dup) {
-                    const orphaned = user.disconnect_orphan();
-                    if (orphaned)
-                        continue;
+            if ((curr_time - last_user_check) >= user_check_interval) {
+                User[] expired_users;
+                foreach (ref user ; sock_users)
+                    if (user.login_timed_out) expired_users ~= user;
+                foreach (ref user ; expired_users) user.disconnect();
 
-                    const unauthenticated = user.disconnect_unauthenticated();
-                    if (unauthenticated)
-                        continue;
-
-                    const banned = user.disconnect_banned();
-                    if (banned)
-                        continue;
-
-                    user.refresh_privileges();
-                }
                 server.refresh_search_filters();
                 server.refresh_unsearchable_users();
                 last_user_check = curr_time;
@@ -216,6 +208,9 @@ final class UserConnection
 
     bool send_buffer()
     {
+        if (sock is null)
+            return false;
+
         const send_len = sock.send(out_buf);
         if (send_len == Socket.ERROR)
             return false;
@@ -260,6 +255,9 @@ final class UserConnection
 
     bool recv_buffer(User target_user)
     {
+        if (sock is null)
+            return false;
+
         ubyte[max_msg_size] receive_buf;
         const receive_len = sock.receive(receive_buf);
         if (receive_len == Socket.ERROR || receive_len == 0)

@@ -11,8 +11,8 @@ import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_user_interests, max_username_length, norm,
                           pbkdf2_iterations, red, RoomType, server_username,
-                          speed_weight, VERSION, wish_interval,
-                          wish_interval_privileged;
+                          speed_weight, user_check_interval, VERSION,
+                          wish_interval, wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
@@ -52,6 +52,7 @@ final class User
 
     private Server          server;
     private UserConnection  conn;
+    private MonoTime        last_state_refresh;
 
     private string[string]  liked_items;
     private string[string]  hated_items;
@@ -77,6 +78,18 @@ final class User
             .replace("%users%", server.num_connected_users.text)
             .replace("%username%", username)
             .replace("%version%", client_version);
+    }
+
+    bool login_timed_out()
+    {
+        if (authenticated)
+            return false;
+
+        // Login attempts always time out for banned users. Add jitter to
+        // login timeout to spread out reconnect attempts after e.g. kicking
+        // all online users, which also bans them for a few minutes.
+        const login_timeout = login_timeout + uniform(0, 15).seconds;
+        return (MonoTime.currTime - conn.created_monotime) >= login_timeout;
     }
 
     bool should_update_login_status()
@@ -232,22 +245,6 @@ final class User
         return true;
     }
 
-    bool disconnect_unauthenticated()
-    {
-        if (authenticated)
-            return false;
-
-        // Login attempts always time out for banned users. Add jitter to
-        // login timeout to spread out reconnect attempts after e.g. kicking
-        // all online users, which also bans them for a few minutes.
-        const login_timeout = login_timeout + uniform(0, 30).seconds;
-        if ((MonoTime.currTime - conn.created_monotime) < login_timeout)
-            return false;
-
-        disconnect();
-        return true;
-    }
-
     bool disconnect_banned()
     {
         if (!authenticated)
@@ -260,6 +257,26 @@ final class User
         server.del_user_tickers!(RoomType.any)(username);
         disconnect();
         return true;
+    }
+
+    void refresh_state()
+    {
+        const curr_time = MonoTime.currTime;
+        if ((curr_time - last_state_refresh) < user_check_interval)
+            return;
+
+        last_state_refresh = curr_time;
+
+        // Fetch latest user state from the database, in case it's modified
+        // using e.g. Soulsetup
+
+        if (disconnect_orphan())
+            return;
+
+        if (disconnect_banned())
+            return;
+
+        refresh_privileges();
     }
 
     private string check_username(string username)
