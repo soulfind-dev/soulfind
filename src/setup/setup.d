@@ -123,7 +123,7 @@ final class Setup
             try {
                 write("Number of days of admin status: ");
                 const value = input.strip.to!ulong;
-                const limit = ushort.max;
+                enum limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
                 break;
             }
@@ -305,8 +305,8 @@ final class Setup
 
     private void search_filters()
     {
-        const server = SearchFilterType.server;
-        const client = SearchFilterType.client;
+        enum server = SearchFilterType.server;
+        enum client = SearchFilterType.client;
 
         show_menu(
             text(
@@ -626,7 +626,7 @@ final class Setup
             try {
                 write("Number of days to add: ");
                 const value = input.strip.to!ulong;
-                const limit = ushort.max;
+                enum limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
                 break;
             }
@@ -667,7 +667,7 @@ final class Setup
 
             try {
                 const value = user_input.to!ulong;
-                const limit = ushort.max;
+                enum limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
                 break;
             }

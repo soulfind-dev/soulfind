@@ -203,7 +203,7 @@ final class CommandHandler
             string username;
             try {
                 const value = args[1].to!ulong;
-                const limit = ushort.max;
+                enum limit = ushort.max;
                 duration = (value > limit ? limit : value).days;
                 username = args[2 .. $].join(" ");
             }
@@ -265,7 +265,7 @@ final class CommandHandler
             string username;
             try {
                 const value = args[1].to!ulong;
-                const limit = ushort.max;
+                enum limit = ushort.max;
                 duration = (value > limit ? limit : value).minutes;
                 username = args[2 .. $].join(" ");
             }
@@ -301,7 +301,7 @@ final class CommandHandler
             if (args.length > 1) {
                 try {
                     const value = args[1].to!ulong;
-                    const limit = ushort.max;
+                    enum limit = ushort.max;
                     duration = (value > limit ? limit : value).minutes;
                 }
                 catch (ConvException) {

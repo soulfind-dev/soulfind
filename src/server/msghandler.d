@@ -253,7 +253,7 @@ final class MessageHandler
             break;
 
         case MessageAcked:
-            const in_username = "[ redacted ]";
+            enum in_username = "[ redacted ]";
             scope msg = new UMessageAcked(msg_buf, in_username);
             if (!msg.is_valid)
                 break;
@@ -657,7 +657,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            const connected_only = true;
+            enum connected_only = true;
             foreach (ref to_username ; msg.usernames)
                 server.send_pm(
                     user.username, to_username, msg.message, connected_only

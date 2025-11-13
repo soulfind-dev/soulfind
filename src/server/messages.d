@@ -17,7 +17,7 @@ import std.utf : UTFException, validate;
 
 // Constants
 
-const enum LoginRejectionReason : string
+enum LoginRejectionReason : string
 {
     invalid_username  = "INVALIDUSERNAME",
     empty_password    = "EMPTYPASSWORD",
@@ -26,13 +26,13 @@ const enum LoginRejectionReason : string
     server_private    = "SVRPRIVATE"
 }
 
-const enum ObfuscationType : uint
+enum ObfuscationType : uint
 {
     none     = 0,
     rotated  = 1
 }
 
-const enum UserStatus : uint
+enum UserStatus : uint
 {
     offline  = 0,
     away     = 1,
@@ -57,80 +57,80 @@ struct LimitedRecommendations
 
 // Message Codes
 
-const Login                        = 1;
-const SetWaitPort                  = 2;
-const GetPeerAddress               = 3;
-const WatchUser                    = 5;
-const UnwatchUser                  = 6;
-const GetUserStatus                = 7;
-const SayChatroom                  = 13;
-const JoinRoom                     = 14;
-const LeaveRoom                    = 15;
-const UserJoinedRoom               = 16;
-const UserLeftRoom                 = 17;
-const ConnectToPeer                = 18;
-const MessageUser                  = 22;
-const MessageAcked                 = 23;
-const FileSearch                   = 26;
-const SetStatus                    = 28;
-const ServerPing                   = 32;
-const SendConnectToken             = 33;    // Obsolete
-const SharedFoldersFiles           = 35;
-const GetUserStats                 = 36;
-const QueuedDownloads              = 40;    // Obsolete
-const Relogged                     = 41;
-const UserSearch                   = 42;
-const SimilarRecommendations       = 50;    // Obsolete
-const AddThingILike                = 51;
-const RemoveThingILike             = 52;
-const GetRecommendations           = 54;
-const MyRecommendations            = 55;    // Obsolete
-const GlobalRecommendations        = 56;
-const UserInterests                = 57;
-const RoomList                     = 64;
-const AdminMessage                 = 66;
-const GlobalUserList               = 67;    // Obsolete
-const PrivilegedUsers              = 69;
-const CheckPrivileges              = 92;
-const WishlistSearch               = 103;
-const WishlistInterval             = 104;
-const SimilarUsers                 = 110;
-const ItemRecommendations          = 111;
-const ItemSimilarUsers             = 112;
-const RoomTicker                   = 113;
-const RoomTickerAdd                = 114;
-const RoomTickerRemove             = 115;
-const SetRoomTicker                = 116;
-const AddThingIHate                = 117;
-const RemoveThingIHate             = 118;
-const RoomSearch                   = 120;
-const SendUploadSpeed              = 121;
-const UserPrivileged               = 122;   // Obsolete
-const GivePrivileges               = 123;
-const NotifyPrivileges             = 124;   // Obsolete
-const AckNotifyPrivileges          = 125;   // Obsolete
-const PrivateRoomUsers             = 133;
-const PrivateRoomAddUser           = 134;
-const PrivateRoomRemoveUser        = 135;
-const PrivateRoomCancelMembership  = 136;
-const PrivateRoomDisown            = 137;
-const PrivateRoomAdded             = 139;
-const PrivateRoomRemoved           = 140;
-const PrivateRoomToggle            = 141;
-const ChangePassword               = 142;
-const PrivateRoomAddOperator       = 143;
-const PrivateRoomRemoveOperator    = 144;
-const PrivateRoomOperatorAdded     = 145;
-const PrivateRoomOperatorRemoved   = 146;
-const PrivateRoomOperators         = 148;
-const MessageUsers                 = 149;
-const JoinGlobalRoom               = 150;
-const LeaveGlobalRoom              = 151;
-const GlobalRoomMessage            = 152;
-const RelatedSearch                = 153;   // Obsolete
-const ExcludedSearchPhrases        = 160;
-const CantConnectToPeer            = 1001;
-const CantCreateRoom               = 1003;
+enum Login                        = 1;
+enum SetWaitPort                  = 2;
+enum GetPeerAddress               = 3;
+enum WatchUser                    = 5;
+enum UnwatchUser                  = 6;
+enum GetUserStatus                = 7;
+enum SayChatroom                  = 13;
+enum JoinRoom                     = 14;
+enum LeaveRoom                    = 15;
+enum UserJoinedRoom               = 16;
+enum UserLeftRoom                 = 17;
+enum ConnectToPeer                = 18;
+enum MessageUser                  = 22;
+enum MessageAcked                 = 23;
+enum FileSearch                   = 26;
+enum SetStatus                    = 28;
+enum ServerPing                   = 32;
+enum SendConnectToken             = 33;    // Obsolete
+enum SharedFoldersFiles           = 35;
+enum GetUserStats                 = 36;
+enum QueuedDownloads              = 40;    // Obsolete
+enum Relogged                     = 41;
+enum UserSearch                   = 42;
+enum SimilarRecommendations       = 50;    // Obsolete
+enum AddThingILike                = 51;
+enum RemoveThingILike             = 52;
+enum GetRecommendations           = 54;
+enum MyRecommendations            = 55;    // Obsolete
+enum GlobalRecommendations        = 56;
+enum UserInterests                = 57;
+enum RoomList                     = 64;
+enum AdminMessage                 = 66;
+enum GlobalUserList               = 67;    // Obsolete
+enum PrivilegedUsers              = 69;
+enum CheckPrivileges              = 92;
+enum WishlistSearch               = 103;
+enum WishlistInterval             = 104;
+enum SimilarUsers                 = 110;
+enum ItemRecommendations          = 111;
+enum ItemSimilarUsers             = 112;
+enum RoomTicker                   = 113;
+enum RoomTickerAdd                = 114;
+enum RoomTickerRemove             = 115;
+enum SetRoomTicker                = 116;
+enum AddThingIHate                = 117;
+enum RemoveThingIHate             = 118;
+enum RoomSearch                   = 120;
+enum SendUploadSpeed              = 121;
+enum UserPrivileged               = 122;   // Obsolete
+enum GivePrivileges               = 123;
+enum NotifyPrivileges             = 124;   // Obsolete
+enum AckNotifyPrivileges          = 125;   // Obsolete
+enum PrivateRoomUsers             = 133;
+enum PrivateRoomAddUser           = 134;
+enum PrivateRoomRemoveUser        = 135;
+enum PrivateRoomCancelMembership  = 136;
+enum PrivateRoomDisown            = 137;
+enum PrivateRoomAdded             = 139;
+enum PrivateRoomRemoved           = 140;
+enum PrivateRoomToggle            = 141;
+enum ChangePassword               = 142;
+enum PrivateRoomAddOperator       = 143;
+enum PrivateRoomRemoveOperator    = 144;
+enum PrivateRoomOperatorAdded     = 145;
+enum PrivateRoomOperatorRemoved   = 146;
+enum PrivateRoomOperators         = 148;
+enum MessageUsers                 = 149;
+enum JoinGlobalRoom               = 150;
+enum LeaveGlobalRoom              = 151;
+enum GlobalRoomMessage            = 152;
+enum RelatedSearch                = 153;   // Obsolete
+enum ExcludedSearchPhrases        = 160;
+enum CantConnectToPeer            = 1001;
+enum CantCreateRoom               = 1003;
 
 
 // Incoming Messages

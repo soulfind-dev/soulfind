@@ -69,12 +69,12 @@ extern (C) {
     int sqlite3_finalize(sqlite3_stmt *pStmt);
 }
 
-private const users_table           = "users";
-private const config_table          = "config";
-private const rooms_table           = "rooms";
-private const tickers_table         = "tickers";
-private const search_filters_table  = "search_filters";
-private const search_query_table    = "temp.search_query";
+enum users_table           = "users";
+enum config_table          = "config";
+enum rooms_table           = "rooms";
+enum tickers_table         = "tickers";
+enum search_filters_table  = "search_filters";
+enum search_query_table    = "temp.search_query";
 
 struct SdbUserStats
 {
@@ -121,7 +121,7 @@ final class Sdb
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
 
-        static users_table_sql = text(
+        enum users_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", users_table,
             "(username TEXT PRIMARY KEY,",
             " password TEXT NOT NULL,",
@@ -135,7 +135,7 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
-        static rooms_table_sql = text(
+        enum rooms_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", rooms_table,
             "(room TEXT PRIMARY KEY,",
             " type INTEGER NOT NULL,",
@@ -145,7 +145,7 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
-        static tickers_table_sql = text(
+        enum tickers_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", tickers_table,
             "(room TEXT,",
             " username TEXT,",
@@ -158,7 +158,7 @@ final class Sdb
             ");"
         );
 
-        static search_filters_table_sql = text(
+        enum search_filters_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", search_filters_table,
             "(type INTEGER,",
             " phrase TEXT,",
@@ -166,17 +166,17 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
-        static search_query_table_sql = text(
+        enum search_query_table_sql = text(
             "CREATE VIRTUAL TABLE ", search_query_table,
             " USING fts5(query);"
         );
 
-        static rooms_type_index_sql = text(
+        enum rooms_type_index_sql = text(
             "CREATE INDEX IF NOT EXISTS ", rooms_table, "_type_index ",
             " ON ", rooms_table, "(type);"
         );
 
-        static rooms_owner_type_index_sql = text(
+        enum rooms_owner_type_index_sql = text(
             "CREATE INDEX IF NOT EXISTS ", rooms_table, "_owner_type_index ",
             " ON ", rooms_table, "(owner, type);"
         );
@@ -209,7 +209,7 @@ final class Sdb
     private void add_new_columns()
     {
         // Temporary migration code to add new columns
-        static sql = text("PRAGMA table_info(", users_table, ");");
+        enum sql = text("PRAGMA table_info(", users_table, ");");
         const columns = query(sql);
         bool has_admin;
         bool has_unsearchable;
@@ -230,14 +230,14 @@ final class Sdb
         }
 
         if (!has_admin) {
-            static admin_sql = text(
+            enum admin_sql = text(
                 "ALTER TABLE ", users_table, " ADD COLUMN admin INTEGER;"
             );
             query(admin_sql);
         }
 
         if (!has_unsearchable) {
-            static unsearchable_sql = text(
+            enum unsearchable_sql = text(
                 "ALTER TABLE ", users_table,
                 " ADD COLUMN unsearchable INTEGER;"
             );
@@ -250,7 +250,7 @@ final class Sdb
 
     private void init_config()
     {
-        static sql = text(
+        enum sql = text(
             "CREATE TABLE IF NOT EXISTS ", config_table,
             "(option TEXT PRIMARY KEY,",
             " value",
@@ -273,7 +273,7 @@ final class Sdb
 
     private string get_config_value(string option)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT value FROM ", config_table, " WHERE option = ?;"
         );
         const res = query(sql, [option]);
@@ -287,7 +287,7 @@ final class Sdb
 
     private void set_config_value(string option, string value)
     {
-        static sql = text(
+        enum sql = text(
             "REPLACE INTO ", config_table, "(option, value) VALUES(?, ?);"
         );
         query(sql, [option, value]);
@@ -367,7 +367,7 @@ final class Sdb
 
     void filter_search_phrase(SearchFilterType type)(string phrase)
     {
-        static sql = text(
+        enum sql = text(
             "REPLACE INTO ",
             search_filters_table, "(type, phrase) VALUES(?, ?);"
         );
@@ -381,7 +381,7 @@ final class Sdb
 
     void unfilter_search_phrase(SearchFilterType type)(string phrase)
     {
-        static sql = text(
+        enum sql = text(
             "DELETE FROM ", search_filters_table,
             " WHERE type = ? AND phrase = ?;"
         );
@@ -395,7 +395,7 @@ final class Sdb
 
     void set_user_unsearchable(string username, bool unsearchable)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET unsearchable = ? WHERE username = ?;"
         );
 
@@ -406,7 +406,7 @@ final class Sdb
 
     string[] search_filters(SearchFilterType type)()
     {
-        static sql = text(
+        enum sql = text(
             "SELECT phrase FROM ", search_filters_table, " WHERE type = ?;"
         );
 
@@ -419,7 +419,7 @@ final class Sdb
 
     size_t num_search_filters(SearchFilterType type)()
     {
-        static sql = text(
+        enum sql = text(
             "SELECT COUNT(1) FROM ", search_filters_table, " WHERE type = ?;"
         );
         return query(sql, [(cast(uint) type).text])[0][0].to!size_t;
@@ -427,7 +427,7 @@ final class Sdb
 
     bool is_search_phrase_filtered(SearchFilterType type)(string phrase)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT 1",
             " FROM ", search_filters_table, " WHERE type = ? AND phrase = ?;"
         );
@@ -438,10 +438,10 @@ final class Sdb
     {
         // For each filtered phrase, check if its words are present anywhere
         // in the search query
-        static insert_sql = text(
+        enum insert_sql = text(
             "REPLACE INTO ", search_query_table, "(rowid, query) VALUES (1, ?)"
         );
-        static query_sql = text(
+        enum query_sql = text(
             "SELECT 1",
             " FROM ", search_filters_table,
             " WHERE type = ? AND phrase NOT LIKE '%  %' AND EXISTS(",
@@ -465,7 +465,7 @@ final class Sdb
 
     bool is_user_unsearchable(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT unsearchable FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
@@ -483,7 +483,7 @@ final class Sdb
 
     void add_user(string username, string hash)
     {
-        static sql = text(
+        enum sql = text(
             "INSERT INTO ", users_table, "(username, password) VALUES(?, ?);"
         );
         query(sql, [username, hash]);
@@ -494,7 +494,7 @@ final class Sdb
 
     void del_user(string username)
     {
-        static sql = text("DELETE FROM ", users_table, " WHERE username = ?;");
+        enum sql = text("DELETE FROM ", users_table, " WHERE username = ?;");
         query(sql, [username]);
 
         if (log_user) writeln("Removed user ", blue, username, norm);
@@ -502,7 +502,7 @@ final class Sdb
 
     string user_password_hash(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT password FROM ", users_table, " WHERE username = ?;"
         );
         return query(sql, [username])[0][0];
@@ -510,7 +510,7 @@ final class Sdb
 
     void user_update_password(string username, string hash)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET password = ? WHERE username = ?;"
         );
         query(sql, [hash, username]);
@@ -522,7 +522,7 @@ final class Sdb
 
     bool user_exists(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT 1 FROM ", users_table, " WHERE username = ?;"
         );
         return query(sql, [username]).length > 0;
@@ -530,7 +530,7 @@ final class Sdb
 
     void add_admin(string username, Duration duration)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
         );
         long admin_until;
@@ -548,7 +548,7 @@ final class Sdb
 
     void del_admin(string username)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
         );
         query(sql, [null, username]);
@@ -558,7 +558,7 @@ final class Sdb
 
     SysTime admin_until(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT admin FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
@@ -580,7 +580,7 @@ final class Sdb
 
     void add_user_privileges(string username, Duration duration)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
         );
         auto privileged_until = user_privileged_until(username).toUnixTime;
@@ -602,7 +602,7 @@ final class Sdb
         if (privileged_until <= 0)
             return;
 
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
         );
         const now = Clock.currTime.toUnixTime;
@@ -629,7 +629,7 @@ final class Sdb
 
     SysTime user_privileged_until(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT privileges FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
@@ -651,7 +651,7 @@ final class Sdb
 
     void ban_user(string username, Duration duration)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
         );
         long banned_until;
@@ -669,7 +669,7 @@ final class Sdb
 
     void unban_user(string username)
     {
-        static sql = text(
+        enum sql = text(
             "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
         );
         query(sql, [null, username]);
@@ -679,7 +679,7 @@ final class Sdb
 
     SysTime user_banned_until(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT banned FROM ", users_table, " WHERE username = ?;"
         );
         const res = query(sql, [username]);
@@ -701,7 +701,7 @@ final class Sdb
 
     SdbUserStats user_stats(string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT speed,files,folders",
             " FROM ", users_table,
             " WHERE username = ?;"
@@ -799,7 +799,7 @@ final class Sdb
         const type = type < 0 ? RoomType._public : type;
         if (type != RoomType._private) owner = null;
 
-        static sql = text(
+        enum sql = text(
             "INSERT OR IGNORE INTO ", rooms_table,
             "(room, type, owner) VALUES(?, ?, ?);"
         );
@@ -808,13 +808,13 @@ final class Sdb
 
     void del_room(string room_name)
     {
-        static sql = text("DELETE FROM ", rooms_table, " WHERE room = ?;");
+        enum sql = text("DELETE FROM ", rooms_table, " WHERE room = ?;");
         query(sql, [room_name]);
     }
 
     RoomType get_room_type(string room_name)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT type FROM ", rooms_table, " WHERE room = ?;"
         );
         const res = query(sql, [room_name]);
@@ -825,7 +825,7 @@ final class Sdb
 
     string get_room_owner(string room_name)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT owner FROM ", rooms_table, " WHERE room = ? AND type = ?;"
         );
         const res = query(sql, [room_name, text(cast(int) RoomType._private)]);
@@ -834,7 +834,7 @@ final class Sdb
 
     bool is_room_member(string room_name, string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT type, owner FROM ", rooms_table, " WHERE room = ?;"
         );
         const res = query(sql, [room_name]);
@@ -871,7 +871,7 @@ final class Sdb
 
     void add_ticker(string room_name, string username, string content)
     {
-        static sql = text(
+        enum sql = text(
             "INSERT INTO ", tickers_table,
             "(room, username, content) VALUES(?, ?, ?);"
         );
@@ -880,7 +880,7 @@ final class Sdb
 
     string get_ticker(string room_name, string username)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT content FROM ", tickers_table,
             " WHERE room = ? AND username = ?;"
         );
@@ -890,7 +890,7 @@ final class Sdb
 
     void del_ticker(string room_name, string username)
     {
-        static sql = text(
+        enum sql = text(
             "DELETE FROM ", tickers_table, " WHERE room = ? AND username = ?;"
         );
         query(sql, [room_name, username]);
@@ -898,7 +898,7 @@ final class Sdb
 
     string del_oldest_ticker(string room_name)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT username FROM ", tickers_table, " WHERE room = ? LIMIT 1;"
         );
         const res = query(sql, [room_name]);
@@ -913,7 +913,7 @@ final class Sdb
 
     string[][] room_tickers(string room_name)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT username, content FROM ", tickers_table,
             " WHERE room = ?",
             " ORDER BY rowid;"
@@ -941,7 +941,7 @@ final class Sdb
 
     ulong num_room_tickers(string room_name)
     {
-        static sql = text(
+        enum sql = text(
             "SELECT COUNT(1) FROM ", tickers_table, " WHERE room = ?;"
         );
         const res = query(sql, [room_name]);

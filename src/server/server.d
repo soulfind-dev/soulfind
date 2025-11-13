@@ -180,7 +180,7 @@ final class Server
         if (!is_connected)
             return;
 
-        const new_message = true;
+        enum new_message = true;
         deliver_pm(id, new_message);
     }
 

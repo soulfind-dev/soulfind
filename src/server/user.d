@@ -149,7 +149,7 @@ final class User
             return;
 
         if (authenticated) {
-            const notify_user = true;
+            enum notify_user = true;
             change_password(password, hash, notify_user);
             return;
         }
@@ -232,14 +232,14 @@ final class User
         // user's client from automatically reconnecting and
         // registering again.
 
-        const include_received = true;
+        enum include_received = true;
         server.del_user_pms(username, include_received);
         server.del_user_tickers!(RoomType.any)(username);
 
         scope relogged_msg = new SRelogged();
         send_message(relogged_msg);
 
-        const wait_for_messages = true;
+        enum wait_for_messages = true;
         disconnect(wait_for_messages);
 
         return true;
@@ -323,7 +323,7 @@ final class User
             scope relogged_msg = new SRelogged();
             user.send_message(relogged_msg);
 
-            const wait_for_messages = true;
+            enum wait_for_messages = true;
             user.disconnect(wait_for_messages);
         }
 

@@ -11,9 +11,9 @@ import std.compiler : name, version_major, version_minor;
 import std.stdio : writeln;
 import std.string : startsWith;
 
-const s_prefix        = "-";
-const l_prefix        = "--";
-const column_spacing  = 2;
+enum s_prefix        = "-";
+enum l_prefix        = "--";
+enum column_spacing  = 2;
 
 struct CommandOption {
     string                 s_parameter;

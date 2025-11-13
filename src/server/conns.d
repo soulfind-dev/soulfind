@@ -21,7 +21,7 @@ import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
                     SocketShutdown, TcpSocket;
 import std.stdio : writeln;
 
-const enum Logging : uint
+enum Logging : uint
 {
     disabled  = 0,
     all       = 1,
@@ -56,7 +56,7 @@ final class UserConnections
             return false;
 
         version (unittest)
-            const running = true;
+            enum running = true;
         else
             import soulfind.main : running;
 
@@ -142,7 +142,7 @@ final class UserConnections
             listen_sock.listen(conn_backlog_length);
         }
         catch (SocketOSException e) {
-            const min_port = 1024;
+            enum min_port = 1024;
             writeln("Unable to bind socket to port ", port);
             if (port < min_port) writeln(
                 "Are you trying to use a port less than ", min_port,
@@ -340,9 +340,9 @@ final class UserConnection
             TCP_KEEPALIVE_ABORT_THRESHOLD  = 0x17;
         }
 
-        const idle = 60;
-        const interval = 5;
-        const count = 10;
+        enum idle = 60;
+        enum interval = 5;
+        enum count = 10;
 
         if (TCP_KEEPIDLE)
             sock.setOption(

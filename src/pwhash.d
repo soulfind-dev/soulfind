@@ -32,7 +32,7 @@ struct VerifyPasswordResult
 
 string create_salt()
 {
-    const length = 16;
+    enum length = 16;
     ubyte[length] salt;
     ubyte offset;
 
@@ -50,7 +50,7 @@ string create_salt()
 
 string hash_password(string password, string salt, uint iterations)
 {
-    const algorithm = "pbkdf2-sha512";
+    enum algorithm = "pbkdf2-sha512";
     auto hmac = HMAC!SHA512(cast(immutable(ubyte)[]) password);
     auto digest = hmac
         .put(cast(immutable(ubyte)[]) salt)
