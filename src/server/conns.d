@@ -104,10 +104,9 @@ final class UserConnections
         }
 
         // Clean up connections
-        foreach (ref user ; sock_users.dup) {
-            const wait_for_messages = false;
-            user.disconnect(wait_for_messages);
-        }
+        foreach (ref user ; sock_users.dup)
+            user.disconnect();
+
         return true;
     }
 

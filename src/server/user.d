@@ -177,7 +177,7 @@ final class User
         }
     }
 
-    void disconnect(bool wait_for_messages = true)
+    void disconnect(bool wait_for_messages = false)
     {
         unwatch(username);
         server.del_user(username);
@@ -225,7 +225,9 @@ final class User
 
         scope relogged_msg = new SRelogged();
         send_message(relogged_msg);
-        disconnect();
+
+        const wait_for_messages = true;
+        disconnect(wait_for_messages);
 
         return true;
     }
@@ -242,8 +244,7 @@ final class User
         if ((MonoTime.currTime - conn.created_monotime) < login_timeout)
             return false;
 
-        const wait_for_messages = false;
-        disconnect(wait_for_messages);
+        disconnect();
         return true;
     }
 
@@ -305,7 +306,9 @@ final class User
             );
             scope relogged_msg = new SRelogged();
             user.send_message(relogged_msg);
-            user.disconnect();
+
+            const wait_for_messages = true;
+            user.disconnect(wait_for_messages);
         }
 
         if (hash !is null) server.db.add_user(username, hash);
@@ -696,8 +699,7 @@ final class User
         if (io_success && !disconnecting && !login_rejection.reason)
             return;
 
-        const wait_for_messages = false;
-        disconnect(wait_for_messages);
+        disconnect();
     }
 
     void send_message(Logging log = Logging.all)(scope SMessage msg)
