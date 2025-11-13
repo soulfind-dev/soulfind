@@ -78,7 +78,6 @@ private const search_query_table    = "temp.search_query";
 
 struct SdbUserStats
 {
-    string  username;
     bool    exists;
     uint    upload_speed;
     uint    shared_files;
