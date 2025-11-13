@@ -62,6 +62,7 @@ final class UserConnections
 
         while (running) {
             const ready_fds = selector.select();
+            const current_time = MonoTime.currTime;
 
             // Process ready sockets
             foreach (ready_fd ; ready_fds) {
@@ -74,21 +75,21 @@ final class UserConnections
                 }
 
                 auto user = sock_users[ready_fd.fd];
-                user.refresh_state();
+                user.refresh_state(current_time);
                 user.handle_io_events(recv_ready, send_ready);
             }
 
             // Check expired login attempts and unsearchable users
-            const curr_time = MonoTime.currTime;
-            if ((curr_time - last_user_check) >= user_check_interval) {
+            if ((current_time - last_user_check) >= user_check_interval) {
                 User[] expired_users;
                 foreach (ref user ; sock_users)
-                    if (user.login_timed_out) expired_users ~= user;
+                    if (user.login_timed_out(current_time))
+                        expired_users ~= user;
                 foreach (ref user ; expired_users) user.disconnect();
 
                 server.refresh_search_filters();
                 server.refresh_unsearchable_users();
-                last_user_check = curr_time;
+                last_user_check = current_time;
             }
 
             // Password hashing in thread/task pool, process results

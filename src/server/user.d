@@ -80,7 +80,7 @@ final class User
             .replace("%version%", client_version);
     }
 
-    bool login_timed_out()
+    bool login_timed_out(MonoTime current_time)
     {
         if (authenticated)
             return false;
@@ -89,7 +89,7 @@ final class User
         // login timeout to spread out reconnect attempts after e.g. kicking
         // all online users, which also bans them for a few minutes.
         const login_timeout = login_timeout + uniform(0, 15).seconds;
-        return (MonoTime.currTime - conn.created_monotime) >= login_timeout;
+        return (current_time - conn.created_monotime) >= login_timeout;
     }
 
     bool should_update_login_status()
@@ -259,13 +259,12 @@ final class User
         return true;
     }
 
-    void refresh_state()
+    void refresh_state(MonoTime current_time)
     {
-        const curr_time = MonoTime.currTime;
-        if ((curr_time - last_state_refresh) < user_check_interval)
+        if ((current_time - last_state_refresh) < user_check_interval)
             return;
 
-        last_state_refresh = curr_time;
+        last_state_refresh = current_time;
 
         // Fetch latest user state from the database, in case it's modified
         // using e.g. Soulsetup
