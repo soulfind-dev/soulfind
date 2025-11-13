@@ -387,7 +387,7 @@ final class UserConnection
 
     private bool handle_message(User target_user)
     {
-        auto msg_buf = in_buf[0 .. in_msg_size];
+        const(ubyte)[] msg_buf = in_buf[0 .. in_msg_size];
         const code = msg_buf.peek!(uint, Endian.littleEndian);
         const success = msg_handler.handle_message(target_user, code, msg_buf);
 

@@ -137,12 +137,12 @@ enum CantCreateRoom               = 1003;
 
 class UMessage
 {
-    const uint       code;
-    bool             is_valid = true;
-    private size_t   offset;
-    private ubyte[]  in_buf;
+    const uint              code;
+    bool                    is_valid = true;
+    private size_t          offset;
+    private const(ubyte)[]  in_buf;
 
-    this(ubyte[] in_buf, string in_username = "[ unknown ]") scope
+    this(const(ubyte)[] in_buf, string in_username = "[ unknown ]") scope
     {
         this.in_buf = in_buf;
         code = read!uint();
@@ -155,7 +155,7 @@ class UMessage
 
     private string name() scope
     {
-        auto cls_name = typeid(this).name;
+        const cls_name = typeid(this).name;
         foreach_reverse (i; 0 .. cls_name.length)
             if (cls_name[i] == '.')
                 return cls_name[i + 1 .. $];
@@ -183,7 +183,7 @@ class UMessage
         if (offset + size <= in_buf.length) {
             static if (is(T : string)) {
                 if (size > 0) {
-                    const bytes = in_buf[offset .. offset + size];
+                    const(ubyte)[] bytes = in_buf[offset .. offset + size];
                     value = cast(T) bytes.idup;  // UTF-8
                     offset += size;
 
@@ -221,7 +221,7 @@ final class ULogin : UMessage
     string  hash;            // MD5 hash of username + password
     uint    minor_version;
 
-    this(ubyte[] in_buf) scope
+    this(const(ubyte)[] in_buf) scope
     {
         super(in_buf);
 
@@ -244,7 +244,7 @@ final class USetWaitPort : UMessage
     uint  obfuscation_type;
     uint  obfuscated_port;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -268,7 +268,7 @@ final class UGetPeerAddress : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -280,7 +280,7 @@ final class UWatchUser : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -292,7 +292,7 @@ final class UUnwatchUser : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -304,7 +304,7 @@ final class UGetUserStatus : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -317,7 +317,7 @@ final class USayChatroom : UMessage
     string  room_name;
     string  message;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -331,7 +331,7 @@ final class UJoinRoom : UMessage
     string  room_name;
     uint    room_type;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -349,7 +349,7 @@ final class ULeaveRoom : UMessage
 {
     string room_name;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -363,7 +363,7 @@ final class UConnectToPeer : UMessage
     string  username;
     string  type;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -378,7 +378,7 @@ final class UMessageUser : UMessage
     string  username;
     string  message;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -391,7 +391,7 @@ final class UMessageAcked : UMessage
 {
     uint id;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -404,7 +404,7 @@ final class UFileSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -418,7 +418,7 @@ final class UWishlistSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -429,7 +429,7 @@ final class UWishlistSearch : UMessage
 
 final class USimilarUsers : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -439,7 +439,7 @@ final class USetStatus : UMessage
 {
     uint status;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -449,7 +449,7 @@ final class USetStatus : UMessage
 
 final class UServerPing : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -460,7 +460,7 @@ final class USendConnectToken : UMessage
     string  username;
     uint    token;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -473,7 +473,7 @@ final class USendUploadSpeed : UMessage
 {
     uint speed;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -486,7 +486,7 @@ final class USharedFoldersFiles : UMessage
     uint  shared_folders;
     uint  shared_files;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -499,7 +499,7 @@ final class UGetUserStats : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -511,7 +511,7 @@ final class UQueuedDownloads : UMessage
 {
     uint slots_full;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -525,7 +525,7 @@ final class UUserSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -539,7 +539,7 @@ final class USimilarRecommendations : UMessage
 {
     string recommendation;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -551,7 +551,7 @@ final class UAddThingILike : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -563,7 +563,7 @@ final class URemoveThingILike : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -573,7 +573,7 @@ final class URemoveThingILike : UMessage
 
 final class UGetRecommendations : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -581,7 +581,7 @@ final class UGetRecommendations : UMessage
 
 final class UMyRecommendations : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -589,7 +589,7 @@ final class UMyRecommendations : UMessage
 
 final class UGlobalRecommendations : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -599,7 +599,7 @@ final class UUserInterests : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -609,7 +609,7 @@ final class UUserInterests : UMessage
 
 final class URoomList : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -617,7 +617,7 @@ final class URoomList : UMessage
 
 final class UGlobalUserList : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -625,7 +625,7 @@ final class UGlobalUserList : UMessage
 
 final class UCheckPrivileges : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -635,7 +635,7 @@ final class UAddThingIHate : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -647,7 +647,7 @@ final class URemoveThingIHate : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -659,7 +659,7 @@ final class UItemRecommendations : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -671,7 +671,7 @@ final class UItemSimilarUsers : UMessage
 {
     string item;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -684,7 +684,7 @@ final class USetRoomTicker : UMessage
     string  room_name;
     string  ticker;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -699,7 +699,7 @@ final class URoomSearch : UMessage
     uint    token;
     string  query;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -713,7 +713,7 @@ final class UUserPrivileged : UMessage
 {
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -726,7 +726,7 @@ final class UGivePrivileges : UMessage
     string    username;
     Duration  duration;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -740,7 +740,7 @@ final class UNotifyPrivileges : UMessage
     uint    token;
     string  username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -754,7 +754,7 @@ final class UPrivateRoomAddUser : UMessage
     string  room_name;
     string  username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -768,7 +768,7 @@ final class UPrivateRoomRemoveUser : UMessage
     string  room_name;
     string  username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -781,7 +781,7 @@ final class UPrivateRoomCancelMembership : UMessage
 {
     string room_name;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -793,7 +793,7 @@ final class UPrivateRoomDisown : UMessage
 {
     string room_name;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -805,7 +805,7 @@ final class UPrivateRoomToggle : UMessage
 {
     bool enabled;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -817,7 +817,7 @@ final class UChangePassword : UMessage
 {
     string password;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -830,7 +830,7 @@ final class UPrivateRoomAddOperator : UMessage
     string  room_name;
     string  username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -844,7 +844,7 @@ final class UPrivateRoomRemoveOperator : UMessage
     string  room_name;
     string  username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -858,7 +858,7 @@ final class UMessageUsers : UMessage
     string[]  usernames;
     string    message;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -869,7 +869,7 @@ final class UMessageUsers : UMessage
 
 final class UJoinGlobalRoom : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -877,7 +877,7 @@ final class UJoinGlobalRoom : UMessage
 
 final class ULeaveGlobalRoom : UMessage
 {
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
     }
@@ -887,7 +887,7 @@ final class URelatedSearch : UMessage
 {
     string query;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -900,7 +900,7 @@ final class UCantConnectToPeer : UMessage
     uint token;
     string username;
 
-    this(ubyte[] in_buf, string in_username) scope
+    this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
@@ -925,7 +925,7 @@ class SMessage
 
     string name() scope
     {
-        auto cls_name = typeid(this).name;
+        const cls_name = typeid(this).name;
         foreach_reverse (i; 0 .. cls_name.length)
             if (cls_name[i] == '.')
                 return cls_name[i + 1 .. $];

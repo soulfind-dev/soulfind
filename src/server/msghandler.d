@@ -30,7 +30,7 @@ final class MessageHandler
         this.server = server;
     }
 
-    bool handle_message(User user, uint code, ubyte[] msg_buf)
+    bool handle_message(User user, uint code, const(ubyte)[] msg_buf)
     {
         if (!user.authenticated && code != Login)
             return false;
