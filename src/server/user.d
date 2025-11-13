@@ -207,7 +207,10 @@ final class User
 
     bool disconnect_orphan()
     {
-        if (disconnecting || server.db.user_exists(username))
+        if (!authenticated || disconnecting)
+            return false;
+
+        if (server.db.user_exists(username))
             return false;
 
         // If the user was removed from the database, perform
