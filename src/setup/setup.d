@@ -7,8 +7,9 @@ module soulfind.setup.setup;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : blue, bold, norm, pbkdf2_iterations, red,
-                          RoomType, SearchFilterType, VERSION;
+import soulfind.defines : blue, bold, default_max_users, default_motd,
+                          default_port, norm, pbkdf2_iterations, red, RoomType,
+                          SearchFilterType, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
@@ -184,6 +185,7 @@ final class Setup
             text(bold, "Listening port: ", blue, db.server_port, norm),
             [
                 MenuItem("1", "Change listening port", &set_listening_port),
+                MenuItem("2", "Reset listening port",  &reset_listening_port),
                 MenuItem("q", "Return",                &main_menu)
             ]
         );
@@ -205,6 +207,12 @@ final class Setup
         }
 
         db.set_server_port(port);
+        listening_port();
+    }
+
+    private void reset_listening_port()
+    {
+        db.set_server_port(default_port);
         listening_port();
     }
 
@@ -242,6 +250,7 @@ final class Setup
             text(bold, "Max users allowed: ", blue, db.server_max_users, norm),
             [
                 MenuItem("1", "Change max users", &set_max_users),
+                MenuItem("2", "Reset max users",  &reset_max_users),
                 MenuItem("q", "Return",           &main_menu)
             ]
         );
@@ -266,12 +275,19 @@ final class Setup
         max_users();
     }
 
+    private void reset_max_users()
+    {
+        db.set_server_max_users(default_max_users);
+        max_users();
+    }
+
     private void motd()
     {
         show_menu(
             text(bold, "Message of the day:", norm, "\n", db.server_motd),
             [
                 MenuItem("1", "Change MOTD", &set_motd),
+                MenuItem("2", "Reset MOTD",  &reset_motd),
                 MenuItem("q", "Return",      &main_menu)
             ]
         );
@@ -300,6 +316,12 @@ final class Setup
         }
 
         db.set_server_motd(motd_template[]);
+        motd();
+    }
+
+    private void reset_motd()
+    {
+        db.set_server_motd(default_motd);
         motd();
     }
 
