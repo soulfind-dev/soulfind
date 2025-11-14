@@ -34,10 +34,14 @@ final class Setup
         this.db  = new Sdb(db_filename);
     }
 
-    int show()
+    void show()
     {
         try main_menu(); catch (StdioException) {}
-        return 0;
+    }
+
+    bool backup_db(string filename)
+    {
+        return db.backup(filename);
     }
 
     @trusted

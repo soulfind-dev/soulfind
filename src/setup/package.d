@@ -15,6 +15,7 @@ import std.stdio : writeln;
 int run(string[] args)
 {
     string  db_filename = default_db_filename;
+    string  db_backup_filename;
     bool    show_version;
     bool    show_help;
 
@@ -24,6 +25,12 @@ int run(string[] args)
                 "Database path (default: ", default_db_filename, ")."
             ), "path",
             (value) { db_filename = value; }
+        ),
+        CommandOption(
+            "b", "backup", text(
+                "Back up database to file path."
+            ), "path",
+            (value) { db_backup_filename = value; }
         ),
         CommandOption(
             "v", "version", "Show version.", null,
@@ -52,8 +59,16 @@ int run(string[] args)
         return 0;
     }
 
+    int exit_code;
     auto setup = new Setup(db_filename);
-    const exit_code = setup.show();
+
+    if (db_backup_filename !is null) {
+        const success = setup.backup_db(db_backup_filename);
+        exit_code = success ? 0 : 1;
+        return exit_code;
+    }
+
+    setup.show();
 
     writeln("\n", exit_message);
     return exit_code;
