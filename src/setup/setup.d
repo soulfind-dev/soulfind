@@ -310,7 +310,7 @@ final class Setup
             const line = input.chomp;
             if (line.strip == ".")
                 break;
-            if (first) motd_template ~= "\n";
+            if (!first) motd_template ~= "\n";
             motd_template ~= line;
             first = false;
         }
