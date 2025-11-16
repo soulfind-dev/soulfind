@@ -51,10 +51,13 @@ from source.
 
 Soulfind stores all its configuration in a SQLite database, and looks for the
 file `soulfind.db` by default, unless provided a different path as a
-`--database` argument.
+`--database` argument. See [Database File](#database-file) under runtime
+options.
 
 Server owners can configure the server and add admins using the `soulsetup`
-CLI server management tool.
+CLI server management tool. The main database can be backed up safely by
+providing a target file path as a `--backup` argument when running `soulsetup`.
+See [Backup File](#backup-file) under runtime options.
 
 Admins can interact with the server from a Soulseek client, by sending commands
 to the `server` user in a private chat (`help` to see all commands).
@@ -80,6 +83,16 @@ soulfind -d path/to/database.db
 
 ```
 soulsetup -d path/to/database.db
+```
+
+### Backup File
+
+Back up the main database file to a target path by providing `soulsetup` a `-b`
+or `--backup` argument. This is useful for automatic backups using e.g. a cron
+job, and is safe even while the database is in use.
+
+```
+soulsetup -b path/to/save/backup.db
 ```
 
 ### Listening Port

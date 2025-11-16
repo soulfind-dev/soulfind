@@ -12,6 +12,8 @@ import soulfind.defines : blue, default_max_users, default_motd, default_port,
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
+import std.file : exists, remove, rename;
+import std.path : absolutePath, buildNormalizedPath;
 import std.stdio : writeln;
 import std.string : fromStringz, join, replace, toStringz;
 
@@ -97,18 +99,20 @@ final class SdbException : Exception
 final class Sdb
 {
     private sqlite3* db;
+    private string db_filename;
 
 
     this(string filename)
     {
-        if (log_db) writeln("DB: Using database: ", filename);
+        this.db_filename = filename.absolutePath.buildNormalizedPath;
+        if (log_db) writeln("DB: Using database: ", db_filename);
 
         // Soulfind is single-threaded. Disable SQLite mutexes for a slight
         // performance improvement.
         config(SQLITE_CONFIG_SINGLETHREAD);
 
         initialize();
-        open(filename);
+        open(db_filename);
 
         // https://www.sqlite.org/security.html
         db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1);
@@ -243,6 +247,37 @@ final class Sdb
             );
             query(unsearchable_sql);
         }
+    }
+
+
+    // Backup
+
+    bool backup(string filename)
+    {
+        const normalized_filename = filename.absolutePath.buildNormalizedPath;
+        if (normalized_filename == db_filename) {
+            writeln("Backup path must not match the main database path");
+            return false;
+        }
+
+        const tmp_filename = normalized_filename ~ ".tmp";
+        enum sql = text("VACUUM INTO ?");
+
+        try {
+            if (exists(tmp_filename)) remove(tmp_filename);
+            query(sql, [tmp_filename]);
+            rename(tmp_filename, normalized_filename);
+
+            writeln("Database backed up to ", normalized_filename);
+        }
+        catch (Exception e) {
+            writeln(
+                "Failed to back up database to ", normalized_filename, ": ",
+                e.msg
+            );
+            return false;
+        }
+        return true;
     }
 
 
