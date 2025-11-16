@@ -115,10 +115,10 @@ final class Sdb
         open(db_filename);
 
         // https://www.sqlite.org/security.html
-        db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1);
-        db_config(db, SQLITE_DBCONFIG_ENABLE_TRIGGER, 0);
-        db_config(db, SQLITE_DBCONFIG_ENABLE_VIEW, 0);
-        db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
+        db_config(SQLITE_DBCONFIG_DEFENSIVE, 1);
+        db_config(SQLITE_DBCONFIG_ENABLE_TRIGGER, 0);
+        db_config(SQLITE_DBCONFIG_ENABLE_VIEW, 0);
+        db_config(SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0);
 
         query("PRAGMA journal_mode = WAL;");
         query("PRAGMA synchronous = NORMAL;");
@@ -1009,7 +1009,7 @@ final class Sdb
                                  string[] parameters = null,
                                  int res = 0)
     {
-        const error_code = extended_error_code(db);
+        const error_code = extended_error_code;
         const error_string = error_string(error_code);
 
         if (query)
@@ -1019,7 +1019,7 @@ final class Sdb
             writeln("DB: Parameters [", parameters.join(", "), "]");
 
         if (res)
-            writeln("DB: Result code ", res, ".\n\n", error_msg(db), "\n");
+            writeln("DB: Result code ", res, ".\n\n", error_msg, "\n");
 
         throw new SdbException(
             text("SQLite error ", error_code, " (", error_string, ")")
@@ -1031,7 +1031,7 @@ final class Sdb
         Appender!(string[][]) ret;
         sqlite3_stmt* stmt;
 
-        int res = prepare(db, query, stmt);
+        int res = prepare(query, stmt);
         if (res != SQLITE_OK) {
             raise_sql_error(query, parameters, res);
             return ret[];
@@ -1097,7 +1097,7 @@ final class Sdb
     }
 
     @trusted
-    private void db_config(sqlite3* db, int option, int value)
+    private void db_config(int option, int value)
     {
         if (sqlite3_db_config(db, option, value, null) != SQLITE_OK)
             // Ignore response, since SQLite versions shipped with older
@@ -1121,13 +1121,13 @@ final class Sdb
     }
 
     @trusted
-    private int extended_error_code(sqlite3* db)
+    private int extended_error_code()
     {
         return sqlite3_extended_errcode(db);
     }
 
     @trusted
-    private string error_msg(sqlite3* db)
+    private string error_msg()
     {
         return sqlite3_errmsg(db).fromStringz.idup;
     }
@@ -1139,7 +1139,7 @@ final class Sdb
     }
 
     @trusted
-    private int prepare(sqlite3* db, string query, out sqlite3_stmt* statement)
+    private int prepare(string query, out sqlite3_stmt* statement)
     {
         return sqlite3_prepare_v2(
             db, query.toStringz, cast(int) query.length, &statement, null
