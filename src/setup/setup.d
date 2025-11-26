@@ -15,7 +15,7 @@ import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
-import std.stdio : readln, StdioException, write, writeln;
+import std.stdio : readln, StdioException, stdout, write, writeln;
 import std.string : chomp, join, split, strip, toLower;
 
 struct MenuItem
@@ -48,6 +48,7 @@ final class Setup
     @trusted
     private string input()
     {
+        stdout.flush();
         return readln();
     }
 
