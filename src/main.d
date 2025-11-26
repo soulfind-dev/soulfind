@@ -48,7 +48,8 @@ private void setup_console()
 private void setup_signal_handler()
 {
     version (Posix) {
-        import core.sys.posix.signal : sigaction, sigaction_t, SIGINT, SIGTERM;
+        import core.sys.posix.signal : sigaction, sigaction_t, SIGHUP, SIGINT,
+                                       SIGTERM;
 
         extern(C) void handle_termination(int) {
             running = false;
@@ -59,6 +60,7 @@ private void setup_signal_handler()
 
         sigaction(SIGINT, &act, null);
         sigaction(SIGTERM, &act, null);
+        sigaction(SIGHUP, &act, null);  // Terminal was closed
     }
     version (Windows) {
         import core.sys.windows.windows : SetConsoleCtrlHandler;
