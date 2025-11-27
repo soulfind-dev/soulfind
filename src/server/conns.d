@@ -16,9 +16,9 @@ import soulfind.server.server : Server;
 import soulfind.server.user : User;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : MonoTime, msecs;
-import std.socket : InternetAddress, Socket, socket_t, SocketAcceptException,
-                    SocketOption, SocketOptionLevel, SocketOSException,
-                    SocketShutdown, TcpSocket;
+import std.socket : InternetAddress, parseAddress, Socket, socket_t,
+                    SocketAcceptException, SocketOption, SocketOptionLevel,
+                    SocketOSException, SocketShutdown, TcpSocket, UdpSocket;
 import std.stdio : writeln;
 
 enum Logging : uint
@@ -196,7 +196,7 @@ final class UserConnection
         this.selector          = selector;
         this.msg_handler       = msg_handler;
         this.created_monotime  = MonoTime.currTime;
-        this.address           = cast(InternetAddress) sock.remoteAddress;
+        this.address           = find_address();
 
         setup_socket();
     }
@@ -286,6 +286,27 @@ final class UserConnection
                 break;
         }
         return true;
+    }
+
+    private InternetAddress find_address()
+    {
+        auto address = cast(InternetAddress) sock.remoteAddress;
+        if (address.toAddrString != "127.0.0.1")
+            return address;
+
+        // A localhost address isn't always reachable, e.g. if a client binds
+        // to the local IP address instead of 0.0.0.0, or peers connect from
+        // different devices on the same local network. Replace the localhost
+        // address with our local IP address instead.
+
+        auto udp_sock = new UdpSocket();
+        udp_sock.connect(new InternetAddress("10.255.255.255", 1));
+
+        auto local_address = new InternetAddress(
+            (cast(InternetAddress) udp_sock.localAddress).addr, address.port
+        );
+        udp_sock.close();
+        return local_address;
     }
 
     private void setup_socket()
