@@ -67,15 +67,6 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (msg.port == 0)
-                break;
-
-            if (user.address.port != InternetAddress.PORT_ANY)
-                // If port was already set, reject attempts to change it,
-                // since they are not compatible with many clients that
-                // cache user addresses.
-                break;
-
             user.address = new InternetAddress(
                 user.address.addr, cast(ushort) msg.port
             );
