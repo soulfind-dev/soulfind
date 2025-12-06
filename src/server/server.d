@@ -143,7 +143,7 @@ final class Server
 
     void refresh_unsearchable_users()
     {
-        unsearchable_users.clear();
+        unsearchable_users = null;
         foreach (ref username ; db.usernames("unsearchable"))
             unsearchable_users[username] = username;
     }
