@@ -8,7 +8,7 @@ module soulfind.server.msghandler;
 
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
-                          RoomType, server_username;
+                          RoomMemberType, RoomType, server_username;
 import soulfind.pwhash : create_salt, hash_password_async;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
@@ -204,11 +204,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (!user.leave_room(msg.room_name))
-                break;
-
-            scope response_msg = new SLeaveRoom(msg.room_name);
-            user.send_message(response_msg);
+            user.leave_room(msg.room_name);
             break;
 
         case ConnectToPeer:
@@ -579,12 +575,21 @@ final class MessageHandler
             scope msg = new UPrivateRoomAddUser(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            server.grant_room_membership(
+                msg.room_name, user.username, msg.username
+            );
             break;
 
         case PrivateRoomRemoveUser:
             scope msg = new UPrivateRoomRemoveUser(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            if (msg.username != user.username)
+                server.cancel_room_membership(
+                    msg.room_name, user.username, msg.username
+                );
             break;
 
         case PrivateRoomCancelMembership:
@@ -593,6 +598,10 @@ final class MessageHandler
             );
             if (!msg.is_valid)
                 break;
+
+            server.cancel_room_membership(
+                msg.room_name, user.username, user.username
+            );
             break;
 
         case PrivateRoomDisown:
@@ -600,10 +609,12 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (server.db.get_room_owner(msg.room_name) != user.username)
+            const room_name = msg.room_name;
+            if (server.db.get_room_owner(room_name) != user.username)
                 break;
 
-            server.db.del_room(msg.room_name);
+            enum permanent = true;
+            server.del_room(room_name, permanent);
             server.send_room_list(user.username);
             break;
 
@@ -611,6 +622,8 @@ final class MessageHandler
             scope msg = new UPrivateRoomToggle(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            user.accept_room_invitations = msg.enabled;
 
             scope response_msg = new SPrivateRoomToggle(msg.enabled);
             user.send_message(response_msg);

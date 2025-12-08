@@ -8,7 +8,7 @@ module soulfind.db;
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           default_private_mode, log_db, log_user, norm,
-                          RoomType, SearchFilterType;
+                          RoomMemberType, RoomType, SearchFilterType;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
@@ -74,6 +74,7 @@ extern (C) {
 enum users_table           = "users";
 enum config_table          = "config";
 enum rooms_table           = "rooms";
+enum room_members_table    = "room_members";
 enum tickers_table         = "tickers";
 enum search_filters_table  = "search_filters";
 enum search_query_table    = "temp.search_query";
@@ -149,6 +150,19 @@ final class Sdb
             ") WITHOUT ROWID;"
         );
 
+        enum room_members_sql = text(
+            "CREATE TABLE IF NOT EXISTS ", room_members_table,
+            "(room TEXT,",
+            " username TEXT,",
+            " type INTEGER NOT NULL,",
+            " PRIMARY KEY(room, username),",
+            " FOREIGN KEY(room) REFERENCES ", rooms_table, "(room) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE,",
+            " FOREIGN KEY(username) REFERENCES ", users_table, "(username) ",
+            "ON UPDATE CASCADE ON DELETE CASCADE",
+            ") WITHOUT ROWID;"
+        );
+
         enum tickers_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", tickers_table,
             "(room TEXT,",
@@ -191,6 +205,7 @@ final class Sdb
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_table_sql);
         query(rooms_table_sql);
+        query(room_members_sql);
         query(tickers_table_sql);
         query(search_filters_table_sql);
         query(search_query_table_sql);
@@ -829,15 +844,14 @@ final class Sdb
 
     // Rooms
 
-    void add_room(RoomType type)(string room_name, string owner = null)
+    void add_room(string room_name, string owner = null)
     {
-        const type = type < 0 ? RoomType._public : type;
-        if (type != RoomType._private) owner = null;
-
         enum sql = text(
             "INSERT OR IGNORE INTO ", rooms_table,
             "(room, type, owner) VALUES(?, ?, ?);"
         );
+        const type = (owner !is null) ? RoomType._private : RoomType._public;
+
         query(sql, [room_name, text(cast(int) type), owner]);
     }
 
@@ -870,38 +884,107 @@ final class Sdb
     bool is_room_member(string room_name, string username)
     {
         enum sql = text(
-            "SELECT type, owner FROM ", rooms_table, " WHERE room = ?;"
+            "SELECT 1 FROM ", rooms_table, " WHERE room = ? AND owner = ?",
+            " UNION ALL ",
+            "SELECT 1 FROM ", room_members_table,
+            " WHERE room = ? AND username = ?"
         );
-        const res = query(sql, [room_name]);
-        if (res.length == 0)
-            return false;
-
-        const record = res[0];
-        const type = cast(RoomType) record[0].to!int;
-        const owner = record[1];
-
-        return type == RoomType._private && owner == username;
+        const res = query(sql, [room_name, username, room_name, username]);
+        return res.length > 0;
     }
 
-    string[] rooms(RoomType type)(string owner = null)
+    string[] rooms(string owner = null,
+                   string member = null,
+                   RoomMemberType member_type = RoomMemberType.any)
     {
         Appender!(string[]) rooms;
-        auto sql = text("SELECT room FROM ", rooms_table);
+        auto sql = text("SELECT r.room FROM ", rooms_table, " r");
         string[] parameters;
 
-        if (type != RoomType.any) {
-            sql ~= " WHERE type = ?";
-            parameters ~= [text(cast(int) type)];
-        }
         if (owner !is null) {
-            const operator = (type == RoomType.any) ? "WHERE" : "AND";
-            sql ~= text(" ", operator, " owner = ?");
-            parameters ~= [owner];
+            sql ~= text(" WHERE r.type = ? AND r.owner = ?");
+            parameters ~= [text(cast(uint) RoomType._private), owner];
+        }
+        else if (member !is null) {
+            sql ~= text(
+                " JOIN ", room_members_table, " m ON r.room = m.room",
+                " WHERE r.type = ? AND m.username = ?"
+            );
+            parameters ~= [text(cast(uint) RoomType._private), member];
+
+            if (member_type != RoomMemberType.any) {
+                sql ~= " AND m.type = ?";
+                parameters ~= [text(cast(uint) member_type)];
+            }
+        }
+        else {
+            sql ~= text(" WHERE r.type = ?");
+            parameters ~= [text(cast(uint) RoomType._public)];
         }
         sql ~= ";";
 
         foreach (record ; query(sql, parameters)) rooms ~= record[0];
         return rooms[];
+    }
+
+    void add_room_member(RoomMemberType type)(string room_name,
+                                              string username)
+    {
+        if (type < 0)
+            return;
+
+        enum sql = text(
+            "REPLACE INTO ", room_members_table,
+            "(room, username, type) VALUES(?, ?, ?);"
+        );
+        query(sql, [room_name, username, text(cast(int) type)]);
+    }
+
+    void del_room_member(string room_name, string username)
+    {
+        enum sql = text(
+            "DELETE FROM ", room_members_table,
+            " WHERE room = ? AND username = ?;"
+        );
+        query(sql, [room_name, username]);
+    }
+
+    RoomMemberType get_room_member_type(string room_name, string username)
+    {
+        enum sql = text(
+            "SELECT m.type FROM ", room_members_table, " m",
+            " JOIN ", rooms_table, " r ON m.room = r.room",
+            " WHERE r.room = ? AND r.type = ? AND m.username = ?;"
+        );
+        const res = query(sql, [
+            room_name,
+            text(cast(int) RoomType._private),
+            username
+        ]);
+        if (res.length > 0)
+            return cast(RoomMemberType) res[0][0].to!int;
+        return RoomMemberType.non_existent;
+    }
+
+    string[] room_members(RoomMemberType type)(string room_name)
+    {
+        Appender!(string[]) members;
+        auto sql = text(
+            "SELECT m.username FROM ", room_members_table, " m",
+            " JOIN ", rooms_table, " r ON m.room = r.room",
+            " WHERE r.room = ? AND r.type = ?"
+        );
+        auto parameters = [room_name, text(cast(int) RoomType._private)];
+
+        if (type != RoomMemberType.any) {
+            sql ~= " AND m.type = ?";
+            parameters ~= [text(cast(int) type)];
+        }
+        sql ~= ";";
+
+        const res = query(sql, parameters);
+        foreach (ref record ; res) members ~= record[0];
+        return members[];
     }
 
     void add_ticker(string room_name, string username, string content)

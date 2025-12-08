@@ -121,7 +121,7 @@ final class CommandHandler
         case "rooms":
             Room room;
             Appender!string output;
-            const names = server.db.rooms!(RoomType._public);
+            const names = server.db.rooms;
             output ~= text(names.length, " public rooms.");
             foreach (ref name ; names) {
                 ulong num_users;
@@ -492,6 +492,7 @@ final class CommandHandler
         ushort listening_port;
         ushort obfuscated_port;
         auto obfuscation_type = "none";
+        auto accept_room_invitations = "no";
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
@@ -513,6 +514,7 @@ final class CommandHandler
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
+            if (user.accept_room_invitations) accept_room_invitations = "yes";
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
@@ -570,6 +572,7 @@ final class CommandHandler
             "\n\tport: ", listening_port,
             "\n\tobfuscated port: ", obfuscated_port,
             "\n\tobfuscation type: ", obfuscation_type,
+            "\n\taccepts room invitations: ", accept_room_invitations,
             "\n\twatched users: ", watched_users,
             "\n\tliked items: ", liked_items,
             "\n\thated items: ", hated_items,

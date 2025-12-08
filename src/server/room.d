@@ -36,6 +36,14 @@ final class Room
         this.global_room = global_room;
     }
 
+    void disband()
+    {
+        foreach (ref user ; users) {
+            enum permanent = true;
+            user.leave_room(name, permanent);
+        }
+    }
+
 
     // Users
 
@@ -65,10 +73,14 @@ final class Room
         if (username !in users)
             return;
 
+        auto user = users[username];
         users.remove(username);
 
-        scope msg = new SUserLeftRoom(username, name);
-        send_to_all(msg);
+        scope left_room_msg = new SUserLeftRoom(name, username);
+        scope leave_room_msg = new SLeaveRoom(name);
+
+        send_to_all(left_room_msg);
+        user.send_message(leave_room_msg);
     }
 
     bool is_joined(string username)

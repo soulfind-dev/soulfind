@@ -1150,7 +1150,7 @@ final class SUserJoinedRoom : SMessage
 
 final class SUserLeftRoom : SMessage
 {
-    this(string username, string room_name) scope
+    this(string room_name, string username) scope
     {
         super(UserLeftRoom);
 
