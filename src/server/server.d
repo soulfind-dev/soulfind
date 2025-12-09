@@ -431,17 +431,17 @@ final class Server
 
    void grant_room_membership(string room_name, string actor, string target)
     {
-        if (target == actor)
+        if (actor == target)
             return;
 
         const owner = db.get_room_owner(room_name);
         const room_member_type = db.get_room_member_type(room_name, actor);
 
-        if (owner != actor && room_member_type != RoomMemberType.operator)
+        if (actor != owner && room_member_type != RoomMemberType.operator)
             return;
 
-        auto user = get_user(target);
-        if (user is null) {
+        auto target_user = get_user(target);
+        if (target_user is null) {
             send_pm(
                 server_username, actor,
                 text("user ", target, " is not logged in.")
@@ -449,7 +449,7 @@ final class Server
             return;
         }
 
-        if (!user.accept_room_invitations) {
+        if (!target_user.accept_room_invitations) {
             send_pm(
                 server_username, actor,
                 text(
@@ -484,9 +484,7 @@ final class Server
             return;
         }
 
-        db.add_room_member!(RoomMemberType.normal)(
-            room_name, target
-        );
+        db.add_room_member!(RoomMemberType.normal)(room_name, target);
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -501,7 +499,7 @@ final class Server
         send_user_msg(owner);
 
         scope msg = new SPrivateRoomAdded(room_name);
-        user.send_message(msg);
+        target_user.send_message(msg);
         send_room_list(target);
 
         send_pm(
@@ -524,21 +522,27 @@ final class Server
 
     void cancel_room_membership(string room_name, string actor, string target)
     {
-        const target_member_type = db.get_room_member_type(room_name, target);
-        if (target_member_type == RoomMemberType.non_existent)
+        const target_type = db.get_room_member_type(room_name, target);
+        if (target_type == RoomMemberType.non_existent)
             return;
 
         const owner = db.get_room_owner(room_name);
-        if (target != actor) {
-            if (owner != actor
-                    && db.get_room_member_type(
-                       room_name, actor) != RoomMemberType.operator)
+        if (actor != target) {
+            if (target == owner)
                 return;
 
-            if (owner == target
-                    || target_member_type == RoomMemberType.operator)
-                return;
+            if (actor != owner) {
+                if (target_type == RoomMemberType.operator)
+                    return;
+
+                const actor_type = db.get_room_member_type(room_name, actor);
+                if (actor_type != RoomMemberType.operator)
+                    return;
+            }
         }
+
+        if (target_type == RoomMemberType.operator)
+            remove_room_operator(room_name, actor, target);
 
         db.del_room_member(room_name, target);
 
@@ -566,6 +570,112 @@ final class Server
         if (target_user !is null) {
             enum permanent = true;
             target_user.leave_room(room_name, permanent);
+        }
+    }
+
+   void add_room_operator(string room_name, string actor, string target)
+    {
+        if (actor == target)
+            return;
+
+        const owner = db.get_room_owner(room_name);
+        if (actor != owner)
+            return;
+
+        auto target_user = get_user(target);
+        if (target_user is null) {
+            send_pm(
+                server_username, actor,
+                text("user ", target, " is not logged in.")
+            );
+            return;
+        }
+
+        const target_type = db.get_room_member_type(room_name, target);
+        if (target_type == RoomMemberType.non_existent) {
+            send_pm(
+                server_username, actor,
+                text(
+                    "user ", target, " must first be a member of room ",
+                    room_name
+                )
+            );
+            return;
+        }
+
+        if (target_type == RoomMemberType.operator) {
+            send_pm(
+                server_username, actor,
+                text(
+                    "user ", target, " is already an operator of room ",
+                    room_name
+                )
+            );
+            return;
+        }
+
+        db.add_room_member!(RoomMemberType.operator)(room_name, target);
+
+        void send_user_msg(string room_username) {
+            auto room_user = get_user(room_username);
+            if (room_user is null)
+                return;
+
+            scope msg = new SPrivateRoomAddOperator(room_name, target);
+            room_user.send_message(msg);
+        }
+        const members = db.room_members!(RoomMemberType.any)(room_name);
+        foreach (ref room_username ; members) send_user_msg(room_username);
+        send_user_msg(owner);
+
+        scope msg = new SPrivateRoomOperatorAdded(room_name);
+        target_user.send_message(msg);
+        send_room_list(target);
+
+        send_pm(
+            server_username, owner,
+            text("User ", target, " is now an operator of room ", room_name)
+        );
+    }
+
+    void remove_room_operator(string room_name, string actor, string target)
+    {
+        const target_type = db.get_room_member_type(room_name, target);
+        if (target_type != RoomMemberType.operator)
+            return;
+
+        const owner = db.get_room_owner(room_name);
+        if (actor != owner && actor != target)
+            return;
+
+        db.add_room_member!(RoomMemberType.normal)(room_name, target);
+
+        void send_user_msg(string room_username) {
+            auto room_user = get_user(room_username);
+            if (room_user is null)
+                return;
+
+            scope msg = new SPrivateRoomRemoveOperator(room_name, target);
+            room_user.send_message(msg);
+        }
+        const members = db.room_members!(RoomMemberType.any)(room_name);
+        foreach (ref room_username ; members) send_user_msg(room_username);
+        send_user_msg(owner);
+
+        send_pm(
+            server_username, owner,
+            text(
+                "User ", target, " is no longer an operator of room ",
+                room_name
+            )
+        );
+
+        auto target_user = get_user(target);
+        if (target_user !is null) {
+            scope msg = new SPrivateRoomOperatorRemoved(room_name);
+            target_user.send_message(msg);
+
+            send_room_list(target);
         }
     }
 
@@ -617,7 +727,7 @@ final class Server
         void send_users_msg(string room_name) {
             scope users_msg = new SPrivateRoomUsers(
                 room_name,
-                db.room_members!(RoomMemberType.normal)(room_name)
+                db.room_members!(RoomMemberType.any)(room_name)
             );
             user.send_message(users_msg);
         }
