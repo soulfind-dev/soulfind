@@ -648,12 +648,20 @@ final class MessageHandler
             scope msg = new UPrivateRoomAddOperator(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            server.add_room_operator(
+                msg.room_name, user.username, msg.username
+            );
             break;
 
         case PrivateRoomRemoveOperator:
             scope msg = new UPrivateRoomRemoveOperator(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
+
+            server.remove_room_operator(
+                msg.room_name, user.username, msg.username
+            );
             break;
 
         case MessageUsers:
