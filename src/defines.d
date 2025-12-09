@@ -19,6 +19,14 @@ enum RoomType : int
     _private      = 1
 }
 
+enum RoomMemberType : int
+{
+    any           = -2,
+    non_existent  = -1,
+    normal        = 0,
+    operator      = 1
+}
+
 enum SearchFilterType : uint
 {
     server  = 0,

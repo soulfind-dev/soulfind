@@ -10,9 +10,9 @@ import soulfind.db : Sdb, SdbUserStats;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_user_interests, max_username_length, norm,
-                          pbkdf2_iterations, red, RoomType, server_username,
-                          speed_weight, user_check_interval, VERSION,
-                          wish_interval, wish_interval_privileged;
+                          pbkdf2_iterations, red, RoomMemberType, RoomType,
+                          server_username, speed_weight, user_check_interval,
+                          VERSION, wish_interval, wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
@@ -49,6 +49,7 @@ final class User
     uint                    shared_files;
     uint                    shared_folders;
     SysTime                 privileged_until;
+    bool                    accept_room_invitations;
 
     private Server          server;
     private UserConnection  conn;
@@ -583,7 +584,9 @@ final class User
             return;
         }
 
-        auto room = server.add_room!type(room_name, username);
+        const owner = (type == RoomType._private) ? username : null;
+        auto room = server.add_room(room_name, owner);
+
         if (room.type == RoomType._public && type == RoomType._private) {
             server.send_pm(
             	server_username, username,
@@ -607,18 +610,30 @@ final class User
         room.add_user(this);
     }
 
-    bool leave_room(string room_name)
+    bool leave_room(string room_name, bool permanent = false)
     {
         if (room_name !in joined_rooms)
             return false;
 
         auto room = server.get_room(room_name);
 
+        if (permanent && room.type == RoomType._private) {
+            scope room_removed_msg = new SPrivateRoomRemoved(room_name);
+            send_message(room_removed_msg);
+        }
+
         room.remove_user(username);
         joined_rooms.remove(room_name);
 
-        if (room.num_users == 0)
-            server.del_room(room_name);
+        if (room.num_users == 0) {
+            const del_permanent = (
+                room.type == RoomType._public && room.num_tickers == 0
+            );
+            server.del_room(room_name, del_permanent);
+        }
+
+        if (permanent && room.type == RoomType._private)
+            server.send_room_list(username);
 
         return true;
     }
