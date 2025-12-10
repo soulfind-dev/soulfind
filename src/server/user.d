@@ -191,7 +191,7 @@ final class User
         }
     }
 
-    void disconnect(bool wait_for_messages = false)
+    void disconnect(bool relogged = false)
     {
         unwatch(username);
         server.del_user(username);
@@ -213,8 +213,11 @@ final class User
         }
         disconnecting = true;
 
-        if (wait_for_messages && conn.is_sending)
+        if (relogged) {
+            scope relogged_msg = new SRelogged();
+            send_message(relogged_msg);
             return;
+        }
 
         server.close_connection(conn);
     }
@@ -237,11 +240,8 @@ final class User
         server.del_user_pms(username, include_received);
         server.del_user_tickers!(RoomType.any)(username);
 
-        scope relogged_msg = new SRelogged();
-        send_message(relogged_msg);
-
-        enum wait_for_messages = true;
-        disconnect(wait_for_messages);
+        enum relogged = true;
+        disconnect(relogged);
 
         return true;
     }
@@ -324,8 +324,8 @@ final class User
             scope relogged_msg = new SRelogged();
             user.send_message(relogged_msg);
 
-            enum wait_for_messages = true;
-            user.disconnect(wait_for_messages);
+            enum relogged = true;
+            user.disconnect(relogged);
         }
 
         if (hash !is null) server.db.add_user(username, hash);

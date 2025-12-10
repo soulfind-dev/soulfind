@@ -50,8 +50,30 @@ final class CommandHandler
             respond(
                 sender_username,
                 "Available commands:"
-              ~ " None"
+              ~ "\n\ndeleteaccount\n\tDelete your Soulseek account"
             );
+            break;
+
+        case "deleteaccount":
+            if (args.length < 2 || args.length > 2 || args[1] != "confirm") {
+                server.send_pm(
+                    server_username, sender_username,
+                    "Type 'deleteaccount confirm' to delete your Soulseek "
+                  ~ "account"
+                );
+                break;
+            }
+
+            auto user = server.get_user(sender_username);
+
+            server.send_pm(
+                server_username, sender_username,
+                "Your Soulseek account has been deleted"
+            );
+
+            enum relogged = true;
+            user.disconnect(relogged);
+            server.db.del_user(sender_username);
             break;
 
         default:
