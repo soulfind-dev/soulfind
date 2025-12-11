@@ -279,7 +279,7 @@ final class User
         refresh_privileges();
     }
 
-    private string check_username(string username)
+    private static string check_username(string username)
     {
         if (username.length == 0)
             return "Nick empty.";
@@ -656,7 +656,7 @@ final class User
         return false;
     }
 
-    private string check_room_name(string room_name)
+    private static string check_room_name(string room_name)
     {
         if (room_name.length == 0)
             return "Could not create room. Reason: Room name empty.";

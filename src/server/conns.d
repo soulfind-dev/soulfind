@@ -46,6 +46,14 @@ final class UserConnections
 
     bool listen(ushort port)
     {
+        @trusted
+        static size_t process_id () {
+            version (Windows)
+                import core.sys.windows.winbase : getpid = GetCurrentProcessId;
+            else version (Posix)
+                import core.sys.posix.unistd : getpid;
+            return getpid;
+        }
         writeln(
             red, "\&hearts;", norm, " ", bold, "Soulfind", " ", VERSION,
             norm, " process ", process_id, " listening on port ", port
@@ -116,15 +124,6 @@ final class UserConnections
             sock_users.remove(sock_handle);
         }
         conn.close();
-    }
-
-    @trusted
-    private size_t process_id () {
-        version (Windows)
-            import core.sys.windows.winbase : getpid = GetCurrentProcessId;
-        else version (Posix)
-            import core.sys.posix.unistd : getpid;
-        return getpid;
     }
 
     private Socket create_listen_sock(ushort port)

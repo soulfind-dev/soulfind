@@ -46,13 +46,13 @@ final class Setup
     }
 
     @trusted
-    private string input()
+    private static string input()
     {
         stdout.flush();
         return readln();
     }
 
-    private void show_menu(string heading, MenuItem[] items)
+    private static void show_menu(string heading, MenuItem[] items)
     {
         writeln("\n", heading, "\n");
 

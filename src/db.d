@@ -1230,13 +1230,14 @@ final class Sdb
     }
 
     @trusted
-    private int bind_null(sqlite3_stmt* statement, int index)
+    private static int bind_null(sqlite3_stmt* statement, int index)
     {
         return sqlite3_bind_null(statement, index);
     }
 
     @trusted
-    private int bind_text(sqlite3_stmt* statement, int index, string value)
+    private static int bind_text(sqlite3_stmt* statement, int index,
+                                 string value)
     {
         return sqlite3_bind_text(
             statement, index, value.toStringz, cast(int) value.length, null
@@ -1244,19 +1245,19 @@ final class Sdb
     }
 
     @trusted
-    private int column_count(sqlite3_stmt* statement)
+    private static int column_count(sqlite3_stmt* statement)
     {
         return sqlite3_column_count(statement);
     }
 
     @trusted
-    private int step(sqlite3_stmt* statement)
+    private static int step(sqlite3_stmt* statement)
     {
         return sqlite3_step(statement);
     }
 
     @trusted
-    private string column_text(sqlite3_stmt* statement, int index)
+    private static string column_text(sqlite3_stmt* statement, int index)
     {
         return sqlite3_column_text(statement, index).fromStringz.idup;
     }
