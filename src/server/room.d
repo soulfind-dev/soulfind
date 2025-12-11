@@ -13,7 +13,6 @@ import soulfind.defines : blue, log_msg, max_chat_message_length,
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
-import std.algorithm.sorting : sort;
 import std.array : Appender;
 import std.datetime.systime : Clock, SysTime;
 import std.stdio : writeln;
@@ -91,13 +90,6 @@ final class Room
     bool is_member(string username)
     {
         return is_joined(username) || db.is_room_member(name, username);
-    }
-
-    string[] usernames()
-    {
-        Appender!(string[]) usernames;
-        foreach (ref user ; users) usernames ~= user.username;
-        return usernames[];
     }
 
     size_t num_users()
