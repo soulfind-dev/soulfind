@@ -55,10 +55,10 @@ final class User
     private UserConnection  conn;
     private MonoTime        last_state_refresh;
 
-    private string[string]  liked_items;
-    private string[string]  hated_items;
+    private bool[string]    liked_items;
+    private bool[string]    hated_items;
     private Room[string]    joined_rooms;
-    private string[string]  watched_users;
+    private bool[string]    watched_users;
 
 
     this(Server server, UserConnection conn)
@@ -495,7 +495,7 @@ final class User
     void watch(string target_username)
     {
         if (target_username != server_username)
-            watched_users[target_username] = target_username;
+            watched_users[target_username] = true;
     }
 
     void unwatch(string target_username)
@@ -526,7 +526,7 @@ final class User
             return;
 
         item = item.toLower;
-        if (!likes(item)) liked_items[item] = item;
+        if (!likes(item)) liked_items[item] = true;
     }
 
     void del_liked_item(string item)
@@ -544,7 +544,7 @@ final class User
             return;
 
         item = item.toLower;
-        if (!hates(item)) hated_items[item] = item;
+        if (!hates(item)) hated_items[item] = true;
     }
 
     void del_hated_item(string item)

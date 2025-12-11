@@ -38,7 +38,7 @@ final class Server
     private PM[uint]        pms;
     private Room[string]    rooms;
     private string[]        search_filters;
-    private string[string]  unsearchable_users;
+    private bool[string]    unsearchable_users;
 
 
     this(string db_filename)
@@ -146,7 +146,7 @@ final class Server
     {
         unsearchable_users = null;
         foreach (ref username ; db.usernames("unsearchable"))
-            unsearchable_users[username] = username;
+            unsearchable_users[username] = true;
     }
 
 
@@ -807,7 +807,7 @@ final class Server
         return users.length;
     }
 
-    void send_to_all(scope SMessage msg, string[string] excluded_users = null)
+    void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
         if (log_msg) writeln(
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,

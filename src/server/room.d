@@ -105,7 +105,7 @@ final class Room
         return users.length;
     }
 
-    void send_to_all(scope SMessage msg, string[string] excluded_users = null)
+    void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
         if (log_msg) writeln(
             "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
