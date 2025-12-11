@@ -513,6 +513,11 @@ final class User
         return watched_users.length;
     }
 
+    const watched_usernames()
+    {
+        return watched_users.byKey;
+    }
+
 
     // Interests
 
