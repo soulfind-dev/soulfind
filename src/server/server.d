@@ -18,8 +18,8 @@ import soulfind.server.messages;
 import soulfind.server.pm : PM;
 import soulfind.server.room : GlobalRoom, Room;
 import soulfind.server.user : User;
-import std.algorithm.sorting : sort;
-import std.array : Appender, array;
+import std.algorithm : sort;
+import std.array : Appender;
 import std.conv : text;
 import std.datetime : Clock, MonoTime, msecs, SysTime;
 import std.stdio : writeln;
@@ -290,7 +290,7 @@ final class Server
         );
     }
 
-    int[string] item_recommendations(string item)
+    Recommendation[] item_recommendations(string item)
     {
         int[string] recommendations;
         foreach (ref user ; users) {
@@ -312,12 +312,12 @@ final class Server
         return filter_recommendations(recommendations, size_t.max);
     }
 
-    uint[string] user_similar_users(string username)
+    SimilarUser[] user_similar_users(string username)
     {
-        uint[string] usernames;
+        Appender!(SimilarUser[]) usernames;
         const user = get_user(username);
         if (user is null)
-            return usernames;
+            return usernames[];
 
         auto liked_item_names = user.liked_item_names;
         auto hated_item_names = user.hated_item_names;
@@ -335,9 +335,12 @@ final class Server
                 if (other_user.hates(item)) weight++;
                 if (other_user.likes(item)) weight--;
             }
-            if (weight > 0) usernames[other_user.username] = cast(uint) weight;
+            if (weight > 0)
+                usernames ~= SimilarUser(
+                    other_user.username, cast(uint) weight
+                );
         }
-        return usernames;
+        return usernames[];
     }
 
     string[] item_similar_users(string item)
@@ -349,22 +352,22 @@ final class Server
         return usernames[];
     }
 
-    private int[string] filter_recommendations(
+    private Recommendation[] filter_recommendations(
         int[string] recommendations, size_t max_length, bool ascending = false)
     {
-        int[string] filtered_recommendations;
-        auto recommendations_array = recommendations.byKeyValue.array;
-        recommendations_array.sort!(
+        Recommendation[] filtered_recommendations;
+        foreach (ref item, ref rating ; recommendations)
+            if (rating != 0)
+                filtered_recommendations ~= Recommendation(item, rating);
+
+        filtered_recommendations.sort!(
             (ref a, ref b)
-            => ascending ? a.value < b.value : a.value > b.value
+            => ascending ? a.rating < b.rating : a.rating > b.rating
         );
 
-        foreach (i, ref item; recommendations_array) {
-            if (i >= max_length)
-                break;
-            const rating = item.value;
-            if (rating != 0) filtered_recommendations[item.key] = rating;
-        }
+        if (filtered_recommendations.length > max_length)
+            filtered_recommendations.length = max_length;
+
         return filtered_recommendations;
     }
 
@@ -731,8 +734,8 @@ final class Server
             );
             user.send_message(users_msg);
         }
-        foreach (ref name, _users ; owned_rooms)  send_users_msg(name);
-        foreach (ref name, _users ; member_rooms) send_users_msg(name);
+        foreach (ref room ; owned_rooms)  send_users_msg(room.room_name);
+        foreach (ref room ; member_rooms) send_users_msg(room.room_name);
 
         void send_operators_msg(string room_name) {
             scope operators_msg = new SPrivateRoomOperators(
@@ -741,8 +744,8 @@ final class Server
             );
             user.send_message(operators_msg);
         }
-        foreach (ref name, _users ; owned_rooms)  send_operators_msg(name);
-        foreach (ref name, _users ; member_rooms) send_operators_msg(name);
+        foreach (ref room ; owned_rooms)  send_operators_msg(room.room_name);
+        foreach (ref room ; member_rooms) send_operators_msg(room.room_name);
     }
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)
@@ -756,10 +759,10 @@ final class Server
                 user.send_message!(Logging.disabled)(msg);
     }
 
-    private uint[string] room_stats(string owner = null, string member = null)
+    private RoomInfo[] room_stats(string owner = null, string member = null)
     {
         Room room;
-        uint[string] stats;
+        Appender!(RoomInfo[]) stats;
 
         foreach (ref room_name ; db.rooms(owner, member)) {
             uint num_users;
@@ -770,9 +773,9 @@ final class Server
             else if (owner is null && member is null)
                 continue;
 
-            stats[room_name] = num_users;
+            stats ~= RoomInfo(room_name, num_users);
         }
-        return stats;
+        return stats[];
     }
 
 

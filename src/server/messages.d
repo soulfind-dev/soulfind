@@ -48,10 +48,34 @@ struct LoginRejection
     string  detail;
 }
 
+struct RoomInfo
+{
+    string  room_name;
+    uint    num_users;
+}
+
+struct Recommendation
+{
+    string  item;
+    int     rating;
+}
+
+struct SimilarUser
+{
+    string  username;
+    uint    weight;
+}
+
 struct LimitedRecommendations
 {
-    int[string]  descending_items;
-    int[string]  ascending_items;
+    Recommendation[]  descending_items;
+    Recommendation[]  ascending_items;
+}
+
+struct RelatedSearchTerm
+{
+    string  term;
+    uint    score;
 }
 
 
@@ -1039,36 +1063,36 @@ final class SSayChatroom : SMessage
 
 final class SRoomList : SMessage
 {
-    this(uint[string] rooms,
-         uint[string] owned_private_rooms,
-         uint[string] other_private_rooms,
+    this(RoomInfo[] rooms,
+         RoomInfo[] owned_private_rooms,
+         RoomInfo[] other_private_rooms,
          string[] operated_private_rooms) scope
     {
         super(RoomList);
 
         write!uint(cast(uint) rooms.length);
-        foreach (ref room_name, ref _users ; rooms)
-            write!string(room_name);
+        foreach (ref room ; rooms)
+            write!string(room.room_name);
 
         write!uint(cast(uint) rooms.length);
-        foreach (ref _room_name, ref users ; rooms)
-            write!uint(users);
+        foreach (ref room ; rooms)
+            write!uint(room.num_users);
 
         write!uint(cast(uint) owned_private_rooms.length);
-        foreach (ref room_name, ref _users ; owned_private_rooms)
-            write!string(room_name);
+        foreach (ref room ; owned_private_rooms)
+            write!string(room.room_name);
 
         write!uint(cast(uint) owned_private_rooms.length);
-        foreach (ref _room_name, ref users ; owned_private_rooms)
-            write!uint(users);
+        foreach (ref room ; owned_private_rooms)
+            write!uint(room.num_users);
 
         write!uint(cast(uint) other_private_rooms.length);
-        foreach (ref room_name, ref _users ; other_private_rooms)
-            write!string(room_name);
+        foreach (ref room ; other_private_rooms)
+            write!string(room.room_name);
 
         write!uint(cast(uint) other_private_rooms.length);
-        foreach (ref _room_name, ref users ; other_private_rooms)
-            write!uint(users);
+        foreach (ref room ; other_private_rooms)
+            write!uint(room.num_users);
 
         write!uint(cast(uint) operated_private_rooms.length);
         foreach (ref room_name ; operated_private_rooms)
@@ -1254,16 +1278,16 @@ final class SGetRecommendations : SMessage
         super(GetRecommendations);
 
         write!uint(cast(uint) recommendations.descending_items.length);
-        foreach (item, level ; recommendations.descending_items)
+        foreach (ref recommendation ; recommendations.descending_items)
         {
-            write!string(item);
-            write!int(level);
+            write!string(recommendation.item);
+            write!int(recommendation.rating);
         }
         write!uint(cast(uint) recommendations.ascending_items.length);
-        foreach (item, level ; recommendations.ascending_items)
+        foreach (ref recommendation ; recommendations.ascending_items)
         {
-            write!string(item);
-            write!int(level);
+            write!string(recommendation.item);
+            write!int(recommendation.rating);
         }
     }
 }
@@ -1289,16 +1313,16 @@ final class SGetGlobalRecommendations : SMessage
         super(GlobalRecommendations);
 
         write!uint(cast(uint) recommendations.descending_items.length);
-        foreach (item, level ; recommendations.descending_items)
+        foreach (ref recommendation ; recommendations.descending_items)
         {
-            write!string(item);
-            write!int(level);
+            write!string(recommendation.item);
+            write!int(recommendation.rating);
         }
         write!uint(cast(uint) recommendations.ascending_items.length);
-        foreach (item, level ; recommendations.ascending_items)
+        foreach (ref recommendation ; recommendations.ascending_items)
         {
-            write!string(item);
-            write!int(level);
+            write!string(recommendation.item);
+            write!int(recommendation.rating);
         }
     }
 }
@@ -1390,32 +1414,32 @@ final class SWishlistInterval : SMessage
 
 final class SSimilarUsers : SMessage
 {
-    this(uint[string] usernames) scope
+    this(SimilarUser[] users) scope
     {
         super(SimilarUsers);
 
-        write!uint(cast(uint) usernames.length);
-        foreach (ref username, weight ; usernames)
+        write!uint(cast(uint) users.length);
+        foreach (ref user ; users)
         {
-            write!string(username);
-            write!uint(weight);
+            write!string(user.username);
+            write!uint(user.weight);
         }
     }
 }
 
 final class SItemRecommendations : SMessage
 {
-    this(string item, int[string] recommendations) scope
+    this(string item, Recommendation[] recommendations) scope
     {
         super(ItemRecommendations);
 
         write!string(item);
         write!uint(cast(uint) recommendations.length);
 
-        foreach (ref recommendation, weight ; recommendations)
+        foreach (ref recommendation ; recommendations)
         {
-            write!string(recommendation);
-            write!int(weight);
+            write!string(recommendation.item);
+            write!int(recommendation.rating);
         }
     }
 }
@@ -1635,16 +1659,16 @@ final class SGlobalRoomMessage : SMessage
 
 final class SRelatedSearch : SMessage
 {
-    this(string query, uint[string] terms) scope
+    this(string query, RelatedSearchTerm[] terms) scope
     {
         super(RelatedSearch);
 
         write!string(query);
         write!uint(cast(uint) terms.length);
-        foreach (ref term, score ; terms)
+        foreach (ref search ; terms)
         {
-            write!string(term);
-            write!uint(score);
+            write!string(search.term);
+            write!uint(search.score);
         }
     }
 }

@@ -692,7 +692,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            uint[string] terms;
+            RelatedSearchTerm[] terms;
             scope response_msg = new SRelatedSearch(
                 msg.query, terms
             );

@@ -13,7 +13,6 @@ import soulfind.defines : blue, log_msg, max_chat_message_length,
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
-import std.array : Appender;
 import std.datetime.systime : Clock, SysTime;
 import std.stdio : writeln;
 
