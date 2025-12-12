@@ -102,6 +102,9 @@ final class UserConnections
 
             // Password hashing in thread/task pool, process results
             process_password_tasks();
+
+            // Distribute queued search requests
+            server.distribute_queued_searches(current_time);
         }
 
         // Clean up connections

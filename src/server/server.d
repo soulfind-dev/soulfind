@@ -11,7 +11,8 @@ import soulfind.defines : blue, kick_duration, log_msg, log_user,
                           max_chat_message_length, max_global_recommendations,
                           max_search_query_length, max_user_recommendations,
                           norm, red, RoomMemberType, RoomType,
-                          SearchFilterType, server_username;
+                          search_dist_interval, SearchFilterType,
+                          server_username;
 import soulfind.server.cmdhandler : CommandHandler;
 import soulfind.server.conns : Logging, UserConnection, UserConnections;
 import soulfind.server.messages;
@@ -26,19 +27,21 @@ import std.stdio : writeln;
 
 final class Server
 {
-    const SysTime           started_at;
-    const MonoTime          started_monotime;
-    Sdb                     db;
+    const SysTime                      started_at;
+    const MonoTime                     started_monotime;
+    Sdb                                db;
 
-    private UserConnections conns;
-    private CommandHandler  cmd_handler;
-    private GlobalRoom      global_room;
+    private UserConnections            conns;
+    private CommandHandler             cmd_handler;
+    private GlobalRoom                 global_room;
+    private MonoTime                   last_search_dist;
 
-    private User[string]    users;
-    private PM[uint]        pms;
-    private Room[string]    rooms;
-    private string[]        search_filters;
-    private bool[string]    unsearchable_users;
+    private User[string]               users;
+    private PM[uint]                   pms;
+    private Room[string]               rooms;
+    private Appender!(SFileSearch[])   queued_searches;
+    private string[]                   search_filters;
+    private bool[string]               unsearchable_users;
 
 
     this(string db_filename)
@@ -76,8 +79,8 @@ final class Server
         if (db.is_search_query_filtered(query))
             return;
 
-        scope msg = new SFileSearch(username, token, query);
-        send_to_all(msg, unsearchable_users);
+        // Batch outgoing messages to reduce bandwidth overhead of TCP packets
+        queued_searches ~= new SFileSearch(username, token, query);
     }
 
     void search_user_files(uint token, string query, string from_username,
@@ -118,6 +121,18 @@ final class Server
 
         scope msg = new SFileSearch(username, token, query);
         room.send_to_all(msg, unsearchable_users);
+    }
+
+    void distribute_queued_searches(MonoTime current_time)
+    {
+        if ((current_time - last_search_dist) < search_dist_interval)
+            return;
+
+        foreach (ref msg ; queued_searches)
+            send_to_all(msg, unsearchable_users);
+
+        queued_searches.clear();
+        last_search_dist = current_time;
     }
 
     void send_search_filters(string username)
