@@ -111,6 +111,7 @@ enum GetRecommendations           = 54;
 enum MyRecommendations            = 55;    // Obsolete
 enum GlobalRecommendations        = 56;
 enum UserInterests                = 57;
+enum PlaceInLineRequest           = 59;    // Obsolete
 enum RoomList                     = 64;
 enum AdminMessage                 = 66;
 enum GlobalUserList               = 67;    // Obsolete
@@ -628,6 +629,20 @@ final class UUserInterests : UMessage
         super(in_buf, in_username);
 
         username = read!string();
+    }
+}
+
+final class UPlaceInLineRequest : UMessage
+{
+    string  username;
+    uint    token;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        username = read!string();
+        token    = read!uint();
     }
 }
 
@@ -1371,6 +1386,17 @@ final class SAdminMessage : SMessage
         super(AdminMessage);
 
         write!string(message);
+    }
+}
+
+final class SPlaceInLineRequest : SMessage
+{
+    this(string username, uint token) scope
+    {
+        super(PlaceInLineRequest);
+
+        write!string(username);
+        write!uint(token);
     }
 }
 

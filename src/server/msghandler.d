@@ -446,6 +446,21 @@ final class MessageHandler
             user.send_message(response_msg);
             break;
 
+        case PlaceInLineRequest:
+            scope msg = new UPlaceInLineRequest(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
+            auto target_user = server.get_user(msg.username);
+            if (target_user is null)
+                break;
+
+            scope response_msg = new SPlaceInLineRequest(
+                user.username, msg.token
+            );
+            target_user.send_message!(Logging.redacted)(response_msg);
+            break;
+
         case RoomList:
             scope msg = new URoomList(msg_buf, user.username);
             server.send_room_list(user.username);
