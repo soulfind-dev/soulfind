@@ -193,10 +193,10 @@ final class User
 
     void disconnect(bool relogged = false)
     {
-        unwatch(username);
-        server.del_user(username);
-
         if (!disconnecting) {
+            unwatch(username);
+            server.del_user(username);
+
             if (!authenticated) {
                 if (login_rejection.reason) writeln(
                     "User ", red, username, norm, " denied (", red,
