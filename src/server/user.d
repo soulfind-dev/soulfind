@@ -321,8 +321,6 @@ final class User
                 "User ", red, username, norm, " already logged in, ",
                 "disconnecting"
             );
-            scope relogged_msg = new SRelogged();
-            user.send_message(relogged_msg);
 
             enum relogged = true;
             user.disconnect(relogged);
