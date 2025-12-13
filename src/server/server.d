@@ -123,7 +123,7 @@ final class Server
         room.send_to_all(msg, unsearchable_users);
     }
 
-    void distribute_queued_searches(MonoTime current_time)
+    void send_queued_searches(MonoTime current_time)
     {
         if ((current_time - last_search_dist) < search_dist_interval)
             return;
