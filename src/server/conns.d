@@ -5,9 +5,9 @@
 module soulfind.server.conns;
 @safe:
 
-import soulfind.defines : blue, bold, conn_backlog_length, log_msg, log_user,
-                          max_msg_size, norm, red, user_check_interval,
-                          VERSION;
+import soulfind.defines : blue, bold, conn_backlog_length, conn_buffer_size,
+                          log_msg, log_user, max_in_msg_size, norm, red,
+                          user_check_interval, VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages : SMessage;
@@ -258,7 +258,7 @@ final class UserConnection
         if (sock is null)
             return false;
 
-        ubyte[max_msg_size] receive_buf;
+        ubyte[conn_buffer_size] receive_buf;
         const receive_len = sock.receive(receive_buf);
         if (receive_len == Socket.ERROR || receive_len == 0)
             return false;
@@ -270,7 +270,7 @@ final class UserConnection
                     break;
                 in_msg_size = in_buf.read!(uint, Endian.littleEndian);
             }
-            if (in_msg_size < 0 || in_msg_size > max_msg_size) {
+            if (in_msg_size < 0 || in_msg_size > max_in_msg_size) {
                 if (log_msg) writeln(
                     "Received unexpected message size ", in_msg_size,
                     " from user ", blue, target_user.username, norm,
@@ -311,6 +311,17 @@ final class UserConnection
     private void setup_socket()
     {
         enable_keep_alive();
+
+        // Set a smaller OS buffer size to reduce memory usage with tens of
+        // thousands of connected users. This also applies TCP backpressure,
+        // preventing large bursts of messages from spiking our CPU if a user
+        // attempts to flood us.
+        sock.setOption(
+            SocketOptionLevel.SOCKET, SocketOption.SNDBUF, conn_buffer_size
+        );
+        sock.setOption(
+            SocketOptionLevel.SOCKET, SocketOption.RCVBUF, conn_buffer_size
+        );
         sock.setOption(SocketOptionLevel.TCP, SocketOption.TCP_NODELAY, 1);
         sock.blocking = false;
 
