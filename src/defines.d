@@ -6,7 +6,7 @@
 module soulfind.defines;
 @safe:
 
-import std.datetime : minutes, seconds;
+import std.datetime : minutes, msecs, seconds;
 import std.string : join, split;
 
 // Constants
@@ -42,7 +42,7 @@ enum default_motd                = "Soulfind %sversion%";
 enum login_timeout               = 1.minutes;
 enum kick_duration               = 2.minutes;
 enum user_check_interval         = 15.seconds;
-enum search_dist_interval        = 1.seconds;
+enum search_dist_interval        = 650.msecs;
 enum wish_interval               = 12.minutes;
 enum wish_interval_privileged    = 2.minutes;
 enum conn_backlog_length         = 512;
