@@ -45,7 +45,8 @@ final class User
     bool                    authenticated;
     bool                    disconnecting;
 
-    uint                    upload_speed;  // in B/s
+    uint                    upload_speed;       // in B/s
+    uint                    upload_slots_full;  // unused in clients
     uint                    shared_files;
     uint                    shared_folders;
     SysTime                 privileged_until;

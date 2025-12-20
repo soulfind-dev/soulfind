@@ -1142,7 +1142,7 @@ final class SJoinRoom : SMessage
         }
 
         write!uint(n);
-        foreach (ref user ; users) write!uint(0);  // slots_full, obsolete
+        foreach (ref user ; users) write!uint(user.upload_slots_full);
 
         write!uint(n);
         foreach (ref user ; users) write!string("");  // country_code, obsolete
@@ -1170,7 +1170,8 @@ final class SLeaveRoom : SMessage
 final class SUserJoinedRoom : SMessage
 {
     this(string room_name, string username, uint status,
-         uint upload_speed, uint shared_files, uint shared_folders) scope
+         uint upload_speed, uint upload_slots_full, uint shared_files,
+         uint shared_folders) scope
     {
         super(UserJoinedRoom);
 
@@ -1182,7 +1183,7 @@ final class SUserJoinedRoom : SMessage
         write!uint(0);     // unknown, obsolete
         write!uint(shared_files);
         write!uint(shared_folders);
-        write!uint(0);     // slots_full, obsolete
+        write!uint(upload_slots_full);
         write!string("");  // country_code, obsolete
     }
 }

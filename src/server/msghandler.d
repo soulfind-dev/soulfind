@@ -332,6 +332,8 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
+            user.upload_slots_full = msg.slots_full;
+
             scope response_msg = new SQueuedDownloads(
                 user.username, msg.slots_full
             );
