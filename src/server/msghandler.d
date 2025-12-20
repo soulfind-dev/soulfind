@@ -327,14 +327,14 @@ final class MessageHandler
             user.send_message(response_msg);
             break;
 
-        case QueuedDownloads:
-            scope msg = new UQueuedDownloads(msg_buf, user.username);
+        case UploadSlotsFull:
+            scope msg = new UUploadSlotsFull(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
             user.upload_slots_full = msg.slots_full;
 
-            scope response_msg = new SQueuedDownloads(
+            scope response_msg = new SUploadSlotsFull(
                 user.username, msg.slots_full
             );
             server.send_to_joined_rooms(user.username, response_msg);

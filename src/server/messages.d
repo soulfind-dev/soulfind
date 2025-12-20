@@ -101,7 +101,7 @@ enum ServerPing                   = 32;
 enum SendConnectToken             = 33;    // Obsolete
 enum SharedFoldersFiles           = 35;
 enum GetUserStats                 = 36;
-enum QueuedDownloads              = 40;    // Obsolete
+enum UploadSlotsFull              = 40;    // Obsolete
 enum Relogged                     = 41;
 enum UserSearch                   = 42;
 enum SimilarRecommendations       = 50;    // Obsolete
@@ -532,7 +532,7 @@ final class UGetUserStats : UMessage
     }
 }
 
-final class UQueuedDownloads : UMessage
+final class UUploadSlotsFull : UMessage
 {
     uint slots_full;
 
@@ -1276,11 +1276,11 @@ final class SGetUserStats : SMessage
     }
 }
 
-final class SQueuedDownloads : SMessage
+final class SUploadSlotsFull : SMessage
 {
     this(string username, uint slots_full) scope
     {
-        super(QueuedDownloads);
+        super(UploadSlotsFull);
 
         write!string(username);
         write!uint(slots_full);
