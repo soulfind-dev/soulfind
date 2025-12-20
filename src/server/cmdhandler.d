@@ -521,7 +521,7 @@ final class CommandHandler
         auto joined_global_room = "no";
         auto admin = "no";
         auto banned = "no";
-        auto unsearchable = "no";
+        auto searchable = "yes";
         auto privileged = "no";
         SysTime privileged_until;
         auto supporter = "no";
@@ -578,7 +578,7 @@ final class CommandHandler
             banned = text("until ", banned_until.toSimpleString);
 
         if (server.db.is_user_unsearchable(username))
-            unsearchable = "yes";
+            searchable = "no";
 
         if (privileged_until > now)
             privileged = text("until ", privileged_until.toSimpleString);
@@ -604,7 +604,7 @@ final class CommandHandler
             "\nPresistent info:",
             "\n\tadmin: ", admin,
             "\n\tbanned: ", banned,
-            "\n\tunsearchable: ", unsearchable,
+            "\n\tsearchable: ", searchable,
             "\n\tprivileged: ", privileged,
             "\n\tsupporter: ", supporter,
             "\n\tupload speed: ", upload_speed,
