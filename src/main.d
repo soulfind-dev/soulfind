@@ -52,7 +52,8 @@ private void setup_signal_handler()
                                        SIGTERM;
 
         extern(C) void handle_termination(int) {
-            running = false;
+            import core.atomic : atomicStore;
+            atomicStore(running, false);
         }
 
         sigaction_t act;
@@ -66,7 +67,8 @@ private void setup_signal_handler()
         import core.sys.windows.windows : SetConsoleCtrlHandler;
 
         extern(Windows) int handle_ctrl(uint) nothrow {
-            running = false;
+            import core.atomic : atomicStore;
+            atomicStore(running, false);
             return true;
         }
         SetConsoleCtrlHandler(&handle_ctrl, true);
