@@ -624,7 +624,7 @@ final class CommandHandler
             "\n    upload speed: ", upload_speed,
             "\n    files: ", shared_files,
             "\n    folders: ", shared_folders,
-            "\n    public tickers: ", tickers.length
+            "\n    public tickers: ",
         );
 
         if (tickers.length > 0) {

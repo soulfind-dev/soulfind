@@ -1066,25 +1066,6 @@ final class Sdb
         return res.length > 0 ? res[0][0].to!ulong : 0;
     }
 
-    ulong num_user_tickers(RoomType type)(string username)
-    {
-        auto sql = text(
-            "SELECT COUNT(1) FROM ", tickers_table, " t",
-            " JOIN ", rooms_table, " r ON t.room = r.room",
-            " WHERE t.username = ?"
-        );
-        auto parameters = [username];
-
-        if (type != RoomType.any) {
-            sql ~= " AND r.type = ?";
-            parameters ~= [text(cast(int) type)];
-        }
-        sql ~= ";";
-
-        const res = query(sql, parameters);
-        return res.length > 0 ? res[0][0].to!ulong : 0;
-    }
-
 
     // SQLite
 

@@ -8,8 +8,8 @@ module soulfind.setup.setup;
 
 import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, default_max_users, default_motd,
-                          default_port, norm, pbkdf2_iterations, red, RoomType,
-                          SearchFilterType, VERSION;
+                          default_port, norm, pbkdf2_iterations, red,
+                          RoomMemberType, RoomType, SearchFilterType, VERSION;
 import soulfind.pwhash : create_salt, hash_password;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
@@ -470,8 +470,8 @@ final class Setup
             [
                 MenuItem("1",  "Add user",              &add_user),
                 MenuItem("2",  "Change user password",  &change_user_password),
-                MenuItem("3",  "Show user's info",      &user_info),
-                MenuItem("4",  "Show user's tickers",   &user_tickers),
+                MenuItem("3",  "Show user info",        &user_info),
+                MenuItem("4",  "Export user data",      &export_user_data),
                 MenuItem("5",  "Remove user",           &del_user),
                 MenuItem("6",  "Add privileges",        &add_privileges),
                 MenuItem("7",  "Remove privileges",     &del_privileges),
@@ -552,20 +552,31 @@ final class Setup
         write("\nUsername: ");
 
         const username = input.strip;
-        const now = Clock.currTime;
-        auto admin = "no";
-        const admin_until = db.admin_until(username);
-        auto banned = "no";
-        const banned_until = db.user_banned_until(username);
-        const unsearchable = db.is_user_unsearchable(username) ? "yes" : "no";
-        auto privileged = "no";
-        const privileged_until = db.user_privileged_until(username);
-        const supporter = (privileged_until > SysTime()) ? "yes" : "no";
         const stats = db.user_stats(username);
-        const tickers = db.num_user_tickers!(RoomType.any)(username);
 
-        if (admin_until > now)
-            admin = text("until ", admin_until.toSimpleString);
+        if (!stats.exists) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
+        }
+
+        const now = Clock.currTime;
+        const admin_until = db.admin_until(username);
+        auto admin = (admin_until > now)
+            ? text("until ", admin_until.toSimpleString) : "no";
+        const banned_until = db.user_banned_until(username);
+        auto banned = "no";
+        const privileged_until = db.user_privileged_until(username);
+        auto privileged = (privileged_until > now)
+            ? text("until ", privileged_until.toSimpleString) : "no";
+        const supporter = (privileged_until > SysTime()) ? "yes" : "no";
+        const searchable = db.is_user_unsearchable(username) ? "no" : "yes";
+        const private_rooms_owner = db.rooms(username).join(", ");
+        const private_rooms_member = db.rooms(null, username).join(", ");
+        const private_rooms_operator = db.rooms(
+            null, username, RoomMemberType.operator
+        ).join(", ");
+        const tickers = db.user_tickers!(RoomType.any)(username);
 
         if (banned_until == SysTime.max)
             banned = "forever";
@@ -573,52 +584,105 @@ final class Setup
         else if (banned_until > now)
             banned = text("until ", banned_until.toSimpleString);
 
-        if (privileged_until > now)
-            privileged = text("until ", privileged_until.toSimpleString);
+        Appender!string output;
+        output ~= text(
+            "\n", bold, username, norm,
+            "\n\tadmin: ", admin,
+            "\n\tbanned: ", banned,
+            "\n\tprivileged: ", privileged,
+            "\n\tsupporter: ", supporter,
+            "\n\tsearchable: ", searchable,
+            "\n\tfiles: ", stats.shared_files,
+            "\n\tfolders: ", stats.shared_folders,
+            "\n\tupload speed: ", stats.upload_speed,
+            "\n\towned private rooms: ", private_rooms_owner,
+            "\n\tjoined private rooms: ", private_rooms_member,
+            "\n\toperated private rooms: ", private_rooms_operator,
+            "\n\troom tickers: "
+        );
 
-        if (stats.exists) {
-            writeln(
-                "\n", bold, username, norm,
-                "\n\tadmin: ", admin,
-                "\n\tbanned: ", banned,
-                "\n\tunsearchable: ", unsearchable,
-                "\n\tprivileged: ", privileged,
-                "\n\tsupporter: ", supporter,
-                "\n\tfiles: ", stats.shared_files,
-                "\n\tdirs: ", stats.shared_folders,
-                "\n\tupload speed: ", stats.upload_speed,
-                "\n\troom tickers: ", tickers
-            );
+        if (tickers.length > 0) {
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                output ~= text("\n\t   [", room_name, "] ", content);
+            }
         }
-        else
-            writeln("\nUser ", red, username, norm, " is not registered");
 
+        writeln(output[]);
         registered_users();
     }
 
-    private void user_tickers()
+    private void export_user_data()
     {
         write("\nUsername: ");
+
         const username = input.strip;
+        const stats = db.user_stats(username);
 
-        if (db.user_exists(username)) {
-            Appender!string output;
-            const tickers = db.user_tickers!(RoomType.any)(username);
-            output ~= text(
-                "\n", bold, username, "'s room tickers (", tickers.length, ")",
-                norm
-            );
+        if (!stats.exists) {
+            writeln("\nUser ", red, username, norm, " is not registered");
+            registered_users();
+            return;
+        }
 
+        const admin_until = db.admin_until(username);
+        auto admin = (admin_until > SysTime())
+            ? text("\"", admin_until.toISOExtString, "\"") : "null";
+        const banned_until = db.user_banned_until(username);
+        auto banned = (banned_until > SysTime())
+            ? text("\"", banned_until.toISOExtString, "\"") : "null";
+        const privileged_until = db.user_privileged_until(username);
+        auto privileged = (privileged_until > SysTime())
+            ? text("\"", privileged_until.toISOExtString, "\"") : "null";
+        const supporter = (privileged_until > SysTime()) ? "true" : "false";
+        const searchable = db.is_user_unsearchable(username)
+            ? "false" : "true";
+        const private_rooms_owner = db.rooms(username);
+        const private_rooms_member = db.rooms(null, username);
+        const private_rooms_op = db.rooms(
+            null, username, RoomMemberType.operator
+        );
+        const tickers = db.user_tickers!(RoomType.any)(username);
+
+        Appender!string output;
+        output ~= text(
+            "\n", bold, username, "'s persistent data in JSON format",
+            norm, "\n{",
+            "\n    \"username\": \"", username, "\",",
+            "\n    \"persistent_data\": {",
+            "\n        \"admin_until\": ", admin, ",",
+            "\n        \"banned_until\": ", banned, ",",
+            "\n        \"privileged_until\": ", privileged, ",",
+            "\n        \"supporter\": ", supporter, ",",
+            "\n        \"searchable\": ", searchable, ",",
+            "\n        \"num_files\": ", stats.shared_files, ",",
+            "\n        \"num_folders\": ", stats.shared_folders, ",",
+            "\n        \"upload_speed\": ", stats.upload_speed, ",",
+            "\n        \"private_rooms_owner\": ", private_rooms_owner, ",",
+            "\n        \"private_rooms_member\": ", private_rooms_member, ",",
+            "\n        \"private_rooms_operator\": ", private_rooms_op, ",",
+            "\n        \"room_tickers\": {",
+        );
+
+        if (tickers.length > 0) {
+            auto first = true;
             foreach (ticker ; tickers) {
                 const room_name = ticker[0], content = ticker[1];
-                output ~= text("\n\t[", room_name, "] ", content);
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            \"", room_name, "\": \"", content, "\""
+                );
+                first = false;
             }
-
-            writeln(output[]);
+            output ~= "\n        ";
         }
-        else
-            writeln("\nUser ", red, username, norm, " is not registered");
 
+        output ~= text(
+            "}",
+            "\n    }",
+            "\n}"
+        );
+        writeln(output[]);
         registered_users();
     }
 
