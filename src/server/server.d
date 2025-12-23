@@ -798,8 +798,7 @@ final class Server
 
     void add_user(User user)
     {
-        if (!user.disconnecting && user.username !in users)
-            users[user.username] = user;
+        if (user.username !in users) users[user.username] = user;
     }
 
     void del_user(string username)

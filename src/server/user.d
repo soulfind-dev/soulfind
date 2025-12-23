@@ -40,10 +40,8 @@ final class User
     ushort                  obfuscated_port;
 
     UserStatus              status;
-    LoginRejection          login_rejection;
     bool                    hashing_password;
     bool                    authenticated;
-    bool                    disconnecting;
 
     uint                    upload_speed;       // in B/s
     uint                    upload_slots_full;  // unused in clients
@@ -54,7 +52,9 @@ final class User
 
     private Server          server;
     private UserConnection  conn;
+    private LoginRejection  login_rejection;
     private MonoTime        last_state_refresh;
+    private bool            disconnecting;
 
     private bool[string]    liked_items;
     private bool[string]    hated_items;
