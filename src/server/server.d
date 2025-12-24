@@ -23,6 +23,7 @@ import std.algorithm : sort;
 import std.array : Appender;
 import std.conv : text;
 import std.datetime : Clock, MonoTime, msecs, SysTime;
+import std.random : unpredictableSeed;
 import std.stdio : writeln;
 
 final class Server
@@ -182,8 +183,8 @@ final class Server
         if (!is_connected && (connected_only || !db.user_exists(to_username)))
             return;
 
-        uint id = cast(uint) pms.length;
-        while (id in pms) id++;
+        uint id;
+        while (id == 0 || id in pms) id = unpredictableSeed;
 
         pms[id] = PM(
             id,
