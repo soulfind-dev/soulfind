@@ -15,4 +15,10 @@ struct PM
     string   from_username;
     string   to_username;
     string   message;
+
+    int opCmp(ref const PM pm) const
+    {
+        // Sort by oldest messages first
+        return (pm.time < time) - (pm.time > time);
+    }
 }

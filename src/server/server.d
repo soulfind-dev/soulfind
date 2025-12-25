@@ -209,8 +209,10 @@ final class Server
 
     void deliver_queued_pms(string to_username)
     {
+        Appender!(PM[]) user_pms;
         foreach (ref pm ; pms)
-            if (pm.to_username == to_username) deliver_pm(pm.id);
+            if (pm.to_username == to_username) user_pms ~= pm;
+        foreach (ref pm ; user_pms[].sort()) deliver_pm(pm.id);
     }
 
     private void deliver_pm(uint id, bool new_message = false)
