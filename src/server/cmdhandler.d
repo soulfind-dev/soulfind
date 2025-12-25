@@ -50,7 +50,7 @@ final class CommandHandler
             respond(
                 sender_username,
                 "Available commands:"
-              ~ "\n\ndeleteaccount\n\tDelete your Soulseek account"
+              ~ "\n\ndeleteaccount\n\tDelete your account"
             );
             break;
 
@@ -58,8 +58,7 @@ final class CommandHandler
             if (args.length < 2 || args.length > 2 || args[1] != "confirm") {
                 server.send_pm(
                     server_username, sender_username,
-                    "Type 'deleteaccount confirm' to delete your Soulseek "
-                  ~ "account"
+                    "Type 'deleteaccount confirm' to delete your account"
                 );
                 break;
             }
@@ -68,7 +67,7 @@ final class CommandHandler
 
             server.send_pm(
                 server_username, sender_username,
-                "Your Soulseek account has been deleted"
+                "Your account has been deleted"
             );
 
             enum relogged = true;
