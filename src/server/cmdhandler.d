@@ -50,7 +50,7 @@ final class CommandHandler
             respond(
                 sender_username,
                 "Available commands:"
-              ~ "\n\ndeleteaccount\n\tDelete your account"
+              ~ "\n\ndeleteaccount\n    Delete your account"
             );
             break;
 
@@ -93,24 +93,24 @@ final class CommandHandler
                 admin_username,
                 text(
                     "Available commands:",
-                    "\n\nadmins\n\tList admins",
-                    "\n\nusers [connected|banned|privileged]\n\tList users",
-                    "\n\nrooms\n\tList public rooms",
-                    "\n\nuserinfo <user>\n\tShow info about user",
-                    "\n\nroominfo <room>\n\tShow info about public room",
-                    "\n\nremovetickers <user>\n\tRemove user's public room",
+                    "\n\nadmins\n    List admins",
+                    "\n\nusers [connected|banned|privileged]\n    List users",
+                    "\n\nrooms\n    List public rooms",
+                    "\n\nuserinfo <user>\n    Show info about user",
+                    "\n\nroominfo <room>\n    Show info about public room",
+                    "\n\nremovetickers <user>\n    Remove user's public room",
                     " tickers",
-                    "\n\nban [days] <user>\n\tBan user",
-                    "\n\nunban <user>\n\tUnban user",
-                    "\n\nkick [minutes] <user>\n\tDisconnect user for",
+                    "\n\nban [days] <user>\n    Ban user",
+                    "\n\nunban <user>\n    Unban user",
+                    "\n\nkick [minutes] <user>\n    Disconnect user for",
                     " [", kick_duration.total!"minutes", "] minutes",
-                    "\n\nkickall [minutes]\n\tDisconnect active users for",
+                    "\n\nkickall [minutes]\n    Disconnect active users for",
                     " [", kick_duration.total!"minutes", "] minutes",
-                    "\n\nannouncement <message>\n\tSend announcement to",
+                    "\n\nannouncement <message>\n    Send announcement to",
                     " online users",
-                    "\n\nmessage <message>\n\tSend private message to all",
+                    "\n\nmessage <message>\n    Send private message to all",
                     " registered users",
-                    "\n\nuptime\n\tShow server uptime"
+                    "\n\nuptime\n    Show server uptime"
                 )
             );
             break;
@@ -126,7 +126,7 @@ final class CommandHandler
                     server.get_user(name) !is null
                 ) ? "online" : "offline";
 
-                output ~= "\n\t";
+                output ~= "\n    ";
                 output ~= name;
                 output ~= text(" (", status, ")");
             }
@@ -149,7 +149,7 @@ final class CommandHandler
                 room = server.get_room(name);
                 if (room !is null) num_users = room.num_users;
 
-                output ~= "\n\t";
+                output ~= "\n    ";
                 output ~= name;
                 output ~= text(
                     " (users: ", num_users, ", tickers: ",
@@ -419,7 +419,7 @@ final class CommandHandler
         output ~= text("\nUsers (", usernames.length, "):");
 
         foreach (ref username ; usernames) {
-            output ~= "\n\t";
+            output ~= "\n    ";
             output ~= username;
         }
 
@@ -427,7 +427,7 @@ final class CommandHandler
 
         foreach (ref ticker ; tickers) {
             const username = ticker[0], content = ticker[1];
-            output ~= text("\n\t[", username, "] ");
+            output ~= text("\n    [", username, "] ");
             output ~= content;
         }
 
@@ -443,7 +443,7 @@ final class CommandHandler
                 server.num_connected_users, " connected users."
             );
             foreach (ref user ; server.connected_users) {
-                output ~= "\n\t";
+                output ~= "\n    ";
                 output ~= user.username;
                 output ~= text(
                     " (client version: ", user.client_version, ")"
@@ -458,7 +458,7 @@ final class CommandHandler
             output ~= text(users.length, " privileged users.");
             foreach (ref user ; users) {
                 const privileged_until = server.db.user_privileged_until(user);
-                output ~= "\n\t";
+                output ~= "\n    ";
                 output ~= user;
                 output ~= text(
                     " (until ", privileged_until.toSimpleString, ")"
@@ -472,19 +472,16 @@ final class CommandHandler
             );
             output ~= text(users.length, " banned users.");
             foreach (ref user ; users) {
+                output ~= "\n    ";
+                output ~= user;
+
                 const banned_until = server.db.user_banned_until(user);
-                if (banned_until == SysTime.max) {
-                    output ~= "\n\t";
-                    output ~= user;
+                if (banned_until == SysTime.max)
                     output ~= " (forever)";
-                }
-                else {
-                    output ~= "\n\t";
-                    output ~= user;
+                else
                     output ~= text(
                         " (until ", banned_until.toSimpleString, ")"
                     );
-                }
             }
             break;
 
@@ -492,7 +489,7 @@ final class CommandHandler
             const usernames = server.db.usernames;
             output ~= text(usernames.length, " total users.");
             foreach (ref username ; usernames) {
-                output ~= "\n\t";
+                output ~= "\n    ";
                 output ~= username;
             }
             break;
@@ -587,36 +584,36 @@ final class CommandHandler
             username,
             "\n",
             "\nSession info:",
-            "\n\tstatus: ", status,
-            "\n\tclient version: ", client_version,
-            "\n\tIP address: ", ip_address,
-            "\n\tport: ", listening_port,
-            "\n\tobfuscated port: ", obfuscated_port,
-            "\n\tobfuscation type: ", obfuscation_type,
-            "\n\taccepts room invitations: ", accept_room_invitations,
-            "\n\twatched users: ", watched_users,
-            "\n\tliked items: ", liked_items,
-            "\n\thated items: ", hated_items,
-            "\n\tjoined public rooms: ", joined_rooms,
-            "\n\tjoined global room: ", joined_global_room,
+            "\n    status: ", status,
+            "\n    client version: ", client_version,
+            "\n    IP address: ", ip_address,
+            "\n    port: ", listening_port,
+            "\n    obfuscated port: ", obfuscated_port,
+            "\n    obfuscation type: ", obfuscation_type,
+            "\n    accepts room invitations: ", accept_room_invitations,
+            "\n    watched users: ", watched_users,
+            "\n    liked items: ", liked_items,
+            "\n    hated items: ", hated_items,
+            "\n    joined public rooms: ", joined_rooms,
+            "\n    joined global room: ", joined_global_room,
             "\n",
             "\nPresistent info:",
-            "\n\tadmin: ", admin,
-            "\n\tbanned: ", banned,
-            "\n\tsearchable: ", searchable,
-            "\n\tprivileged: ", privileged,
-            "\n\tsupporter: ", supporter,
-            "\n\tupload speed: ", upload_speed,
-            "\n\tfiles: ", shared_files,
-            "\n\tdirs: ", shared_folders,
-            "\n\tpublic tickers: ", tickers.length
+            "\n    admin: ", admin,
+            "\n    banned: ", banned,
+            "\n    searchable: ", searchable,
+            "\n    privileged: ", privileged,
+            "\n    supporter: ", supporter,
+            "\n    upload speed: ", upload_speed,
+            "\n    files: ", shared_files,
+            "\n    dirs: ", shared_folders,
+            "\n    public tickers: ", tickers.length
         );
 
         if (tickers.length > 0) {
             output ~= text("\n\nPublic room tickers (", tickers.length, "):");
             foreach (ticker ; tickers) {
                 const room_name = ticker[0], content = ticker[1];
-                output ~= text("\n\t[", room_name, "] ", content);
+                output ~= text("\n    [", room_name, "] ", content);
             }
         }
 
