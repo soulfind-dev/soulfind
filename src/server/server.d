@@ -188,7 +188,7 @@ final class Server
 
         pms[id] = PM(
             id,
-            Clock.currTime!(ClockType.second)(UTC()),
+            Clock.currTime(UTC()),
             from_username,
             to_username,
             message
