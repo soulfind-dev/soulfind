@@ -7,8 +7,8 @@ module soulfind.server.cmdhandler;
 @safe:
 
 import soulfind.db : Sdb;
-import soulfind.defines : blue, kick_duration, log_user, norm, RoomType,
-                          server_username;
+import soulfind.defines : blue, kick_duration, log_user, norm, RoomMemberType,
+                          RoomType, server_username;
 import soulfind.server.messages;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
@@ -49,8 +49,18 @@ final class CommandHandler
         case "help":
             respond(
                 sender_username,
-                "Available commands:"
-              ~ "\n\ndeleteaccount\n    Delete your account"
+                text(
+                    "Available commands:",
+                    "\n\nexportdata\n    Export your account data",
+                    "\n\ndeleteaccount\n    Delete your account"
+                )
+            );
+            break;
+
+        case "exportdata":
+            respond(
+                sender_username,
+                "Account data in JSON format:\n" ~ user_export(sender_username)
             );
             break;
 
@@ -96,6 +106,7 @@ final class CommandHandler
                     "\n\nadmins\n    List admins",
                     "\n\nusers [connected|banned|privileged]\n    List users",
                     "\n\nrooms\n    List public rooms",
+                    "\n\nexportdata\n    Export your account data",
                     "\n\nuserinfo <user>\n    Show info about user",
                     "\n\nroominfo <room>\n    Show info about public room",
                     "\n\nremovetickers <user>\n    Remove user's public room",
@@ -157,6 +168,13 @@ final class CommandHandler
                 );
             }
             respond(admin_username, output[]);
+            break;
+
+        case "exportdata":
+            respond(
+                admin_username,
+                "Account data in JSON format:\n" ~ user_export(admin_username)
+            );
             break;
 
         case "userinfo":
@@ -517,10 +535,10 @@ final class CommandHandler
         auto joined_global_room = "no";
         auto admin = "no";
         auto banned = "no";
-        auto searchable = "yes";
         auto privileged = "no";
         SysTime privileged_until;
         auto supporter = "no";
+        auto searchable = "yes";
         uint upload_speed;
         uint shared_files, shared_folders;
         const tickers = server.db.user_tickers!(RoomType._public)(username);
@@ -573,11 +591,11 @@ final class CommandHandler
         else if (banned_until > now)
             banned = text("until ", banned_until.toSimpleString);
 
-        if (server.db.is_user_unsearchable(username))
-            searchable = "no";
-
         if (privileged_until > now)
             privileged = text("until ", privileged_until.toSimpleString);
+
+        if (server.db.is_user_unsearchable(username))
+            searchable = "no";
 
         Appender!string output;
         output ~= text(
@@ -600,23 +618,143 @@ final class CommandHandler
             "\nPresistent info:",
             "\n    admin: ", admin,
             "\n    banned: ", banned,
-            "\n    searchable: ", searchable,
             "\n    privileged: ", privileged,
             "\n    supporter: ", supporter,
+            "\n    searchable: ", searchable,
             "\n    upload speed: ", upload_speed,
             "\n    files: ", shared_files,
-            "\n    dirs: ", shared_folders,
+            "\n    folders: ", shared_folders,
             "\n    public tickers: ", tickers.length
         );
 
         if (tickers.length > 0) {
-            output ~= text("\n\nPublic room tickers (", tickers.length, "):");
             foreach (ticker ; tickers) {
                 const room_name = ticker[0], content = ticker[1];
-                output ~= text("\n    [", room_name, "] ", content);
+                output ~= text("\n        [", room_name, "] ", content);
             }
         }
 
+        return output[];
+    }
+
+    private string user_export(string username)
+    {
+        auto user = server.get_user(username);
+        const status = (user.status == UserStatus.away) ? "away" : "online";
+        auto obfuscation_type = "null";
+        const joined_rooms = user.joined_room_names!(RoomType.any);
+        const accept_invitations = (
+            user.accept_room_invitations ? "true" : "false"
+        );
+        const joined_global_room = (
+            server.is_global_room_joined(username) ? "true" : "false"
+        );
+        const admin_until = server.db.admin_until(username);
+        auto admin = (admin_until > SysTime())
+            ? text("\"", admin_until.toISOExtString, "\"")
+            : "null";
+        const privileged_until = user.privileged_until;
+        auto privileged = (privileged_until > SysTime())
+            ? text("\"", privileged_until.toISOExtString, "\"")
+            : "null";
+        const supporter = user.supporter ? "true" : "false";
+        const searchable = (
+            server.is_user_unsearchable(username) ? "false" : "true"
+        );
+        const private_rooms_owner = server.db.rooms(username);
+        const private_rooms_member = server.db.rooms(null, username);
+        const private_rooms_op = server.db.rooms(
+            null, username, RoomMemberType.operator
+        );
+
+        if (user.obfuscation_type == ObfuscationType.rotated)
+            obfuscation_type = "\"rotated\"";
+        else if (user.obfuscation_type != ObfuscationType.none)
+            obfuscation_type = text(
+                "\"", (cast(uint) user.obfuscation_type).text, "\""
+            );
+
+        Appender!string output;
+        output ~= text(
+            "{",
+            "\n    \"username\": \"", username, "\",",
+            "\n    \"session_data\": {",
+            "\n        \"status\": \"", status, "\",",
+            "\n        \"client_version\": \"", user.client_version, "\",",
+            "\n        \"ip_address\": \"", user.address.toAddrString ~ "\",",
+            "\n        \"port\": ", user.address.port, ",",
+            "\n        \"obfuscated_port\": ", user.obfuscated_port, ",",
+            "\n        \"obfuscation_type\": ", obfuscation_type, ",",
+            "\n        \"accept_room_invitations\": ", accept_invitations, ",",
+            "\n        \"joined_global_room\": ", joined_global_room, ",",
+            "\n        \"liked_items\": ", user.liked_item_names, ",",
+            "\n        \"hated_items\": ", user.hated_item_names, ",",
+            "\n        \"joined_rooms\": ", joined_rooms, ",",
+            "\n        \"watched_users\": ", user.watched_usernames,
+            "\n    },",
+            "\n    \"persistent_data\": {",
+            "\n        \"admin_until\": ", admin, ",",
+            "\n        \"privileged_until\": ", privileged, ",",
+            "\n        \"supporter\": ", supporter, ",",
+            "\n        \"searchable\": ", searchable, ",",
+            "\n        \"num_files\": ", user.shared_files, ",",
+            "\n        \"num_folders\": ", user.shared_folders, ",",
+            "\n        \"upload_speed\": ", user.upload_speed, ",",
+            "\n        \"private_rooms_owner\": ", private_rooms_owner, ",",
+            "\n        \"private_rooms_member\": ", private_rooms_member, ",",
+            "\n        \"private_rooms_operator\": ", private_rooms_op, ",",
+            "\n        \"room_tickers\": {",
+        );
+
+        const tickers = server.db.user_tickers!(RoomType.any)(username);
+        if (tickers.length > 0) {
+            auto first = true;
+            foreach (ticker ; tickers) {
+                const room_name = ticker[0], content = ticker[1];
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            \"", room_name, "\": \"", content, "\""
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+        }
+
+        output ~= text(
+            "},",
+            "\n    },",
+            "\n    \"volatile_data\": {",
+            "\n        \"private_messages_queued\": [",
+        );
+
+        const pms = server.get_queued_pms(username);
+        if (pms.length > 0) {
+            auto first = true;
+            foreach (pm ; pms) {
+                const id = pm.id;
+                const to_username = pm.to_username;
+                const timestamp = pm.time.toISOExtString(0);
+                const message = pm.message;
+
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"id\": \"", id, "\"",
+                    "\n                \"recipient\": \"", to_username, "\"",
+                    "\n                \"timestamp\": \"", timestamp, "\",",
+                    "\n                \"message\": \"", message, "\"",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+        }
+
+        output ~= text(
+            "]",
+            "\n    }",
+            "\n}"
+        );
         return output[];
     }
 }

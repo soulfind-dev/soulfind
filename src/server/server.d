@@ -90,7 +90,7 @@ final class Server
         if (query.length > max_search_query_length)
             return;
 
-        if (to_username in unsearchable_users)
+        if (is_user_unsearchable(to_username))
             return;
 
         auto user = get_user(to_username);
@@ -144,6 +144,11 @@ final class Server
 
         scope msg = new SExcludedSearchPhrases(search_filters);
         user.send_message(msg);
+    }
+
+    bool is_user_unsearchable(string username)
+    {
+        return username in unsearchable_users ? true : false;
     }
 
     void refresh_search_filters()
@@ -205,6 +210,15 @@ final class Server
     {
         if (id in pms && pms[id].to_username == to_username)
             pms.remove(id);
+    }
+
+    PM[] get_queued_pms(string from_username)
+    {
+        Appender!(PM[]) user_pms;
+        foreach (ref pm ; pms)
+            if (pm.from_username == from_username) user_pms ~= pm;
+        user_pms[].sort();
+        return user_pms[];
     }
 
     void deliver_queued_pms(string to_username)
