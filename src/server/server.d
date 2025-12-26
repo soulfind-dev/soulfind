@@ -22,7 +22,7 @@ import soulfind.server.user : User;
 import std.algorithm : sort;
 import std.array : Appender;
 import std.conv : text;
-import std.datetime : Clock, MonoTime, msecs, SysTime, UTC;
+import std.datetime : Clock, ClockType, MonoTime, msecs, SysTime, UTC;
 import std.random : unpredictableSeed;
 import std.stdio : writeln;
 
@@ -47,7 +47,7 @@ final class Server
 
     this(string db_filename)
     {
-        this.started_at        = Clock.currTime(UTC());
+        this.started_at        = Clock.currTime!(ClockType.second)(UTC());
         this.started_monotime  = MonoTime.currTime;
         this.db                = new Sdb(db_filename);
         this.conns             = new UserConnections(this);
@@ -188,7 +188,7 @@ final class Server
 
         pms[id] = PM(
             id,
-            Clock.currTime(UTC()),
+            Clock.currTime!(ClockType.second)(UTC()),
             from_username,
             to_username,
             message
