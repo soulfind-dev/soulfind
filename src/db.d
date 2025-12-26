@@ -11,7 +11,7 @@ import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           RoomMemberType, RoomType, SearchFilterType;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
-import std.datetime : Clock, days, Duration, SysTime;
+import std.datetime : Clock, days, Duration, SysTime, UTC;
 import std.file : exists, remove, rename;
 import std.path : absolutePath, buildNormalizedPath;
 import std.stdio : writeln;
@@ -625,7 +625,7 @@ final class Sdb
         if (admin_until >= SysTime.max.toUnixTime)
             return SysTime.max;
 
-        return SysTime.fromUnixTime(admin_until);
+        return SysTime.fromUnixTime(admin_until, UTC());
     }
 
     void add_user_privileges(string username, Duration duration)
@@ -696,7 +696,7 @@ final class Sdb
         if (privileged_until >= SysTime.max.toUnixTime)
             return SysTime.max;
 
-        return SysTime.fromUnixTime(privileged_until);
+        return SysTime.fromUnixTime(privileged_until, UTC());
     }
 
     void ban_user(string username, Duration duration)
@@ -746,7 +746,7 @@ final class Sdb
         if (banned_until >= SysTime.max.toUnixTime)
             return SysTime.max;
 
-        return SysTime.fromUnixTime(banned_until);
+        return SysTime.fromUnixTime(banned_until, UTC());
     }
 
     SdbUserStats user_stats(string username)
