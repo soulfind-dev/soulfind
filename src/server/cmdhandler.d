@@ -83,9 +83,8 @@ final class CommandHandler
                 "Your account has been deleted"
             );
 
-            enum relogged = true;
-            user.disconnect(relogged);
             server.db.del_user(sender_username);
+            user.disconnect_deleted();
             break;
 
         default:

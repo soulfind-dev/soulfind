@@ -223,7 +223,7 @@ final class User
         server.close_connection(conn);
     }
 
-    bool disconnect_orphan()
+    bool disconnect_deleted()
     {
         if (!authenticated || disconnecting)
             return false;
@@ -271,7 +271,7 @@ final class User
         // Fetch latest user state from the database, in case it's modified
         // using e.g. Soulsetup
 
-        if (disconnect_orphan())
+        if (disconnect_deleted())
             return;
 
         if (disconnect_banned())
