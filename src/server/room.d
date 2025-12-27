@@ -9,7 +9,7 @@ module soulfind.server.room;
 import soulfind.db : Sdb;
 import soulfind.defines : blue, log_msg, max_chat_message_length,
                           max_room_ticker_length, max_room_tickers, norm,
-                          RoomType;
+                          RoomTicker, RoomType;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
@@ -59,7 +59,7 @@ final class Room
         scope join_room_msg = new SJoinRoom(
             name, users, db.get_room_owner(name), null
         );
-        scope tickers_msg = new SRoomTicker(name, tickers);
+        scope tickers_msg = new SRoomTickers(name, tickers);
 
         send_to_all(joined_room_msg);
         user.send_message(join_room_msg);
@@ -184,7 +184,7 @@ final class Room
         return db.get_ticker(name, username);
     }
 
-    private string[][] tickers()
+    private RoomTicker[] tickers()
     {
         return db.room_tickers(name);
     }

@@ -6,13 +6,14 @@
 module soulfind.server.user;
 @safe:
 
-import soulfind.db : Sdb, SdbUserStats;
+import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_user_interests, max_username_length, norm,
                           pbkdf2_iterations, red, RoomMemberType, RoomType,
                           server_username, speed_weight, user_check_interval,
-                          VERSION, wish_interval, wish_interval_privileged;
+                          UserStats, VERSION, wish_interval,
+                          wish_interval_privileged;
 import soulfind.pwhash : create_salt, hash_password_async,
                          verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
@@ -420,7 +421,7 @@ final class User
         );
         server.send_to_watching(username, msg);
 
-        auto stats = SdbUserStats();
+        auto stats = UserStats();
         stats.upload_speed = upload_speed;
         stats.updating_speed = true;
 
@@ -432,7 +433,7 @@ final class User
         shared_files = new_files;
         shared_folders = new_folders;
 
-        auto stats = SdbUserStats();
+        auto stats = UserStats();
         stats.shared_files = new_files;
         stats.shared_folders = new_folders;
         stats.updating_shared = true;

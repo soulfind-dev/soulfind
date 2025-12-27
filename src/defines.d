@@ -11,28 +11,6 @@ import std.string : join, split;
 
 // Constants
 
-enum RoomType : int
-{
-    any           = -2,
-    non_existent  = -1,
-    _public       = 0,
-    _private      = 1
-}
-
-enum RoomMemberType : int
-{
-    any           = -2,
-    non_existent  = -1,
-    normal        = 0,
-    operator      = 1
-}
-
-enum SearchFilterType : uint
-{
-    server  = 0,
-    client  = 1
-}
-
 enum VERSION                     = __DATE__.split.join("-");
 enum default_db_filename         = "soulfind.db";
 enum default_port                = 2242;
@@ -62,6 +40,52 @@ enum speed_weight                = 50;
 enum pbkdf2_iterations           = 100000;
 enum server_username             = "server";
 enum exit_message                = "A la prochaine...";
+
+
+// Types
+
+enum RoomType : int
+{
+    any           = -2,
+    non_existent  = -1,
+    _public       = 0,
+    _private      = 1
+}
+
+enum RoomMemberType : int
+{
+    any           = -2,
+    non_existent  = -1,
+    normal        = 0,
+    operator      = 1
+}
+
+enum SearchFilterType : uint
+{
+    server  = 0,
+    client  = 1
+}
+
+
+// Structs
+
+struct RoomTicker
+{
+    string  room_name;
+    string  username;
+    string  content;
+}
+
+struct UserStats
+{
+    bool  exists;
+    uint  upload_speed;
+    uint  shared_files;
+    uint  shared_folders;
+
+    bool  updating_speed;
+    bool  updating_shared;
+}
 
 
 // Terminal Colors

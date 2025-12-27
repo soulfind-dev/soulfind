@@ -8,7 +8,8 @@ module soulfind.db;
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
                           default_private_mode, log_db, log_user, norm,
-                          RoomMemberType, RoomType, SearchFilterType;
+                          RoomMemberType, RoomTicker, RoomType,
+                          SearchFilterType, UserStats;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime, UTC;
@@ -78,17 +79,6 @@ enum room_members_table    = "room_members";
 enum tickers_table         = "tickers";
 enum search_filters_table  = "search_filters";
 enum search_query_table    = "temp.search_query";
-
-struct SdbUserStats
-{
-    bool    exists;
-    uint    upload_speed;
-    uint    shared_files;
-    uint    shared_folders;
-
-    bool    updating_speed;
-    bool    updating_shared;
-}
 
 final class SdbException : Exception
 {
@@ -749,7 +739,7 @@ final class Sdb
         return SysTime.fromUnixTime(banned_until, UTC());
     }
 
-    SdbUserStats user_stats(string username)
+    UserStats user_stats(string username)
     {
         enum sql = text(
             "SELECT speed,files,folders",
@@ -757,7 +747,7 @@ final class Sdb
             " WHERE username = ?;"
         );
         const res = query(sql, [username]);
-        auto user_stats = SdbUserStats();
+        auto user_stats = UserStats();
 
         if (res.length > 0) {
             const record                   = res[0];
@@ -775,7 +765,7 @@ final class Sdb
         return user_stats;
     }
 
-    void user_update_stats(string username, SdbUserStats stats)
+    void user_update_stats(string username, UserStats stats)
     {
         Appender!(string[]) fields;
         Appender!(string[]) parameters;
@@ -1029,18 +1019,26 @@ final class Sdb
         return username;
     }
 
-    string[][] room_tickers(string room_name)
+    RoomTicker[] room_tickers(string room_name)
     {
+        Appender!(RoomTicker[]) tickers;
         enum sql = text(
             "SELECT username, content FROM ", tickers_table,
             " WHERE room = ?",
             " ORDER BY rowid;"
         );
-        return query(sql, [room_name]);
+
+        const res = query(sql, [room_name]);
+        foreach (ref record ; res) {
+            const username = record[0], content = record[1];
+            tickers ~= RoomTicker(room_name, username, content);
+        }
+        return tickers[];
     }
 
-    string[][] user_tickers(RoomType type)(string username)
+    RoomTicker[] user_tickers(RoomType type)(string username)
     {
+        Appender!(RoomTicker[]) tickers;
         auto sql = text(
             "SELECT t.room, t.content FROM ", tickers_table, " t",
             " JOIN ", rooms_table, " r ON t.room = r.room",
@@ -1054,7 +1052,12 @@ final class Sdb
         }
         sql ~= " ORDER BY t.rowid;";
 
-        return query(sql, parameters);
+        const res = query(sql, parameters);
+        foreach (ref record ; res) {
+            const room_name = record[0], content = record[1];
+            tickers ~= RoomTicker(room_name, username, content);
+        }
+        return tickers[];
     }
 
     ulong num_room_tickers(string room_name)

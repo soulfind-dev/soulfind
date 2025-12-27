@@ -6,7 +6,7 @@
 module soulfind.server.messages;
 @safe:
 
-import soulfind.defines : blue, log_msg, norm;
+import soulfind.defines : blue, log_msg, norm, RoomTicker;
 import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
@@ -122,7 +122,7 @@ enum WishlistInterval             = 104;
 enum SimilarUsers                 = 110;
 enum ItemRecommendations          = 111;
 enum ItemSimilarUsers             = 112;
-enum RoomTicker                   = 113;
+enum RoomTickers                  = 113;
 enum RoomTickerAdd                = 114;
 enum RoomTickerRemove             = 115;
 enum SetRoomTicker                = 116;
@@ -1483,19 +1483,17 @@ final class SItemSimilarUsers : SMessage
     }
 }
 
-final class SRoomTicker : SMessage
+final class SRoomTickers : SMessage
 {
-    this(string room_name, string[][] tickers) scope
+    this(string room_name, RoomTicker[] tickers) scope
     {
-        super(RoomTicker);
+        super(RoomTickers);
 
         write!string(room_name);
         write!uint(cast(uint) tickers.length);
-        foreach (ref ticker ; tickers)
-        {
-            const username = ticker[0], content = ticker[1];
-            write!string(username);
-            write!string(content);
+        foreach (ref ticker ; tickers) {
+            write!string(ticker.username);
+            write!string(ticker.content);
         }
     }
 }

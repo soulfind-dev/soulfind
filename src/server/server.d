@@ -450,10 +450,8 @@ final class Server
                 room.del_ticker(username);
 
         // Stored rooms
-        foreach (ref ticker ; db.user_tickers!type(username)) {
-            const room_name = ticker[0];
-            db.del_ticker(room_name, username);
-        }
+        foreach (ref ticker ; db.user_tickers!type(username))
+            db.del_ticker(ticker.room_name, username);
     }
 
     Room get_room(string room_name)

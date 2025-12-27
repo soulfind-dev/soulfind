@@ -446,9 +446,8 @@ final class CommandHandler
         output ~= text("\nTickers (", tickers.length, "):");
 
         foreach (ref ticker ; tickers) {
-            const username = ticker[0], content = ticker[1];
-            output ~= text("\n    [", username, "] ");
-            output ~= content;
+            output ~= text("\n    [", ticker.username, "] ");
+            output ~= ticker.content;
         }
 
         return output[];
@@ -630,10 +629,10 @@ final class CommandHandler
         );
 
         if (tickers.length > 0) {
-            foreach (ticker ; tickers) {
-                const room_name = ticker[0], content = ticker[1];
-                output ~= text("\n        [", room_name, "] ", content);
-            }
+            foreach (ticker ; tickers)
+                output ~= text(
+                    "\n        [", ticker.room_name, "] ", ticker.content
+                );
         }
 
         return output[];
@@ -712,10 +711,10 @@ final class CommandHandler
         if (tickers.length > 0) {
             auto first = true;
             foreach (ticker ; tickers) {
-                const room_name = ticker[0], content = ticker[1];
                 if (!first) output ~= ",";
                 output ~= text(
-                    "\n            \"", room_name, "\": \"", content, "\""
+                    "\n            \"", ticker.room_name, "\": \"",
+                    ticker.content, "\""
                 );
                 first = false;
             }

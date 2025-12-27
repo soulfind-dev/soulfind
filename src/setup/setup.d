@@ -602,10 +602,10 @@ final class Setup
         );
 
         if (tickers.length > 0) {
-            foreach (ticker ; tickers) {
-                const room_name = ticker[0], content = ticker[1];
-                output ~= text("\n\t   [", room_name, "] ", content);
-            }
+            foreach (ticker ; tickers)
+                output ~= text(
+                    "\n\t   [", ticker.room_name, "] ", ticker.content
+                );
         }
 
         writeln(output[]);
@@ -667,10 +667,10 @@ final class Setup
         if (tickers.length > 0) {
             auto first = true;
             foreach (ticker ; tickers) {
-                const room_name = ticker[0], content = ticker[1];
                 if (!first) output ~= ",";
                 output ~= text(
-                    "\n            \"", room_name, "\": \"", content, "\""
+                    "\n            \"", ticker.room_name, "\": \"",
+                    ticker.content, "\""
                 );
                 first = false;
             }
