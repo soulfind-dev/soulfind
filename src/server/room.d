@@ -37,8 +37,8 @@ final class Room
     void disband()
     {
         foreach (ref user ; users) {
-            enum permanent = true;
-            user.leave_room(name, permanent);
+            user.leave_room(name);
+            if (type == RoomType._private) user.room_membership_canceled(name);
         }
     }
 

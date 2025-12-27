@@ -614,32 +614,51 @@ final class User
         room.add_user(this);
     }
 
-    bool leave_room(string room_name, bool permanent = false)
+    bool leave_room(string room_name)
     {
         if (room_name !in joined_rooms)
             return false;
 
         auto room = server.get_room(room_name);
 
-        if (permanent && room.type == RoomType._private) {
-            scope room_removed_msg = new SPrivateRoomRemoved(room_name);
-            send_message(room_removed_msg);
-        }
-
         room.remove_user(username);
         joined_rooms.remove(room_name);
 
         if (room.num_users == 0) {
-            const del_permanent = (
+            const permanent = (
                 room.type == RoomType._public && room.num_tickers == 0
             );
-            server.del_room(room_name, del_permanent);
+            server.del_room(room_name, permanent);
         }
-
-        if (permanent && room.type == RoomType._private)
-            server.send_room_list(username);
-
         return true;
+    }
+
+    void room_membership_granted(string room_name)
+    {
+        scope msg = new SPrivateRoomAdded(room_name);
+        send_message(msg);
+        server.send_room_list(username);
+    }
+
+    void room_membership_canceled(string room_name)
+    {
+        scope msg = new SPrivateRoomRemoved(room_name);
+        send_message(msg);
+        server.send_room_list(username);
+    }
+
+    void room_operator_added(string room_name)
+    {
+        scope msg = new SPrivateRoomOperatorAdded(room_name);
+        send_message(msg);
+        server.send_room_list(username);
+    }
+
+    void room_operator_removed(string room_name)
+    {
+        scope msg = new SPrivateRoomRemoved(room_name);
+        send_message(msg);
+        server.send_room_list(username);
     }
 
     string[] joined_room_names(RoomType type)()

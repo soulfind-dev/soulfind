@@ -531,9 +531,7 @@ final class Server
         foreach (ref room_username ; members) send_user_msg(room_username);
         send_user_msg(owner);
 
-        scope msg = new SPrivateRoomAdded(room_name);
-        target_user.send_message(msg);
-        send_room_list(target);
+        target_user.room_membership_granted(room_name);
 
         send_pm(
             server_username, actor,
@@ -601,8 +599,8 @@ final class Server
 
         auto target_user = get_user(target);
         if (target_user !is null) {
-            enum permanent = true;
-            target_user.leave_room(room_name, permanent);
+            target_user.leave_room(room_name);
+            target_user.room_membership_canceled(room_name);
         }
     }
 
@@ -661,9 +659,7 @@ final class Server
         foreach (ref room_username ; members) send_user_msg(room_username);
         send_user_msg(owner);
 
-        scope msg = new SPrivateRoomOperatorAdded(room_name);
-        target_user.send_message(msg);
-        send_room_list(target);
+        target_user.room_operator_added(room_name);
 
         send_pm(
             server_username, owner,
@@ -704,12 +700,8 @@ final class Server
         );
 
         auto target_user = get_user(target);
-        if (target_user !is null) {
-            scope msg = new SPrivateRoomOperatorRemoved(room_name);
-            target_user.send_message(msg);
-
-            send_room_list(target);
-        }
+        if (target_user !is null)
+            target_user.room_operator_removed(room_name);
     }
 
     auto joined_rooms()
