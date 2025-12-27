@@ -158,9 +158,6 @@ final class Room
 
     void del_ticker(string username)
     {
-        if (get_ticker(username) is null)
-            return;
-
         db.del_ticker(name, username);
 
         scope msg = new SRoomTickerRemove(name, username);
