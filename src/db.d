@@ -847,8 +847,16 @@ final class Database
 
     void del_room(string room_name)
     {
-        enum sql = text("DELETE FROM ", rooms_table, " WHERE room = ?;");
-        query(sql, [room_name]);
+        // Only remove public rooms with no tickers
+        enum sql = text(
+            "DELETE FROM ", rooms_table,
+            " WHERE room = ? AND (",
+            "  type != ? OR NOT EXISTS (",
+            "   SELECT 1 FROM ", tickers_table, " WHERE room = ?",
+            "  )",
+            " );"
+        );
+        query(sql, [room_name, text(cast(int) RoomType._public), room_name]);
     }
 
     RoomType get_room_type(string room_name)

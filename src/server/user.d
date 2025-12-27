@@ -625,9 +625,7 @@ final class User
         joined_rooms.remove(room_name);
 
         if (room.num_users == 0) {
-            const permanent = (
-                room.type == RoomType._public && room.num_tickers == 0
-            );
+            const permanent = (room.type == RoomType._public);
             server.del_room(room_name, permanent);
         }
         return true;

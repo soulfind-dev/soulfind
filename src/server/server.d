@@ -430,7 +430,7 @@ final class Server
         return room;
     }
 
-    void del_room(string room_name, bool permanent = false)
+    void del_room(string room_name, bool permanent = true)
     {
         Room room;  // Satisfy linter
         room = get_room(room_name);

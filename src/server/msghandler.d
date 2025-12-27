@@ -629,8 +629,7 @@ final class MessageHandler
             if (server.db.get_room_owner(room_name) != user.username)
                 break;
 
-            enum permanent = true;
-            server.del_room(room_name, permanent);
+            server.del_room(room_name);
             server.send_room_list(user.username);
             break;
 
