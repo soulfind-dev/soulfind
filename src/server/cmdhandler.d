@@ -65,10 +65,13 @@ final class CommandHandler
             break;
 
         case "deleteaccount":
-            if (args.length < 2 || args.length > 2 || args[1] != "confirm") {
+            if (command != text("deleteaccount confirm ", sender_username)) {
                 server.send_pm(
                     server_username, sender_username,
-                    "Type 'deleteaccount confirm' to delete your account"
+                    text(
+                        "Type 'deleteaccount confirm ", sender_username,
+                        "' to delete your account"
+                    )
                 );
                 break;
             }
