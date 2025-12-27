@@ -138,9 +138,11 @@ final class Room
             return;
 
         const old_content = get_ticker(username);
+        if (content == old_content)
+            return;
+
         if (old_content !is null)
-            if (content != old_content)
-                del_ticker(username);
+            del_ticker(username);
 
         if (content.length == 0)
             return;
