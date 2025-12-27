@@ -137,17 +137,16 @@ final class Room
         if (content.length > max_room_ticker_length)
             return;
 
-        const old_content = get_ticker(username);
-        if (content == old_content)
-            return;
-
-        if (old_content !is null)
+        if (content.length == 0) {
             del_ticker(username);
+            return;
+        }
 
-        if (content.length == 0)
+        if (!db.add_ticker(name, username, content))
             return;
 
-        db.add_ticker(name, username, content);
+        enum permanent = false;
+        del_ticker(username, permanent);
 
         if (num_tickers >= max_room_tickers)
             del_oldest_ticker ();
@@ -156,9 +155,10 @@ final class Room
         send_to_all(msg);
     }
 
-    void del_ticker(string username)
+    void del_ticker(string username, bool permanent = true)
     {
-        db.del_ticker(name, username);
+        if (permanent && !db.del_ticker(name, username))
+            return;
 
         scope msg = new SRoomTickerRemove(name, username);
         send_to_all(msg);
@@ -177,11 +177,6 @@ final class Room
 
         scope msg = new SRoomTickerRemove(name, username);
         send_to_all(msg);
-    }
-
-    private string get_ticker(string username)
-    {
-        return db.get_ticker(name, username);
     }
 
     private RoomTicker[] tickers()

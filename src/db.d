@@ -977,31 +977,41 @@ final class Database
         return members[];
     }
 
-    void add_ticker(string room_name, string username, string content)
+    bool add_ticker(string room_name, string username, string content)
     {
-        enum sql = text(
-            "INSERT INTO ", tickers_table,
+        enum check_sql = text(
+            "SELECT 1 FROM ", tickers_table,
+            " WHERE room = ? AND username = ? AND content = ?;"
+        );
+        enum add_sql = text(
+            "REPLACE INTO ", tickers_table,
             "(room, username, content) VALUES(?, ?, ?);"
         );
-        query(sql, [room_name, username, content]);
+        const res = query(check_sql, [room_name, username, content]);
+
+        if (res.length > 0)
+            return false;
+
+        query(add_sql, [room_name, username, content]);
+        return true;
     }
 
-    string get_ticker(string room_name, string username)
+    bool del_ticker(string room_name, string username)
     {
-        enum sql = text(
-            "SELECT content FROM ", tickers_table,
+        enum check_sql = text(
+            "SELECT 1 FROM ", tickers_table,
             " WHERE room = ? AND username = ?;"
         );
-        const res = query(sql, [room_name, username]);
-        return res.length > 0 ? res[0][0] : null;
-    }
-
-    void del_ticker(string room_name, string username)
-    {
-        enum sql = text(
+        enum del_sql = text(
             "DELETE FROM ", tickers_table, " WHERE room = ? AND username = ?;"
         );
-        query(sql, [room_name, username]);
+        const res = query(check_sql, [room_name, username]);
+
+        if (res.length == 0)
+            return false;
+
+        query(del_sql, [room_name, username]);
+        return true;
     }
 
     string del_oldest_ticker(string room_name)
