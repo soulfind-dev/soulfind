@@ -444,14 +444,13 @@ final class Server
 
     void del_user_tickers(RoomType type)(string username)
     {
-        // Joined rooms
+        db.del_user_tickers!type(username);
+
+        // Send ticker removal messages in joined rooms
+        enum permanent = false;
         foreach (ref room ; rooms)
             if (type == RoomType.any || room.type == type)
-                room.del_ticker(username);
-
-        // Stored rooms
-        foreach (ref ticker ; db.user_tickers!type(username))
-            db.del_ticker(ticker.room_name, username);
+                room.del_ticker(username, permanent);
     }
 
     Room get_room(string room_name)

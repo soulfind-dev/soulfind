@@ -1014,6 +1014,25 @@ final class Database
         return true;
     }
 
+    void del_user_tickers(RoomType type)(string username)
+    {
+        auto sql = text(
+            "DELETE FROM ", tickers_table,
+            " WHERE username = ? AND room IN (",
+            "  SELECT r.room FROM ", rooms_table, " r",
+            "  WHERE r.room = ", tickers_table, ".room"
+        );
+        auto parameters = [username];
+
+        if (type != RoomType.any) {
+            sql ~= " AND r.type = ?";
+            parameters ~= [text(cast(int) type)];
+        }
+        sql ~= ");";
+
+        query(sql, parameters);
+    }
+
     string del_oldest_ticker(string room_name)
     {
         enum sql = text(
