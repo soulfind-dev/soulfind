@@ -9,9 +9,9 @@ import soulfind.defines : blue, bold, conn_backlog_length, conn_buffer_size,
                           log_msg, log_user, max_in_msg_size, norm, red,
                           user_check_interval, VERSION;
 import soulfind.pwhash : process_password_tasks;
-import soulfind.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.messages : SMessage;
 import soulfind.server.msghandler : MessageHandler;
+import soulfind.server.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.server : Server;
 import soulfind.server.user : User;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;

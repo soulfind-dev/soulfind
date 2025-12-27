@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
-module soulfind.select;
+module soulfind.server.select;
 @safe:
 
 import std.datetime : Duration;
