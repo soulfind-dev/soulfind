@@ -6,7 +6,7 @@
 module soulfind.setup.setup;
 @safe:
 
-import soulfind.db : Sdb;
+import soulfind.db : Database;
 import soulfind.defines : blue, bold, default_max_users, default_motd,
                           default_port, norm, pbkdf2_iterations, red,
                           RoomMemberType, RoomType, SearchFilterType, VERSION;
@@ -27,12 +27,12 @@ struct MenuItem
 
 final class Setup
 {
-    private Sdb db;
+    private Database db;
 
 
     this(string db_filename)
     {
-        this.db  = new Sdb(db_filename);
+        this.db  = new Database(db_filename);
     }
 
     void show()

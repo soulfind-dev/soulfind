@@ -6,7 +6,6 @@
 module soulfind.server.cmdhandler;
 @safe:
 
-import soulfind.db : Sdb;
 import soulfind.defines : blue, kick_duration, log_user, norm, RoomMemberType,
                           RoomType, server_username;
 import soulfind.server.messages;

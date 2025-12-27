@@ -80,14 +80,14 @@ enum tickers_table         = "tickers";
 enum search_filters_table  = "search_filters";
 enum search_query_table    = "temp.search_query";
 
-final class SdbException : Exception
+final class DatabaseException : Exception
 {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
-final class Sdb
+final class Database
 {
     private sqlite3* db;
     private string db_filename;
@@ -1088,7 +1088,7 @@ final class Sdb
         if (res)
             writeln("DB: Result code ", res, ".\n\n", error_msg, "\n");
 
-        throw new SdbException(
+        throw new DatabaseException(
             text("SQLite error ", error_code, " (", error_string, ")")
         );
     }

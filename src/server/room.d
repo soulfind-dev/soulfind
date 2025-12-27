@@ -6,7 +6,7 @@
 module soulfind.server.room;
 @safe:
 
-import soulfind.db : Sdb;
+import soulfind.db : Database;
 import soulfind.defines : blue, log_msg, max_chat_message_length,
                           max_room_ticker_length, max_room_tickers, norm,
                           RoomTicker, RoomType;
@@ -21,12 +21,12 @@ final class Room
     const string            name;
     const RoomType          type;
 
-    private Sdb             db;
+    private Database        db;
     private GlobalRoom      global_room;
     private User[string]    users;
 
 
-    this(string name, RoomType type, Sdb db, GlobalRoom global_room)
+    this(string name, RoomType type, Database db, GlobalRoom global_room)
     {
         this.name = name;
         this.type = type < 0 ? RoomType._public : type;

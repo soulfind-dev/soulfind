@@ -6,7 +6,7 @@
 module soulfind.server.server;
 @safe:
 
-import soulfind.db : Sdb;
+import soulfind.db : Database;
 import soulfind.defines : blue, kick_duration, log_msg, log_user,
                           max_chat_message_length, max_global_recommendations,
                           max_search_query_length, max_user_recommendations,
@@ -30,7 +30,7 @@ final class Server
 {
     const SysTime                      started_at;
     const MonoTime                     started_monotime;
-    Sdb                                db;
+    Database                           db;
 
     private UserConnections            conns;
     private CommandHandler             cmd_handler;
@@ -49,7 +49,7 @@ final class Server
     {
         this.started_at        = Clock.currTime!(ClockType.second)(UTC());
         this.started_monotime  = MonoTime.currTime;
-        this.db                = new Sdb(db_filename);
+        this.db                = new Database(db_filename);
         this.conns             = new UserConnections(this);
         this.cmd_handler       = new CommandHandler(this);
         this.global_room       = new GlobalRoom();

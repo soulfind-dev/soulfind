@@ -6,7 +6,6 @@
 module soulfind.server.msghandler;
 @safe:
 
-import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
                           RoomMemberType, RoomType, server_username;
 import soulfind.pwhash : create_salt, hash_password_async;

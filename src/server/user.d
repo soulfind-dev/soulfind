@@ -6,7 +6,6 @@
 module soulfind.server.user;
 @safe:
 
-import soulfind.db : Sdb;
 import soulfind.defines : blue, bold, log_user, login_timeout,
                           max_interest_length, max_room_name_length,
                           max_user_interests, max_username_length, norm,
