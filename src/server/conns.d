@@ -6,7 +6,7 @@ module soulfind.server.conns;
 @safe:
 
 import soulfind.defines : blue, bold, conn_backlog_length, conn_buffer_size,
-                          log_msg, log_user, max_in_msg_size, norm, red,
+                          log_conn, log_msg, max_in_msg_size, norm, red,
                           user_check_interval, VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.server.messages : SMessage;
@@ -121,8 +121,9 @@ final class UserConnections
 
         const sock_handle = conn.sock.handle;
         if (sock_handle in sock_users) {
-            if (log_user) writeln(
-                "Closing connection to user ", sock_users[sock_handle].username
+            if (log_conn) writeln(
+                "[Conn] Closing connection to user ", red,
+                sock_users[sock_handle].username, norm
             );
             sock_users.remove(sock_handle);
         }
@@ -169,7 +170,7 @@ final class UserConnections
             if (!sock.isAlive)
                 break;
 
-            if (log_user) writeln("Connection attempt accepted");
+            if (log_conn) writeln("[Conn] Connection attempt accepted");
 
             sock_users[sock.handle] = new User(
                 server, new UserConnection(sock, selector, msg_handler)
@@ -235,7 +236,7 @@ final class UserConnection
 
         if (log == Logging.redacted) target_username = "[ redacted ]";
         if (log_msg && log != Logging.disabled) writeln(
-            "Sending -> ", blue, msg.name, norm, " (code ", msg.code,
+            "[Msg] Sending -> ", blue, msg.name, norm, " (code ", msg.code,
             ") -> to user ", blue, target_username, norm
         );
 
@@ -275,7 +276,7 @@ final class UserConnection
             }
             if (in_msg_size < 0 || in_msg_size > max_in_msg_size) {
                 if (log_msg) writeln(
-                    "Received unexpected message size ", in_msg_size,
+                    "[Msg] Received unexpected message size ", in_msg_size,
                     " from user ", blue, target_user.username, norm,
                     ", disconnecting them"
                 );
@@ -329,6 +330,7 @@ final class UserConnection
         sock.blocking = false;
 
         selector.register(sock.handle, SelectEvent.read);
+        if (log_conn) writeln("[Conn] Registered connection socket");
     }
 
     private void enable_keep_alive()
@@ -417,6 +419,10 @@ final class UserConnection
         sock.shutdown(SocketShutdown.BOTH);
         sock.close();
         sock = null;
+
+        if (log_conn) writeln(
+            "[Conn] Unregistered and closed connection socket"
+        );
     }
 
     private bool handle_message(User target_user)

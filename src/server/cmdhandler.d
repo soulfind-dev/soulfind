@@ -6,8 +6,8 @@
 module soulfind.server.cmdhandler;
 @safe:
 
-import soulfind.defines : blue, kick_duration, log_user, norm, RoomMemberType,
-                          RoomType, server_username;
+import soulfind.defines : blue, kick_duration, norm, RoomMemberType, RoomType,
+                          server_username;
 import soulfind.server.messages;
 import soulfind.server.room : Room;
 import soulfind.server.server : Server;
@@ -356,7 +356,7 @@ final class CommandHandler
                 user.disconnect();
             }
 
-            if (log_user) writeln(
+            writeln(
                 "Admin ", blue, admin_username, norm, " kicked ALL ",
                 users_to_kick[].length, " users for ", duration.toString
             );

@@ -729,7 +729,7 @@ final class MessageHandler
 
         default:
             if (log_msg) writeln(
-                "Unimplemented message code ", red, code, norm,
+                "[Msg] Unimplemented message code ", red, code, norm,
                 " from user ", blue, user.username, norm, " with length ",
                 msg_buf.length
             );

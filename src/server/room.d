@@ -99,7 +99,7 @@ final class Room
     void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
         if (log_msg) writeln(
-            "Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
             ") to joined room members..."
         );
         foreach (ref user ; users)

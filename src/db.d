@@ -7,9 +7,8 @@ module soulfind.db;
 @safe:
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
-                          default_private_mode, log_db, log_user, norm,
-                          RoomMemberType, RoomTicker, RoomType,
-                          SearchFilterType, UserStats;
+                          default_private_mode, log_db, norm, RoomMemberType,
+                          RoomTicker, RoomType, SearchFilterType, UserStats;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime, UTC;
@@ -97,7 +96,7 @@ final class Database
     this(string filename)
     {
         this.db_filename = filename.absolutePath.buildNormalizedPath;
-        if (log_db) writeln("DB: Using database: ", db_filename);
+        if (log_db) writeln("[DB] Using database: ", db_filename);
 
         // Soulfind is single-threaded. Disable SQLite mutexes for a slight
         // performance improvement.
@@ -191,7 +190,7 @@ final class Database
         );
 
         foreach (ref problem ; query("PRAGMA integrity_check;"))
-            if (log_db) writeln("DB: Check [", problem[0], "]");
+            if (log_db) writeln("[DB] Check [", problem[0], "]");
 
         query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_table_sql);
@@ -208,7 +207,7 @@ final class Database
 
     ~this()
     {
-        if (log_db) writeln("DB: Shutting down...");
+        if (log_db) writeln("[DB] Shutting down...");
         close();
         shutdown();
     }
@@ -334,7 +333,7 @@ final class Database
         query(sql, [option, value]);
 
         if (log_db) writeln(
-            "DB: Updated config value ", option, " to ", value
+            "[DB] Updated config value ", option, " to ", value
         );
     }
 
@@ -415,7 +414,7 @@ final class Database
         query(sql, [text(cast(uint) type), phrase]);
 
         if (log_db) writeln(
-            "DB: Filtered search phrase ", phrase, " ",
+            "[DB] Filtered search phrase ", phrase, " ",
             type == SearchFilterType.server ? "server" : "client", "-side"
         );
         return true;
@@ -433,7 +432,7 @@ final class Database
             return false;
 
         if (log_db) writeln(
-            "DB: Unfiltered search phrase ", phrase, " ",
+            "[DB] Unfiltered search phrase ", phrase, " ",
             type == SearchFilterType.server ? "server" : "client", "-side"
         );
         return true;
@@ -450,8 +449,8 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln(
-            "Made user ", blue, username, norm, " unsearchable"
+        if (log_db) writeln(
+            "[DB] Made user ", blue, username, norm, " unsearchable"
         );
         return true;
     }
@@ -467,8 +466,8 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln(
-            "Made user ", blue, username, norm, " searchable"
+        if (log_db) writeln(
+            "[DB] Made user ", blue, username, norm, " searchable"
         );
         return true;
     }
@@ -553,7 +552,7 @@ final class Database
             return false;
 
         query("PRAGMA optimize;");
-        if (log_user) writeln("Added new user ", blue, username, norm);
+        if (log_db) writeln("[DB] Added new user ", blue, username, norm);
         return true;
     }
 
@@ -565,7 +564,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln("Removed user ", blue, username, norm);
+        if (log_db) writeln("[DB] Removed user ", blue, username, norm);
         return true;
     }
 
@@ -587,8 +586,8 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln(
-            "Updated user ", blue, username, norm, "'s password"
+        if (log_db) writeln(
+            "[DB] Updated user ", blue, username, norm, "'s password"
         );
         return true;
     }
@@ -619,7 +618,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln("Added admin ", blue, username, norm);
+        if (log_db) writeln("[DB] Added admin ", blue, username, norm);
         return true;
     }
 
@@ -634,7 +633,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln("Removed admin ", blue, username, norm);
+        if (log_db) writeln("[DB] Removed admin ", blue, username, norm);
         return true;
     }
 
@@ -676,8 +675,8 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln(
-            "Added privileges to user ", blue, username, norm
+        if (log_db) writeln(
+            "[DB] Added privileges to user ", blue, username, norm
         );
         return true;
     }
@@ -704,14 +703,16 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) {
+        if (log_db) {
             if (duration == Duration.max)
                 writeln(
-                    "Removed all privileges from user ", blue, username, norm
+                    "[DB] Removed all privileges from user ", blue, username,
+                    norm
                 );
             else
                 writeln(
-                    "Removed some privileges from user ", blue, username, norm
+                    "[DB] Removed some privileges from user ", blue, username,
+                    norm
                 );
         }
         return true;
@@ -757,7 +758,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln("Banned user ", blue, username, norm);
+        if (log_db) writeln("[DB] Banned user ", blue, username, norm);
         return true;
     }
 
@@ -772,7 +773,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln("Unbanned user ", blue, username, norm);
+        if (log_db) writeln("[DB] Unbanned user ", blue, username, norm);
         return true;
     }
 
@@ -859,8 +860,8 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_user) writeln(
-            "Updated user ", blue, username, norm, "'s stats"
+        if (log_db) writeln(
+            "[DB] Updated user ", blue, username, norm, "'s stats"
         );
         return true;
     }
@@ -909,7 +910,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_db) writeln("DB: Added room ", blue, room_name, norm);
+        if (log_db) writeln("[DB] Added room ", blue, room_name, norm);
         return true;
     }
 
@@ -929,7 +930,7 @@ final class Database
         if (changes() == 0)
             return false;
 
-        if (log_db) writeln("DB: Removed room ", blue, room_name, norm);
+        if (log_db) writeln("[DB] Removed room ", blue, room_name, norm);
         return true;
     }
 
@@ -1076,7 +1077,7 @@ final class Database
 
         query(add_sql, [room_name, username, content]);
         if (log_db) writeln(
-            "DB: Added user ", blue, username, norm, "'s ticker to room ",
+            "[DB] Added user ", blue, username, norm, "'s ticker to room ",
             blue, room_name, norm
         );
         return true;
@@ -1093,7 +1094,7 @@ final class Database
             return false;
 
         if (log_db) writeln(
-            "DB: Removed user ", blue, username, norm, "'s ticker from room ",
+            "[DB] Removed user ", blue, username, norm, "'s ticker from room ",
             blue, room_name, norm
         );
         return true;

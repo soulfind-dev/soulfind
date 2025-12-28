@@ -6,9 +6,9 @@
 module soulfind.server.user;
 @safe:
 
-import soulfind.defines : blue, bold, log_user, login_timeout,
-                          max_interest_length, max_room_name_length,
-                          max_user_interests, max_username_length, norm,
+import soulfind.defines : blue, bold, login_timeout, max_interest_length,
+                          max_room_name_length, max_user_interests,
+                          max_username_length, norm,
                           pbkdf2_iterations, red, RoomMemberType, RoomType,
                           server_username, speed_weight, user_check_interval,
                           UserStats, VERSION, wish_interval,

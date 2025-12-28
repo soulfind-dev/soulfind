@@ -7,8 +7,8 @@ module soulfind.server;
 @safe:
 
 import soulfind.cli : CommandOption, parse_args, print_help, print_version;
-import soulfind.defines : default_db_filename, exit_message, log_db, log_msg,
-                          log_user;
+import soulfind.defines : default_db_filename, exit_message, log_conn, log_db,
+                          log_msg;
 import soulfind.server.server : Server;
 import std.conv : text, to;
 import std.stdio : writeln;
@@ -63,7 +63,7 @@ int run(string[] args)
         return 0;
     }
 
-    if (enable_debug) log_db = log_msg = log_user = true;
+    if (enable_debug) log_db = log_conn = log_msg = true;
 
     auto server = new Server(db_filename);
     const success = server.listen(port);

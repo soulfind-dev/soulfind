@@ -99,5 +99,5 @@ enum red                         = "\033[01;91m";    // foreground red
 // Logging
 
 bool log_db;
+bool log_conn;
 bool log_msg;
-bool log_user;

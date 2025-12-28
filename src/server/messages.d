@@ -173,7 +173,7 @@ class UMessage
         code = read!uint();
 
         if (log_msg) writeln(
-            "Receive <- ", blue, this.name, norm, " (code ", code,
+            "[Msg] Receive <- ", blue, this.name, norm, " (code ", code,
             ") <- from user ", blue, in_username, norm
         );
     }
@@ -229,7 +229,7 @@ class UMessage
         }
         else {
             if (log_msg) writeln(
-                "Message code ", code, ", offset ", offset,
+                "[Msg] Message code ", code, ", offset ", offset,
                 ", not enough data reading ", T.stringof, " of size ", size
             );
             is_valid = false;
