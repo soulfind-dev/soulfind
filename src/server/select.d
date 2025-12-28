@@ -354,7 +354,7 @@ final class PollSelector : Selector
 
             n++;
         }
-        return ready_fds[0 .. num_fds];
+        return ready_fds[0 .. n];
     }
 
     private pollfd create_pollfd(socket_t fd, SelectEvent events)
