@@ -155,7 +155,14 @@ final class User
             change_password(password, hash, notify_user);
             return;
         }
-        finish_login(password, hash);
+
+        if (!server.db.add_user(username, hash)) {
+            // User was added externally while registering, reauthenticate
+            authenticate(username, password);
+            return;
+        }
+
+        finish_login(password);
     }
 
     void password_upgraded(string password, string hash)
@@ -312,7 +319,7 @@ final class User
         send_message(response_msg);
     }
 
-    private void finish_login(string password, string hash = null)
+    private void finish_login(string password)
     {
         authenticated = true;
         auto user = server.get_user(username);
@@ -326,8 +333,6 @@ final class User
             enum relogged = true;
             user.disconnect(relogged);
         }
-
-        if (hash !is null) server.db.add_user(username, hash);
 
         const user_stats = server.db.user_stats(username);
         upload_speed = user_stats.upload_speed;
@@ -373,7 +378,7 @@ final class User
     private void change_password(string password, string hash,
                                  bool notify_user = false)
     {
-        server.db.user_update_password(username, hash);
+        server.db.update_user_password(username, hash);
 
         if (!notify_user)
             return;

@@ -412,20 +412,13 @@ final class Server
         if (room !is null)
             return room;
 
-        const type = (owner !is null) ? RoomType._private : RoomType._public;
-        const stored_type = db.get_room_type(room_name);
-        const room_exists = stored_type != RoomType.non_existent;
+        const room_added = db.add_room(room_name, owner);
+        const type = db.get_room_type(room_name);
 
-        if (!room_exists) {
-            db.add_room(room_name, owner);
+        if (room_added && owner !is null)
+            send_room_list(owner);
 
-            if (owner !is null)
-                send_room_list(owner);
-        }
-
-        room = new Room(
-            room_name, room_exists ? stored_type : type, db, global_room
-        );
+        room = new Room(room_name, type, db, global_room);
         rooms[room_name] = room;
         return room;
     }

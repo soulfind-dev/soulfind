@@ -50,6 +50,7 @@ extern (C) {
     int sqlite3_shutdown();
     int sqlite3_config(int, ...);
     int sqlite3_db_config(sqlite3*, int op, ...);
+    int sqlite3_changes(sqlite3*);
 
     int sqlite3_open(const(char)*filename, sqlite3 **ppDb);
     int sqlite3_close(sqlite3 *);
@@ -405,7 +406,7 @@ final class Database
 
     // Search Filters
 
-    void filter_search_phrase(SearchFilterType type)(string phrase)
+    bool filter_search_phrase(SearchFilterType type)(string phrase)
     {
         enum sql = text(
             "REPLACE INTO ",
@@ -417,9 +418,10 @@ final class Database
             "DB: Filtered search phrase ", phrase, " ",
             type == SearchFilterType.server ? "server" : "client", "-side"
         );
+        return true;
     }
 
-    void unfilter_search_phrase(SearchFilterType type)(string phrase)
+    bool unfilter_search_phrase(SearchFilterType type)(string phrase)
     {
         enum sql = text(
             "DELETE FROM ", search_filters_table,
@@ -427,21 +429,48 @@ final class Database
         );
         query(sql, [text(cast(uint) type), phrase]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_db) writeln(
             "DB: Unfiltered search phrase ", phrase, " ",
             type == SearchFilterType.server ? "server" : "client", "-side"
         );
+        return true;
     }
 
-    void set_user_unsearchable(string username, bool unsearchable)
+    bool set_user_unsearchable(string username)
     {
         enum sql = text(
-            "UPDATE ", users_table, " SET unsearchable = ? WHERE username = ?;"
+            "UPDATE ", users_table, " SET unsearchable = 1",
+            " WHERE username = ?;"
         );
+        query(sql, [username]);
 
-        query(
-            sql, [unsearchable ? unsearchable.to!ubyte.text : null, username]
+        if (changes() == 0)
+            return false;
+
+        if (log_user) writeln(
+            "Made user ", blue, username, norm, " unsearchable"
         );
+        return true;
+    }
+
+    bool set_user_searchable(string username)
+    {
+        enum sql = text(
+            "UPDATE ", users_table, " SET unsearchable = null",
+            " WHERE username = ? AND unsearchable > 0;"
+        );
+        query(sql, [username]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_user) writeln(
+            "Made user ", blue, username, norm, " searchable"
+        );
+        return true;
     }
 
     string[] search_filters(SearchFilterType type)()
@@ -463,15 +492,6 @@ final class Database
             "SELECT COUNT(1) FROM ", search_filters_table, " WHERE type = ?;"
         );
         return query(sql, [(cast(uint) type).text])[0][0].to!size_t;
-    }
-
-    bool is_search_phrase_filtered(SearchFilterType type)(string phrase)
-    {
-        enum sql = text(
-            "SELECT 1",
-            " FROM ", search_filters_table, " WHERE type = ? AND phrase = ?;"
-        );
-        return query(sql, [text(cast(uint) type), phrase]).length > 0;
     }
 
     bool is_search_query_filtered(string search_query)
@@ -521,23 +541,32 @@ final class Database
 
     // Users
 
-    void add_user(string username, string hash)
+    bool add_user(string username, string hash)
     {
         enum sql = text(
-            "INSERT INTO ", users_table, "(username, password) VALUES(?, ?);"
+            "INSERT OR IGNORE INTO ", users_table, "(username, password)",
+            " VALUES(?, ?);"
         );
         query(sql, [username, hash]);
-        query("PRAGMA optimize;");
 
+        if (changes() == 0)
+            return false;
+
+        query("PRAGMA optimize;");
         if (log_user) writeln("Added new user ", blue, username, norm);
+        return true;
     }
 
-    void del_user(string username)
+    bool del_user(string username)
     {
         enum sql = text("DELETE FROM ", users_table, " WHERE username = ?;");
         query(sql, [username]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln("Removed user ", blue, username, norm);
+        return true;
     }
 
     string user_password_hash(string username)
@@ -548,16 +577,20 @@ final class Database
         return query(sql, [username])[0][0];
     }
 
-    void user_update_password(string username, string hash)
+    bool update_user_password(string username, string hash)
     {
         enum sql = text(
             "UPDATE ", users_table, " SET password = ? WHERE username = ?;"
         );
         query(sql, [hash, username]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln(
             "Updated user ", blue, username, norm, "'s password"
         );
+        return true;
     }
 
     bool user_exists(string username)
@@ -568,7 +601,7 @@ final class Database
         return query(sql, [username]).length > 0;
     }
 
-    void add_admin(string username, Duration duration)
+    bool add_admin(string username, Duration duration)
     {
         enum sql = text(
             "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
@@ -583,17 +616,26 @@ final class Database
 
         query(sql, [admin_until.text, username]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln("Added admin ", blue, username, norm);
+        return true;
     }
 
-    void del_admin(string username)
+    bool del_admin(string username)
     {
         enum sql = text(
-            "UPDATE ", users_table, " SET admin = ? WHERE username = ?;"
+            "UPDATE ", users_table, " SET admin = null",
+            " WHERE username = ? AND admin > 0;"
         );
-        query(sql, [null, username]);
+        query(sql, [username]);
+
+        if (changes() == 0)
+            return false;
 
         if (log_user) writeln("Removed admin ", blue, username, norm);
+        return true;
     }
 
     SysTime admin_until(string username)
@@ -618,7 +660,7 @@ final class Database
         return SysTime.fromUnixTime(admin_until, UTC());
     }
 
-    void add_user_privileges(string username, Duration duration)
+    bool add_user_privileges(string username, Duration duration)
     {
         enum sql = text(
             "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
@@ -631,21 +673,25 @@ final class Database
 
         query(sql, [privileged_until.text, username]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln(
-            "Added privileges to user ", blue, username, norm,
+            "Added privileges to user ", blue, username, norm
         );
+        return true;
     }
 
-    void remove_user_privileges(string username, Duration duration)
+    bool remove_user_privileges(string username, Duration duration)
     {
+        const now = Clock.currTime.toUnixTime;
         auto privileged_until = user_privileged_until(username).toUnixTime;
-        if (privileged_until <= 0)
-            return;
+        if (privileged_until <= now)
+            return false;
 
         enum sql = text(
             "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
         );
-        const now = Clock.currTime.toUnixTime;
         const seconds = duration.total!"seconds";
 
         if (privileged_until > now + seconds)
@@ -654,6 +700,9 @@ final class Database
             privileged_until = now;
 
         query(sql, [privileged_until.text, username]);
+
+        if (changes() == 0)
+            return false;
 
         if (log_user) {
             if (duration == Duration.max)
@@ -665,6 +714,7 @@ final class Database
                     "Removed some privileges from user ", blue, username, norm
                 );
         }
+        return true;
     }
 
     SysTime user_privileged_until(string username)
@@ -689,7 +739,7 @@ final class Database
         return SysTime.fromUnixTime(privileged_until, UTC());
     }
 
-    void ban_user(string username, Duration duration)
+    bool ban_user(string username, Duration duration)
     {
         enum sql = text(
             "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
@@ -704,17 +754,26 @@ final class Database
 
         query(sql, [banned_until.text, username]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln("Banned user ", blue, username, norm);
+        return true;
     }
 
-    void unban_user(string username)
+    bool unban_user(string username)
     {
         enum sql = text(
-            "UPDATE ", users_table, " SET banned = ? WHERE username = ?;"
+            "UPDATE ", users_table, " SET banned = null",
+            " WHERE username = ? AND banned > 0;"
         );
-        query(sql, [null, username]);
+        query(sql, [username]);
+
+        if (changes() == 0)
+            return false;
 
         if (log_user) writeln("Unbanned user ", blue, username, norm);
+        return true;
     }
 
     SysTime user_banned_until(string username)
@@ -765,7 +824,7 @@ final class Database
         return user_stats;
     }
 
-    void user_update_stats(string username, UserStats stats)
+    bool user_update_stats(string username, UserStats stats)
     {
         Appender!(string[]) fields;
         Appender!(string[]) parameters;
@@ -787,7 +846,7 @@ final class Database
         }
 
         if (fields[].length == 0)
-            return;
+            return false;
 
         const sql = text(
             "UPDATE ", users_table,
@@ -797,9 +856,13 @@ final class Database
         parameters ~= username;
         query(sql, parameters[]);
 
+        if (changes() == 0)
+            return false;
+
         if (log_user) writeln(
             "Updated user ", blue, username, norm, "'s stats"
         );
+        return true;
     }
 
     string[] usernames(string field = null, ulong min = 1,
@@ -834,18 +897,23 @@ final class Database
 
     // Rooms
 
-    void add_room(string room_name, string owner = null)
+    bool add_room(string room_name, string owner = null)
     {
         enum sql = text(
             "INSERT OR IGNORE INTO ", rooms_table,
             "(room, type, owner) VALUES(?, ?, ?);"
         );
         const type = (owner !is null) ? RoomType._private : RoomType._public;
-
         query(sql, [room_name, text(cast(int) type), owner]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln("DB: Added room ", blue, room_name, norm);
+        return true;
     }
 
-    void del_room(string room_name)
+    bool del_room(string room_name)
     {
         // Only remove public rooms with no tickers
         enum sql = text(
@@ -857,6 +925,12 @@ final class Database
             " );"
         );
         query(sql, [room_name, text(cast(int) RoomType._public), room_name]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln("DB: Removed room ", blue, room_name, norm);
+        return true;
     }
 
     RoomType get_room_type(string room_name)
@@ -1001,24 +1075,27 @@ final class Database
             return false;
 
         query(add_sql, [room_name, username, content]);
+        if (log_db) writeln(
+            "DB: Added user ", blue, username, norm, "'s ticker to room ",
+            blue, room_name, norm
+        );
         return true;
     }
 
     bool del_ticker(string room_name, string username)
     {
-        enum check_sql = text(
-            "SELECT 1 FROM ", tickers_table,
-            " WHERE room = ? AND username = ?;"
-        );
-        enum del_sql = text(
+        enum sql = text(
             "DELETE FROM ", tickers_table, " WHERE room = ? AND username = ?;"
         );
-        const res = query(check_sql, [room_name, username]);
+        query(sql, [room_name, username]);
 
-        if (res.length == 0)
+        if (changes() == 0)
             return false;
 
-        query(del_sql, [room_name, username]);
+        if (log_db) writeln(
+            "DB: Removed user ", blue, username, norm, "'s ticker from room ",
+            blue, room_name, norm
+        );
         return true;
     }
 
@@ -1208,6 +1285,12 @@ final class Database
             // Windows and macOS versions may lack newer options. Other
             // operations will proceed as usual.
             return;
+    }
+
+    @trusted
+    private int changes()
+    {
+        return sqlite3_changes(db);
     }
 
     @trusted

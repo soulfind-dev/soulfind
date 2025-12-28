@@ -252,7 +252,7 @@ final class CommandHandler
                 username = args[1 .. $].join(" ");
             }
 
-            if (!server.db.user_exists(username)) {
+            if (!server.db.ban_user(username, duration)) {
                 respond(
                     admin_username,
                     text("User ", username, " is not registered")
@@ -260,7 +260,6 @@ final class CommandHandler
                 break;
             }
 
-            server.db.ban_user(username, duration);
             server.del_user_pms(username);
             server.del_user_tickers!(RoomType.any)(username);
 
@@ -314,7 +313,8 @@ final class CommandHandler
                 username = args[1 .. $].join(" ");
             }
 
-            if (!server.db.user_exists(username)) {
+            auto user = server.get_user(username);
+            if (!server.db.ban_user(username, duration) && user is null) {
                 respond(
                     admin_username,
                     text("User ", username, " is not registered")
@@ -322,9 +322,6 @@ final class CommandHandler
                 break;
             }
 
-            server.db.ban_user(username, duration);
-
-            auto user = server.get_user(username);
             if (user !is null) user.disconnect();
 
             respond(

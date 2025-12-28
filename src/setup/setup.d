@@ -116,13 +116,7 @@ final class Setup
     private void add_admin()
     {
         write("\nAdmin to add: ");
-
         const username = input.strip;
-        if (!db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is not registered");
-            admins();
-            return;
-        }
 
         Duration duration;
         while (true) {
@@ -138,11 +132,14 @@ final class Setup
             }
         }
 
-        db.add_admin(username, duration);
-        writeln(
-            "\nMade ", blue, username, norm, " an admin until ",
-            db.admin_until(username).toSimpleString
-        );
+        if (db.add_admin(username, duration))
+            writeln(
+                "\nMade ", blue, username, norm, " an admin until ",
+                db.admin_until(username).toSimpleString
+            );
+        else
+            writeln("\nUser ", red, username, norm, " is not registered");
+
         admins();
     }
 
@@ -151,10 +148,8 @@ final class Setup
         write("\nAdmin to remove: ");
         const username = input.strip;
 
-        if (db.admin_until(username) > SysTime()) {
-            db.del_admin(username);
+        if (db.del_admin(username))
             writeln("\nUser ", blue, username, norm, " is no longer an admin");
-        }
         else
             writeln("\nUser ", red, username, norm, " is not an admin");
 
@@ -362,15 +357,11 @@ final class Setup
         write("User to filter: ");
         const username = input.strip;
 
-        if (!db.user_exists(username)) {
+        if (db.set_user_unsearchable(username))
+            writeln("\nFiltered user ", blue, username, norm);
+        else
             writeln("\nUser ", red, username, norm, " is not registered");
-            search_filters();
-            return;
-        }
 
-        db.set_user_unsearchable(username, true);
-
-        writeln("\nFiltered user ", blue, username, norm);
         search_filters();
     }
 
@@ -379,10 +370,8 @@ final class Setup
         write("\nUser to unfilter: ");
         const username = input.strip;
 
-        if (db.is_user_unsearchable(username)) {
-            db.set_user_unsearchable(username, false);
+        if (db.set_user_searchable(username))
             writeln("\nUnfiltered user ", blue, username, norm);
-        }
         else
             writeln("\nUser ", red, username, norm, " is not filtered");
 
@@ -396,8 +385,8 @@ final class Setup
         const phrase = input.split.join(" ").toLower;
 
         db.filter_search_phrase!type(phrase);
-
         writeln("\nFiltered phrase ", blue, phrase, norm, " ", stype, "-side");
+
         search_filters();
     }
 
@@ -407,12 +396,10 @@ final class Setup
         write("\nPhrase to unfilter ", stype, "-side: ");
         const phrase = input.split.join(" ").toLower;
 
-        if (db.is_search_phrase_filtered!type(phrase)) {
-            db.unfilter_search_phrase!type(phrase);
+        if (db.unfilter_search_phrase!type(phrase))
             writeln(
                 "\nUnfiltered phrase ", blue, phrase, norm, " ", stype, "-side"
             );
-        }
         else
             writeln(
                 "\nPhrase ", red, phrase, norm, " is not filtered ",
@@ -496,12 +483,6 @@ final class Setup
             return;
         }
 
-        if (db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is already registered");
-            registered_users();
-            return;
-        }
-
         string password;
         while (true) {
             write("Password: ");
@@ -513,9 +494,12 @@ final class Setup
 
         const salt = create_salt();
         const hash = hash_password(password, salt, pbkdf2_iterations);
-        db.add_user(username, hash);
 
-        writeln("\nAdded user ", blue, username, norm);
+        if (db.add_user(username, hash))
+            writeln("\nAdded user ", blue, username, norm);
+        else
+            writeln("\nUser ", red, username, norm, " is already registered");
+
         registered_users();
     }
 
@@ -523,12 +507,6 @@ final class Setup
     {
         write("\nUser to change password of: ");
         const username = input.strip;
-
-        if (!db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is not registered");
-            registered_users();
-            return;
-        }
 
         string password;
         while (true) {
@@ -541,9 +519,12 @@ final class Setup
 
         const salt = create_salt();
         const hash = hash_password(password, salt, pbkdf2_iterations);
-        db.user_update_password(username, hash);
 
-        writeln("\nChanged user ", blue, username, norm, "'s password");
+        if (db.update_user_password(username, hash))
+            writeln("\nChanged user ", blue, username, norm, "'s password");
+        else
+            writeln("\nUser ", red, username, norm, " is not registered");
+
         registered_users();
     }
 
@@ -691,10 +672,8 @@ final class Setup
         write("\nUser to remove: ");
         const username = input.strip;
 
-        if (db.user_exists(username)) {
-            db.del_user(username);
+        if (db.del_user(username))
             writeln("\nRemoved user ", blue, username, norm);
-        }
         else
             writeln("\nUser ", red, username, norm, " is not registered");
 
@@ -705,12 +684,6 @@ final class Setup
     {
         write("\nUser to grant privileges: ");
         const username = input.strip;
-
-        if (!db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is not registered");
-            registered_users();
-            return;
-        }
 
         Duration duration;
         while (true) {
@@ -726,12 +699,14 @@ final class Setup
             }
         }
 
-        db.add_user_privileges(username, duration);
+        if (db.add_user_privileges(username, duration))
+            writeln(
+                "Added ", duration.total!"days".days.toString,
+                " of privileges to user ", blue, username, norm
+            );
+        else
+            writeln("\nUser ", red, username, norm, " is not registered");
 
-        writeln(
-            "Added ", duration.total!"days".days.toString,
-            " of privileges to user ", blue, username, norm
-        );
         registered_users();
     }
 
@@ -739,12 +714,6 @@ final class Setup
     {
         write("\nUser to remove privileges from: ");
         const username = input.strip;
-
-        if (!db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is not registered");
-            registered_users();
-            return;
-        }
 
         Duration duration;
         while (true) {
@@ -767,9 +736,9 @@ final class Setup
             }
         }
 
-        db.remove_user_privileges(username, duration);
-
-        if (duration == Duration.max)
+        if (!db.remove_user_privileges(username, duration))
+            writeln("\nUser ", red, username, norm, " has no privileges");
+        else if (duration == Duration.max)
             writeln("Removed all privileges from user ", blue, username, norm);
         else
             writeln(
@@ -784,12 +753,6 @@ final class Setup
     {
         write("User to ban: ");
         const username = input.strip;
-
-        if (!db.user_exists(username)) {
-            writeln("\nUser ", red, username, norm, " is not registered");
-            registered_users();
-            return;
-        }
 
         Duration banned_until;
         while (true) {
@@ -810,9 +773,9 @@ final class Setup
             }
         }
 
-        db.ban_user(username, banned_until);
-
-        if (banned_until == Duration.max)
+        if (!db.ban_user(username, banned_until))
+            writeln("\nUser ", red, username, norm, " is not registered");
+        else if (banned_until == Duration.max)
             writeln("\nBanned user ", blue, username, norm, " forever");
         else
             writeln(
@@ -828,10 +791,8 @@ final class Setup
         write("\nUser to unban: ");
         const username = input.strip;
 
-        if (db.user_banned_until(username) > SysTime()) {
-            db.unban_user(username);
+        if (db.unban_user(username))
             writeln("\nUnbanned user ", blue, username, norm);
-        }
         else
             writeln("\nUser ", red, username, norm, " is not banned");
 
