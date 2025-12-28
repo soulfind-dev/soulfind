@@ -9,6 +9,7 @@ EXPORTS
     sqlite3_shutdown
     sqlite3_config
     sqlite3_db_config
+    sqlite3_changes
 
     sqlite3_open
     sqlite3_close
