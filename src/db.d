@@ -117,6 +117,8 @@ final class Database
         query("PRAGMA secure_delete = ON;");
         query("PRAGMA busy_timeout = 10000;");  // 10 seconds
 
+        if (log_db) check_integrity();
+
         enum users_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", users_table,
             "(username TEXT PRIMARY KEY,",
@@ -190,9 +192,6 @@ final class Database
             " ON ", rooms_table, "(owner, type);"
         );
 
-        foreach (ref problem ; query("PRAGMA integrity_check;"))
-            if (log_db) writeln("[DB] Check [", problem[0], "]");
-
         query(users_table_sql);
         query(rooms_table_sql);
         query(room_members_sql);
@@ -212,6 +211,30 @@ final class Database
         if (log_db) writeln("[DB] Shutting down...");
         close();
         shutdown();
+    }
+
+
+    // Integrity
+
+    private void check_integrity()
+    {
+        auto integrity_success = true;
+        writeln("[DB] Checking database integrity");
+
+        foreach (ref record ; query("PRAGMA integrity_check;")) {
+            const result = record[0];
+            if (result == "ok")
+                continue;
+
+            integrity_success = false;
+            writeln("[DB] Integrity issue detected: ", result);
+        }
+        foreach (ref record ; query("PRAGMA foreign_key_check;")) {
+            integrity_success = false;
+            writeln("[DB] Foreign key issue detected: ", record);
+        }
+
+        if (integrity_success) writeln("[DB] Database integrity verified");
     }
 
 
