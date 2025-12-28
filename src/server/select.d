@@ -288,7 +288,8 @@ final class PollSelector : Selector
         import core.sys.posix.poll;
     }
 
-    private pollfd[] pollfds;
+    private pollfd[]          pollfds;
+    private size_t[socket_t]  fd_idxs;
 
     this(Duration timeout)
     {
@@ -303,11 +304,14 @@ final class PollSelector : Selector
 
         const pfd = create_pollfd(fd, events);
 
-        if (is_registered)
-            pollfds[find_fd_idx(fd)] = pfd;
-        else
+        if (is_registered) {
+            const idx = fd_idxs[fd];
+            pollfds[idx] = pfd;
+        }
+        else {
+            fd_idxs[fd] = pollfds.length;
             pollfds ~= pfd;
-
+        }
         fd_events[fd] |= events;
     }
 
@@ -318,11 +322,16 @@ final class PollSelector : Selector
 
         fd_events[fd] &= ~events;
         const remaining_events = fd_events[fd];
-        size_t idx = find_fd_idx(fd);
+        const idx = fd_idxs[fd];
 
         if (remaining_events == 0) {
             fd_events.remove(fd);
+            fd_idxs.remove(fd);
+
             pollfds[idx] = pollfds[$ - 1];
+            const swapped_fd = cast(socket_t) pollfds[idx].fd;
+            if (swapped_fd != fd) fd_idxs[swapped_fd] = idx;
+
             pollfds.length--;
             return;
         }
@@ -365,14 +374,6 @@ final class PollSelector : Selector
         if (events & SelectEvent.write) pfd.events |= POLLOUT;
 
         return pfd;
-    }
-
-    private size_t find_fd_idx(socket_t fd)
-    {
-        foreach (i, ref pfd; pollfds)
-            if (pfd.fd == fd)
-                return i;
-        return size_t.max;
     }
 
     @trusted
