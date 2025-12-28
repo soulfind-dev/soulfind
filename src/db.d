@@ -128,7 +128,7 @@ final class Database
             " folders INTEGER,",
             " banned INTEGER,",
             " privileges INTEGER,",
-            " admin INTEGER",
+            " admin INTEGER,",
             " unsearchable INTEGER",
             ") WITHOUT ROWID;"
         );
