@@ -328,7 +328,8 @@ final class Database
     private void set_config_value(string option, string value)
     {
         enum sql = text(
-            "REPLACE INTO ", config_table, "(option, value) VALUES(?, ?);"
+            "INSERT INTO ", config_table, "(option, value) VALUES(?, ?)",
+            " ON CONFLICT(option) DO UPDATE SET value = excluded.value;"
         );
         query(sql, [option, value]);
 
@@ -408,7 +409,7 @@ final class Database
     bool filter_search_phrase(SearchFilterType type)(string phrase)
     {
         enum sql = text(
-            "REPLACE INTO ",
+            "INSERT OR IGNORE INTO ",
             search_filters_table, "(type, phrase) VALUES(?, ?);"
         );
         query(sql, [text(cast(uint) type), phrase]);
