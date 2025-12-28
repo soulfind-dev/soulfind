@@ -193,7 +193,6 @@ final class Database
         foreach (ref problem ; query("PRAGMA integrity_check;"))
             if (log_db) writeln("[DB] Check [", problem[0], "]");
 
-        query("PRAGMA optimize=0x10002;");  // =all tables
         query(users_table_sql);
         query(rooms_table_sql);
         query(room_members_sql);
@@ -204,6 +203,8 @@ final class Database
         query(rooms_owner_type_index_sql);
         add_new_columns();
         init_config();
+
+        query("PRAGMA optimize=0x10002;");  // =all tables
     }
 
     ~this()
