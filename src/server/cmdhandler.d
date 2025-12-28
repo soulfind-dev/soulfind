@@ -346,7 +346,7 @@ final class CommandHandler
                     break;
                 }
             }
-            User[] users_to_kick;
+            Appender!(User[]) users_to_kick;
             foreach (ref user ; server.connected_users)
                 if (user.username != admin_username)
                     users_to_kick ~= user;

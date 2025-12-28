@@ -248,7 +248,7 @@ final class Server
 
     void del_user_pms(string username, bool include_received = false)
     {
-        PM[] pms_to_remove;
+        Appender!(PM[]) pms_to_remove;
         foreach (ref pm ; pms) {
             if (pm.from_username == username
                     || (include_received && pm.to_username == username))
@@ -387,20 +387,19 @@ final class Server
     private Recommendation[] filter_recommendations(
         int[string] recommendations, size_t max_length, bool ascending = false)
     {
-        Recommendation[] filtered_recommendations;
+        Appender!(Recommendation[]) filtered_recommendations;
         foreach (ref item, ref rating ; recommendations)
             if (rating != 0)
                 filtered_recommendations ~= Recommendation(item, rating);
 
-        filtered_recommendations.sort!(
+        filtered_recommendations[].sort!(
             (ref a, ref b)
             => ascending ? a.rating < b.rating : a.rating > b.rating
         );
-
         if (filtered_recommendations.length > max_length)
-            filtered_recommendations.length = max_length;
+            return filtered_recommendations[][0 .. max_length];
 
-        return filtered_recommendations;
+        return filtered_recommendations[];
     }
 
 

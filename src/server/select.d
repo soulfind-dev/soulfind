@@ -5,6 +5,7 @@
 module soulfind.server.select;
 @safe:
 
+import std.array : Appender;
 import std.datetime : Duration;
 import std.socket : socket_t;
 
@@ -288,7 +289,7 @@ final class PollSelector : Selector
         import core.sys.posix.poll;
     }
 
-    private pollfd[]               pollfds;
+    private Appender!(pollfd[]) pollfds;
 
     this(Duration timeout)
     {
@@ -304,7 +305,7 @@ final class PollSelector : Selector
         const pfd = create_pollfd(fd, events);
 
         if (is_registered)
-            pollfds[find_fd_idx(fd)] = pfd;
+            pollfds[][find_fd_idx(fd)] = pfd;
         else
             pollfds ~= pfd;
 
@@ -322,11 +323,11 @@ final class PollSelector : Selector
 
         if (remaining_events == 0) {
             fd_events.remove(fd);
-            pollfds[idx] = pollfds[$ - 1];
-            pollfds.length--;
+            pollfds[][idx] = pollfds[][$ - 1];
+            pollfds[].length--;
             return;
         }
-        pollfds[idx] = create_pollfd(fd, remaining_events);
+        pollfds[][idx] = create_pollfd(fd, remaining_events);
     }
 
     override ReadyFD[] select()
@@ -379,7 +380,7 @@ final class PollSelector : Selector
     private int wait()
     {
         return poll(
-            pollfds.ptr, cast(uint) pollfds.length,
+            pollfds[].ptr, cast(uint) pollfds.length,
             cast(int) timeout.total!"msecs"
         );
     }

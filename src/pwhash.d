@@ -6,6 +6,7 @@ module soulfind.pwhash;
 @safe:
 
 import std.algorithm.iteration : splitter;
+import std.array : Appender;
 import std.bitmanip : nativeToBigEndian;
 import std.conv : ConvException, text, to;
 import std.digest : LetterCase, secureEqual, toHexString;
@@ -128,8 +129,8 @@ void verify_password_async(string hash, string password,
 
 void process_password_tasks()
 {
-    HashCallback[]    hash_password_tasks_to_remove;
-    VerifyCallback[]  verify_password_tasks_to_remove;
+    Appender!(HashCallback[])    hash_password_tasks_to_remove;
+    Appender!(VerifyCallback[])  verify_password_tasks_to_remove;
 
     foreach (ref callback, ref task ; hash_password_tasks) {
         if (!task.done)

@@ -14,6 +14,7 @@ import soulfind.server.msghandler : MessageHandler;
 import soulfind.server.select : DefaultSelector, SelectEvent, Selector;
 import soulfind.server.server : Server;
 import soulfind.server.user : User;
+import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : MonoTime, msecs;
 import std.socket : InternetAddress, parseAddress, Socket, socket_t,
@@ -89,7 +90,7 @@ final class UserConnections
 
             // Check expired login attempts and unsearchable users
             if ((current_time - last_user_check) >= user_check_interval) {
-                User[] expired_users;
+                Appender!(User[]) expired_users;
                 foreach (ref user ; sock_users)
                     if (user.login_timed_out(current_time))
                         expired_users ~= user;
