@@ -115,6 +115,7 @@ final class Database
         query("PRAGMA synchronous = NORMAL;");
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
+        query("PRAGMA busy_timeout = 10000;");  // 10 seconds
 
         enum users_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", users_table,
