@@ -82,9 +82,11 @@ final class Room
         return (username in users) ? true : false;
     }
 
-    bool is_member(string username)
+    bool can_access(string username)
     {
-        return is_joined(username) || db.is_room_member(name, username);
+        return type != RoomType._private
+            || is_joined(username)
+            || db.can_access_room(name, username);
     }
 
     size_t num_users()

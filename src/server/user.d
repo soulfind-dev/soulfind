@@ -604,13 +604,7 @@ final class User
         const owner = (type == RoomType._private) ? username : null;
         auto room = server.add_room(room_name, owner);
 
-        if (room.type == RoomType._public && type == RoomType._private) {
-            server.send_pm(
-            	server_username, username,
-                text("Room (", room_name, ") is registered as public.")
-            );
-        }
-        else if (room.type == RoomType._private && !room.is_member(username)) {
+        if (!room.can_access(username)) {
             scope response_msg = new SCantCreateRoom(room_name);
             send_message(response_msg);
             server.send_pm(
@@ -621,6 +615,13 @@ final class User
                 )
             );
             return;
+        }
+
+        if (room.type == RoomType._public && type == RoomType._private) {
+            server.send_pm(
+                server_username, username,
+                text("Room (", room_name, ") is registered as public.")
+            );
         }
 
         joined_rooms[room_name] = room;

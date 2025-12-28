@@ -114,7 +114,7 @@ final class Server
         if (room is null)
             return;
 
-        if (room.type == RoomType._private && !room.is_member(username))
+        if (!room.can_access(username))
             return;
 
         if (db.is_search_query_filtered(query))
@@ -479,11 +479,13 @@ final class Server
         if (actor == target)
             return;
 
+        RoomMemberType actor_type;
         const owner = db.get_room_owner(room_name);
-        const room_member_type = db.get_room_member_type(room_name, actor);
-
-        if (actor != owner && room_member_type != RoomMemberType.operator)
-            return;
+        if (actor != owner) {
+            actor_type = db.get_room_member_type(room_name, actor);
+            if (actor_type != RoomMemberType.operator)
+                return;
+        }
 
         auto target_user = get_user(target);
         if (target_user is null) {
@@ -506,7 +508,7 @@ final class Server
             return;
         }
 
-        if (owner == target) {
+        if (target == owner) {
             send_pm(
                 server_username, actor,
                 text(
@@ -517,8 +519,7 @@ final class Server
             return;
         }
 
-        if (db.get_room_member_type(
-                room_name, target) != RoomMemberType.non_existent) {
+        if (!db.add_room_member(room_name, target)) {
             send_pm(
                 server_username, actor,
                 text(
@@ -528,8 +529,6 @@ final class Server
             );
             return;
         }
-
-        db.add_room_member!(RoomMemberType.normal)(room_name, target);
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -552,7 +551,7 @@ final class Server
             )
         );
 
-        if (room_member_type == RoomMemberType.operator)
+        if (actor_type == RoomMemberType.operator)
             send_pm(
                 server_username, owner,
                 text(
@@ -565,29 +564,17 @@ final class Server
 
     void cancel_room_membership(string room_name, string actor, string target)
     {
-        const target_type = db.get_room_member_type(room_name, target);
-        if (target_type == RoomMemberType.non_existent)
-            return;
+        cancel_room_operatorship(room_name, actor, target);
 
         const owner = db.get_room_owner(room_name);
-        if (actor != target) {
-            if (target == owner)
+        if (actor != target && actor != owner) {
+            const actor_type = db.get_room_member_type(room_name, actor);
+            if (actor_type != RoomMemberType.operator)
                 return;
-
-            if (actor != owner) {
-                if (target_type == RoomMemberType.operator)
-                    return;
-
-                const actor_type = db.get_room_member_type(room_name, actor);
-                if (actor_type != RoomMemberType.operator)
-                    return;
-            }
         }
 
-        if (target_type == RoomMemberType.operator)
-            cancel_room_operatorship(room_name, actor, target);
-
-        db.del_room_member(room_name, target);
+        if (!db.del_room_member(room_name, target))
+            return;
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -632,30 +619,17 @@ final class Server
             return;
         }
 
-        const target_type = db.get_room_member_type(room_name, target);
-        if (target_type == RoomMemberType.non_existent) {
-            send_pm(
-                server_username, actor,
-                text(
-                    "user ", target, " must first be a member of room ",
-                    room_name
-                )
+        if (!db.grant_room_operatorship(room_name, target)) {
+            const target_type = db.get_room_member_type(room_name, target);
+            const message = text(
+                "user ", target,
+                target_type == RoomMemberType.operator
+                    ? " is already an operator of room "
+                    : " must first be a member of room ", room_name
             );
+            send_pm(server_username, actor, message);
             return;
         }
-
-        if (target_type == RoomMemberType.operator) {
-            send_pm(
-                server_username, actor,
-                text(
-                    "user ", target, " is already an operator of room ",
-                    room_name
-                )
-            );
-            return;
-        }
-
-        db.add_room_member!(RoomMemberType.operator)(room_name, target);
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -680,15 +654,12 @@ final class Server
     void cancel_room_operatorship(string room_name, string actor,
                                   string target)
     {
-        const target_type = db.get_room_member_type(room_name, target);
-        if (target_type != RoomMemberType.operator)
-            return;
-
         const owner = db.get_room_owner(room_name);
-        if (actor != owner && actor != target)
+        if (actor != target && actor != owner)
             return;
 
-        db.add_room_member!(RoomMemberType.normal)(room_name, target);
+        if (!db.revoke_room_operatorship(room_name, target))
+            return;
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);

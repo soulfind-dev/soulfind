@@ -965,27 +965,6 @@ final class Database
         return RoomType.non_existent;
     }
 
-    string get_room_owner(string room_name)
-    {
-        enum sql = text(
-            "SELECT owner FROM ", rooms_table, " WHERE room = ? AND type = ?;"
-        );
-        const res = query(sql, [room_name, text(cast(int) RoomType._private)]);
-        return res.length > 0 ? res[0][0] : null;
-    }
-
-    bool is_room_member(string room_name, string username)
-    {
-        enum sql = text(
-            "SELECT 1 FROM ", rooms_table, " WHERE room = ? AND owner = ?",
-            " UNION ALL ",
-            "SELECT 1 FROM ", room_members_table,
-            " WHERE room = ? AND username = ?;"
-        );
-        const res = query(sql, [room_name, username, room_name, username]);
-        return res.length > 0;
-    }
-
     string[] rooms(string owner = null,
                    string member = null,
                    RoomMemberType member_type = RoomMemberType.any)
@@ -1020,26 +999,102 @@ final class Database
         return rooms[];
     }
 
-    void add_room_member(RoomMemberType type)(string room_name,
-                                              string username)
+    bool add_room_member(string room_name, string username)
     {
-        if (type < 0)
-            return;
-
         enum sql = text(
-            "REPLACE INTO ", room_members_table,
+            "INSERT OR IGNORE INTO ", room_members_table,
             "(room, username, type) VALUES(?, ?, ?);"
         );
-        query(sql, [room_name, username, text(cast(int) type)]);
+        enum type = text(cast(int) RoomMemberType.normal);
+        query(sql, [room_name, username, type]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Added member ", blue, username, norm, " to room ",
+            blue, room_name, norm
+        );
+        return true;
     }
 
-    void del_room_member(string room_name, string username)
+    bool del_room_member(string room_name, string username)
     {
         enum sql = text(
             "DELETE FROM ", room_members_table,
+            " WHERE room = ? AND username = ? AND type != ?;"
+        );
+        enum type = text(cast(int) RoomMemberType.operator);
+        query(sql, [room_name, username, type]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Removed member ", blue, username, norm, " from room ",
+            blue, room_name, norm
+        );
+        return true;
+    }
+
+    bool grant_room_operatorship(string room_name, string username)
+    {
+        enum sql = text(
+            "UPDATE ", room_members_table, " SET type = ?",
+            " WHERE room = ? AND username = ? AND type != ?;"
+        );
+        enum type = text(cast(int) RoomMemberType.operator);
+        query(sql, [type, room_name, username, type]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Granted user ", blue, username, norm,
+            " operatorship in room ", blue, room_name, norm
+        );
+        return true;
+    }
+
+    bool revoke_room_operatorship(string room_name, string username)
+    {
+        enum sql = text(
+            "UPDATE ", room_members_table, " SET type = ?",
+            " WHERE room = ? AND username = ? AND type = ?;"
+        );
+        enum new_type = text(cast(int) RoomMemberType.normal);
+        enum old_type = text(cast(int) RoomMemberType.operator);
+        query(sql, [new_type, room_name, username, old_type]);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Revoked user ", blue, username, norm,
+            "'s operatorship in room ", blue, room_name, norm
+        );
+        return true;
+    }
+
+    bool can_access_room(string room_name, string username)
+    {
+        enum sql = text(
+            "SELECT 1 FROM ", rooms_table, " WHERE room = ? AND owner = ?",
+            " UNION ALL ",
+            "SELECT 1 FROM ", room_members_table,
             " WHERE room = ? AND username = ?;"
         );
-        query(sql, [room_name, username]);
+        const res = query(sql, [room_name, username, room_name, username]);
+        return res.length > 0;
+    }
+
+    string get_room_owner(string room_name)
+    {
+        enum sql = text(
+            "SELECT owner FROM ", rooms_table, " WHERE room = ? AND type = ?;"
+        );
+        const res = query(sql, [room_name, text(cast(int) RoomType._private)]);
+        return res.length > 0 ? res[0][0] : null;
     }
 
     RoomMemberType get_room_member_type(string room_name, string username)
