@@ -684,15 +684,15 @@ final class Database
     bool add_user_privileges(string username, Duration duration)
     {
         enum sql = text(
-            "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
+            "UPDATE ", users_table,
+            " SET privileges = CASE",
+            "  WHEN CAST(privileges AS INTEGER) > ? THEN privileges ELSE ?",
+            " END + ?",
+            " WHERE username = ?;"
         );
-        auto privileged_until = user_privileged_until(username).toUnixTime;
-        const now = Clock.currTime.toUnixTime;
-
-        if (privileged_until < now) privileged_until = now;
-        privileged_until += duration.total!"seconds";
-
-        query(sql, [privileged_until.text, username]);
+        const now = Clock.currTime.toUnixTime.text;
+        const seconds = duration.total!"seconds".text;
+        query(sql, [now, now, seconds, username]);
 
         if (changes() == 0)
             return false;
@@ -705,22 +705,16 @@ final class Database
 
     bool remove_user_privileges(string username, Duration duration)
     {
-        const now = Clock.currTime.toUnixTime;
-        auto privileged_until = user_privileged_until(username).toUnixTime;
-        if (privileged_until <= now)
-            return false;
-
         enum sql = text(
-            "UPDATE ", users_table, " SET privileges = ? WHERE username = ?;"
+            "UPDATE ", users_table,
+            " SET privileges = CASE",
+            "  WHEN privileges > ? + ? THEN privileges - ? ELSE ?",
+            " END ",
+            " WHERE username = ? AND CAST(privileges AS INTEGER) > ?;"
         );
-        const seconds = duration.total!"seconds";
-
-        if (privileged_until > now + seconds)
-            privileged_until -= seconds;
-        else
-            privileged_until = now;
-
-        query(sql, [privileged_until.text, username]);
+        const now = Clock.currTime.toUnixTime.text;
+        const seconds = duration.total!"seconds".text;
+        query(sql, [now, seconds, seconds, now, username, now]);
 
         if (changes() == 0)
             return false;
