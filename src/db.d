@@ -115,7 +115,7 @@ final class Database
         query("PRAGMA synchronous = NORMAL;");
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
-        query("PRAGMA busy_timeout = 10000;");  // 10 seconds
+        query("PRAGMA busy_timeout = 5000;");  // 5 seconds
 
         if (log_db) check_integrity();
 
