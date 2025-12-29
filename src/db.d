@@ -485,7 +485,7 @@ final class Database
     {
         enum sql = text(
             "UPDATE ", users_table, " SET unsearchable = null",
-            " WHERE username = ? AND unsearchable > 0;"
+            " WHERE username = ? AND CAST(unsearchable AS INTEGER) > 0;"
         );
         query(sql, [username]);
 
@@ -653,7 +653,7 @@ final class Database
     {
         enum sql = text(
             "UPDATE ", users_table, " SET admin = null",
-            " WHERE username = ? AND admin > 0;"
+            " WHERE username = ? AND CAST(admin AS INTEGER) > 0;"
         );
         query(sql, [username]);
 
@@ -793,7 +793,7 @@ final class Database
     {
         enum sql = text(
             "UPDATE ", users_table, " SET banned = null",
-            " WHERE username = ? AND banned > 0;"
+            " WHERE username = ? AND CAST(banned AS INTEGER) > 0;"
         );
         query(sql, [username]);
 
