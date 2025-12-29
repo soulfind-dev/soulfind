@@ -291,7 +291,7 @@ final class Database
         }
 
         const tmp_filename = normalized_filename ~ ".tmp";
-        enum sql = text("VACUUM INTO ?");
+        enum sql = text("VACUUM INTO ?;");
 
         try {
             if (exists(tmp_filename)) remove(tmp_filename);
@@ -524,7 +524,8 @@ final class Database
         // For each filtered phrase, check if its words are present anywhere
         // in the search query
         enum insert_sql = text(
-            "REPLACE INTO ", search_query_table, "(rowid, query) VALUES (1, ?)"
+            "REPLACE INTO ", search_query_table,
+            "(rowid, query) VALUES (1, ?);"
         );
         enum query_sql = text(
             "SELECT 1",
@@ -986,7 +987,7 @@ final class Database
             "SELECT 1 FROM ", rooms_table, " WHERE room = ? AND owner = ?",
             " UNION ALL ",
             "SELECT 1 FROM ", room_members_table,
-            " WHERE room = ? AND username = ?"
+            " WHERE room = ? AND username = ?;"
         );
         const res = query(sql, [room_name, username, room_name, username]);
         return res.length > 0;
