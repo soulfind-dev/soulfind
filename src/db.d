@@ -116,6 +116,7 @@ final class Database
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
         query("PRAGMA busy_timeout = 5000;");  // 5 seconds
+        query("PRAGMA temp_store = MEMORY;");
 
         if (log_db) check_integrity();
 
@@ -942,11 +943,12 @@ final class Database
             "DELETE FROM ", rooms_table,
             " WHERE room = ? AND (",
             "  type != ? OR NOT EXISTS (",
-            "   SELECT 1 FROM ", tickers_table, " WHERE room = ?",
+            "   SELECT 1 FROM ", tickers_table,
+            "   WHERE room = ", rooms_table, ".room",
             "  )",
             " );"
         );
-        query(sql, [room_name, text(cast(int) RoomType._public), room_name]);
+        query(sql, [room_name, text(cast(int) RoomType._public)]);
 
         if (changes() == 0)
             return false;
@@ -1121,13 +1123,13 @@ final class Database
         return true;
     }
 
-    void del_user_tickers(RoomType type)(string username)
+    bool del_user_tickers(RoomType type)(string username)
     {
         auto sql = text(
-            "DELETE FROM ", tickers_table,
-            " WHERE username = ? AND room IN (",
-            "  SELECT r.room FROM ", rooms_table, " r",
-            "  WHERE r.room = ", tickers_table, ".room"
+            "WITH tickers_to_delete AS (",
+            " SELECT t.rowid FROM ", tickers_table, " t",
+            " JOIN ", rooms_table, " r ON t.room = r.room",
+            " WHERE t.username = ?"
         );
         auto parameters = [username];
 
@@ -1135,9 +1137,20 @@ final class Database
             sql ~= " AND r.type = ?";
             parameters ~= [text(cast(int) type)];
         }
-        sql ~= ");";
+        sql ~= text(
+            ") DELETE FROM ", tickers_table,
+            " WHERE rowid IN (SELECT rowid FROM tickers_to_delete);"
+        );
 
         query(sql, parameters);
+
+        if (changes() == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Removed user ", blue, username, norm, "'s tickers"
+        );
+        return true;
     }
 
     string del_oldest_ticker(string room_name)
