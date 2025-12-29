@@ -400,16 +400,15 @@ final class Database
         bool private_mode = default_private_mode;
         const config_value = get_config_value("private_mode");
 
-        if (config_value !is null)
-            try private_mode = cast(bool) config_value.to!ubyte;
-            catch (ConvException) {}
+        if (config_value == "0")       private_mode = false;
+        else if (config_value == "1")  private_mode = true;
 
         return private_mode;
     }
 
     void set_server_private_mode(bool private_mode)
     {
-        set_config_value("private_mode", private_mode.to!ubyte.text);
+        set_config_value("private_mode", private_mode ? "1" : "0");
     }
 
     string server_motd()
@@ -552,16 +551,11 @@ final class Database
     bool is_user_unsearchable(string username)
     {
         enum sql = text(
-            "SELECT unsearchable FROM ", users_table, " WHERE username = ?;"
+            "SELECT 1 FROM ", users_table,
+            " WHERE username = ? AND unsearchable = 1;"
         );
         const res = query(sql, [username]);
-        bool unsearchable;
-
-        if (res.length > 0)
-            try unsearchable = cast(bool) res[0][0].to!ubyte;
-            catch (ConvException) {}
-
-        return unsearchable;
+        return res.length > 0;
     }
 
 
