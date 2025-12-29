@@ -15,7 +15,7 @@ import soulfind.server.server : Server;
 import soulfind.server.user : User;
 import std.array : array;
 import std.conv : text;
-import std.datetime : Clock, SysTime;
+import std.datetime : Clock, seconds, SysTime;
 import std.socket : InternetAddress;
 import std.stdio : writeln;
 
@@ -562,18 +562,20 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            auto target_user = server.get_user(msg.username);
-            if (target_user is null)
+            const duration = (
+                msg.duration < user.privileges
+                ? msg.duration : user.privileges
+            );
+            if (duration == 0.seconds)
                 break;
-
-            const duration = msg.duration;
-            if (duration.total!"days" < 1 || duration > user.privileges)
-                break;
-
-            server.db.add_user_privileges(msg.username, duration);
-            target_user.refresh_privileges();
 
             server.db.remove_user_privileges(user.username, duration);
+            server.db.add_user_privileges(msg.username, duration);
+
+            auto target_user = server.get_user(msg.username);
+            if (target_user !is null)
+                target_user.refresh_privileges();
+
             user.refresh_privileges();
             break;
 
