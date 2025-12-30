@@ -7,7 +7,7 @@ module soulfind.setup;
 @safe:
 
 import soulfind.cli : CommandOption, parse_args, print_help, print_version;
-import soulfind.defines : default_db_filename, exit_message;
+import soulfind.defines : default_db_filename, exit_message, log_db;
 import soulfind.setup.setup : Setup;
 import std.conv : text;
 import std.stdio : writeln;
@@ -16,6 +16,7 @@ int run(string[] args)
 {
     string  db_filename = default_db_filename;
     string  db_backup_filename;
+    bool    enable_debug;
     bool    show_version;
     bool    show_help;
 
@@ -31,6 +32,10 @@ int run(string[] args)
                 "Back up database to file path."
             ), "path",
             (value) { db_backup_filename = value; }
+        ),
+        CommandOption(
+            "", "debug", "Enable debug logging.", null,
+            (_) { enable_debug = true; }
         ),
         CommandOption(
             "v", "version", "Show version.", null,
@@ -58,6 +63,8 @@ int run(string[] args)
         print_help("Soulfind server management tool", options);
         return 0;
     }
+
+    if (enable_debug) log_db = true;
 
     int exit_code;
     auto setup = new Setup(db_filename);

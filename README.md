@@ -112,6 +112,10 @@ Enable detailed debug logging by providing the `--debug` flag:
 soulfind --debug
 ```
 
+```
+soulsetup --debug
+```
+
 
 ## Authors
 
