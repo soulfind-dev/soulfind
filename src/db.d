@@ -114,10 +114,12 @@ final class Database
 
         query("PRAGMA journal_mode = WAL;");
         query("PRAGMA synchronous = NORMAL;");
+        query("PRAGMA temp_store = MEMORY;");
         query("PRAGMA foreign_keys = ON;");
         query("PRAGMA secure_delete = ON;");
         query("PRAGMA busy_timeout = 5000;");  // 5 seconds
-        query("PRAGMA temp_store = MEMORY;");
+        query("PRAGMA page_size = 4096;");
+        query("PRAGMA wal_autocheckpoint = 5000;");
 
         if (log_db) check_integrity();
 
