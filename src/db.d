@@ -1121,7 +1121,7 @@ final class Database
     bool del_user_tickers(RoomType type)(string username)
     {
         auto sql = text(
-            "WITH tickers_to_delete AS (",
+            "DELETE FROM ", tickers_table, " WHERE rowid IN (",
             " SELECT t.rowid FROM ", tickers_table, " t",
             " JOIN ", rooms_table, " r ON t.room = r.room",
             " WHERE t.username = ?"
@@ -1132,10 +1132,7 @@ final class Database
             sql ~= " AND r.type = ?";
             parameters ~= [text(cast(int) type)];
         }
-        sql ~= text(
-            ") DELETE FROM ", tickers_table,
-            " WHERE rowid IN (SELECT rowid FROM tickers_to_delete);"
-        );
+        sql ~= ");";
 
         query(sql, parameters);
 
@@ -1179,8 +1176,7 @@ final class Database
         Appender!(RoomTicker[]) tickers;
         enum sql = text(
             "SELECT username, content FROM ", tickers_table,
-            " WHERE room = ?",
-            " ORDER BY rowid;"
+            " WHERE room = ?"
         );
 
         const res = query(sql, [room_name]);
@@ -1205,7 +1201,7 @@ final class Database
             sql ~= " AND r.type = ?";
             parameters ~= [text(cast(int) type)];
         }
-        sql ~= " ORDER BY t.rowid;";
+        sql ~= ";";
 
         const res = query(sql, parameters);
         foreach (ref record ; res) {
