@@ -209,11 +209,16 @@ class UMessage
             static if (is(T : string)) {
                 if (size > 0) {
                     const(ubyte)[] bytes = in_buf[offset .. offset + size];
-                    value = cast(T) bytes.idup;  // UTF-8
                     offset += size;
 
                     try {
-                        value.validate;
+                        @trusted
+                        static string decode_utf8(const(ubyte)[] bytes) {
+                            const value = cast(string) bytes;
+                            value.validate();
+                            return value;
+                        }
+                        value = decode_utf8(bytes);
                     }
                     catch (UTFException) {
                         // Latin-1 fallback
