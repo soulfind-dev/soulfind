@@ -8,8 +8,7 @@ module soulfind.server.room;
 
 import soulfind.db : Database;
 import soulfind.defines : blue, log_msg, max_chat_message_length,
-                          max_room_ticker_length, max_room_tickers, norm,
-                          RoomTicker, RoomType;
+                          max_room_ticker_length, norm, RoomTicker, RoomType;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
@@ -148,31 +147,15 @@ final class Room
         enum permanent = false;
         del_ticker(username, permanent);
 
-        if (num_tickers >= max_room_tickers)
-            del_oldest_ticker ();
-
         scope msg = new SRoomTickerAdd(name, username, content);
         send_to_all(msg);
+
+        db.del_excessive_tickers(name);
     }
 
     void del_ticker(string username, bool permanent = true)
     {
         if (permanent && !db.del_ticker(name, username))
-            return;
-
-        scope msg = new SRoomTickerRemove(name, username);
-        send_to_all(msg);
-    }
-
-    ulong num_tickers()
-    {
-        return db.num_room_tickers(name);
-    }
-
-    private void del_oldest_ticker()
-    {
-        const username = db.del_oldest_ticker(name);
-        if (username is null)
             return;
 
         scope msg = new SRoomTickerRemove(name, username);

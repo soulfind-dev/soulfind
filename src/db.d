@@ -7,8 +7,9 @@ module soulfind.db;
 @safe:
 
 import soulfind.defines : blue, default_max_users, default_motd, default_port,
-                          default_private_mode, log_db, norm, RoomMemberType,
-                          RoomTicker, RoomType, SearchFilterType, UserStats;
+                          default_private_mode, log_db, max_room_tickers, norm,
+                          RoomMemberType, RoomTicker, RoomType,
+                          SearchFilterType, UserStats;
 import std.array : Appender;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime, UTC;
@@ -1147,19 +1148,30 @@ final class Database
         return true;
     }
 
-    string del_oldest_ticker(string room_name)
+    bool del_excessive_tickers(string room_name)
     {
-        enum sql = text(
-            "SELECT username FROM ", tickers_table, " WHERE room = ? LIMIT 1;"
-        );
-        const res = query(sql, [room_name]);
-        string username;
+        if (num_room_tickers(room_name) <= max_room_tickers)
+            return false;
 
-        if (res.length > 0) {
-            username = res[0][0];
-            del_ticker(room_name, username);
-        }
-        return username;
+        enum sql = text(
+            "DELETE FROM ", tickers_table, " WHERE rowid IN (",
+            " SELECT rowid FROM ", tickers_table,
+            " WHERE room = ?",
+            " ORDER BY rowid DESC",
+            " LIMIT -1 OFFSET ?",
+            ");",
+        );
+        query(sql, [room_name, max_room_tickers.text]);
+
+        const num_deleted = changes();
+        if (num_deleted == 0)
+            return false;
+
+        if (log_db) writeln(
+            "[DB] Removed ", num_deleted.text, " excessive tickers from room ",
+            blue, room_name, norm
+        );
+        return true;
     }
 
     RoomTicker[] room_tickers(string room_name)
