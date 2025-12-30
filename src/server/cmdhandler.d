@@ -730,7 +730,7 @@ final class CommandHandler
             foreach (pm ; pms) {
                 const id = pm.id;
                 const to_username = pm.to_username;
-                const timestamp = pm.time.toISOExtString(0);
+                const timestamp = pm.time.toISOExtString;
                 const message = pm.message;
 
                 if (!first) output ~= ",";

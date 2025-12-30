@@ -396,7 +396,7 @@ final class Server
             (ref a, ref b)
             => ascending ? a.rating < b.rating : a.rating > b.rating
         );
-        if (filtered_recommendations.length > max_length)
+        if (filtered_recommendations[].length > max_length)
             return filtered_recommendations[][0 .. max_length];
 
         return filtered_recommendations[];
