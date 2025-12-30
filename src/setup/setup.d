@@ -16,7 +16,7 @@ import std.compiler : name, version_major, version_minor;
 import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, SysTime;
 import std.stdio : readln, StdioException, stdout, write, writeln;
-import std.string : chomp, join, split, strip, toLower;
+import std.string : chomp, join, replace, split, strip, toLower;
 
 struct MenuItem
 {
@@ -606,23 +606,43 @@ final class Setup
             return;
         }
 
+        enum quot = "\"";
+        enum d_quot = "\"\"";
+        enum j_quot = "\", \"";
+
         const admin_until = db.admin_until(username);
         auto admin = (admin_until > SysTime())
-            ? text("\"", admin_until.toISOExtString, "\"") : "null";
+            ? text(quot, admin_until.toISOExtString, quot)
+            : "null";
+
         const banned_until = db.user_banned_until(username);
         auto banned = (banned_until > SysTime())
-            ? text("\"", banned_until.toISOExtString, "\"") : "null";
+            ? text(quot, banned_until.toISOExtString, quot)
+            : "null";
+
         const privileged_until = db.user_privileged_until(username);
         auto privileged = (privileged_until > SysTime())
-            ? text("\"", privileged_until.toISOExtString, "\"") : "null";
+            ? text(quot, privileged_until.toISOExtString, quot)
+            : "null";
+
         const supporter = (privileged_until > SysTime()) ? "true" : "false";
-        const searchable = db.is_user_unsearchable(username)
-            ? "false" : "true";
-        const private_rooms_owner = db.rooms(username);
-        const private_rooms_member = db.rooms(null, username);
-        const private_rooms_op = db.rooms(
-            null, username, RoomMemberType.operator
+        const searchable = (
+            db.is_user_unsearchable(username) ? "false" : "true"
         );
+
+        const rooms_owner = text(
+            quot, db.rooms(username).join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const rooms_member = text(
+            quot, db.rooms(null, username).join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const rooms_operator = text(
+            quot, db.rooms(null, username, RoomMemberType.operator)
+            .join(j_quot), quot
+        ).replace(d_quot, "");
+
         const tickers = db.user_tickers!(RoomType.any)(username);
 
         Appender!string output;
@@ -639,9 +659,9 @@ final class Setup
             "\n        \"num_files\": ", stats.shared_files, ",",
             "\n        \"num_folders\": ", stats.shared_folders, ",",
             "\n        \"upload_speed\": ", stats.upload_speed, ",",
-            "\n        \"private_rooms_owner\": ", private_rooms_owner, ",",
-            "\n        \"private_rooms_member\": ", private_rooms_member, ",",
-            "\n        \"private_rooms_operator\": ", private_rooms_op, ",",
+            "\n        \"private_rooms_owner\": [", rooms_owner, "],",
+            "\n        \"private_rooms_member\": [", rooms_member, "],",
+            "\n        \"private_rooms_operator\": [", rooms_operator, "],",
             "\n        \"room_tickers\": {",
         );
 
@@ -779,8 +799,8 @@ final class Setup
             writeln("\nBanned user ", blue, username, norm, " forever");
         else
             writeln(
-                "\nBanned user ", blue, username, norm, " until ",
-                banned_until
+                "\nBanned user ", blue, username, norm, " for ",
+                banned_until.toString
             );
 
         registered_users();

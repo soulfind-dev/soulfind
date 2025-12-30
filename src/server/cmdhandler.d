@@ -17,7 +17,7 @@ import std.conv : ConvException, text, to;
 import std.datetime : Clock, days, Duration, minutes, MonoTime, seconds,
                       SysTime;
 import std.stdio : writeln;
-import std.string : join, split;
+import std.string : join, replace, split;
 
 final class CommandHandler
 {
@@ -636,39 +636,70 @@ final class CommandHandler
 
     private string user_export(string username)
     {
+        enum quot = "\"";
+        enum d_quot = "\"\"";
+        enum j_quot = "\", \"";
+
         auto user = server.get_user(username);
         const status = (user.status == UserStatus.away) ? "away" : "online";
-        auto obfuscation_type = "null";
-        const joined_rooms = user.joined_room_names!(RoomType.any);
+
+        const admin_until = server.db.admin_until(username);
+        auto admin = (admin_until > SysTime())
+            ? text(quot, admin_until.toISOExtString, quot)
+            : "null";
+
+        const privileged_until = user.privileged_until;
+        auto privileged = (privileged_until > SysTime())
+            ? text(quot, privileged_until.toISOExtString, quot)
+            : "null";
+
         const accept_invitations = (
             user.accept_room_invitations ? "true" : "false"
         );
         const joined_global_room = (
             server.is_global_room_joined(username) ? "true" : "false"
         );
-        const admin_until = server.db.admin_until(username);
-        auto admin = (admin_until > SysTime())
-            ? text("\"", admin_until.toISOExtString, "\"")
-            : "null";
-        const privileged_until = user.privileged_until;
-        auto privileged = (privileged_until > SysTime())
-            ? text("\"", privileged_until.toISOExtString, "\"")
-            : "null";
         const supporter = user.supporter ? "true" : "false";
         const searchable = (
             server.is_user_unsearchable(username) ? "false" : "true"
         );
-        const private_rooms_owner = server.db.rooms(username);
-        const private_rooms_member = server.db.rooms(null, username);
-        const private_rooms_op = server.db.rooms(
-            null, username, RoomMemberType.operator
-        );
 
+        const liked_items = text(
+            quot, user.liked_item_names.join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const hated_items = text(
+            quot, user.hated_item_names.join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const joined_rooms = text(
+            quot, user.joined_room_names!(RoomType.any).join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const watched_users = text(
+            quot, user.watched_usernames.join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const rooms_owner = text(
+            quot, server.db.rooms(username).join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const rooms_member = text(
+            quot, server.db.rooms(null, username).join(j_quot), quot
+        ).replace(d_quot, "");
+
+        const rooms_operator = text(
+            quot, server.db.rooms(null, username, RoomMemberType.operator)
+            .join(j_quot), quot
+        ).replace(d_quot, "");
+
+        auto obfuscation_type = "null";
         if (user.obfuscation_type == ObfuscationType.rotated)
-            obfuscation_type = "\"rotated\"";
+            obfuscation_type = text(quot, "rotated", quot);
+
         else if (user.obfuscation_type != ObfuscationType.none)
             obfuscation_type = text(
-                "\"", (cast(uint) user.obfuscation_type).text, "\""
+                quot, (cast(uint) user.obfuscation_type).text, quot
             );
 
         Appender!string output;
@@ -684,10 +715,10 @@ final class CommandHandler
             "\n        \"obfuscation_type\": ", obfuscation_type, ",",
             "\n        \"accept_room_invitations\": ", accept_invitations, ",",
             "\n        \"joined_global_room\": ", joined_global_room, ",",
-            "\n        \"liked_items\": ", user.liked_item_names, ",",
-            "\n        \"hated_items\": ", user.hated_item_names, ",",
-            "\n        \"joined_rooms\": ", joined_rooms, ",",
-            "\n        \"watched_users\": ", user.watched_usernames,
+            "\n        \"liked_items\": [", liked_items, "],",
+            "\n        \"hated_items\": [", hated_items, "],",
+            "\n        \"joined_rooms\": [", joined_rooms, "],",
+            "\n        \"watched_users\": [", watched_users, "]",
             "\n    },",
             "\n    \"persistent_data\": {",
             "\n        \"admin_until\": ", admin, ",",
@@ -697,9 +728,9 @@ final class CommandHandler
             "\n        \"num_files\": ", user.shared_files, ",",
             "\n        \"num_folders\": ", user.shared_folders, ",",
             "\n        \"upload_speed\": ", user.upload_speed, ",",
-            "\n        \"private_rooms_owner\": ", private_rooms_owner, ",",
-            "\n        \"private_rooms_member\": ", private_rooms_member, ",",
-            "\n        \"private_rooms_operator\": ", private_rooms_op, ",",
+            "\n        \"private_rooms_owner\": [", rooms_owner, "],",
+            "\n        \"private_rooms_member\": [", rooms_member, "],",
+            "\n        \"private_rooms_operator\": [", rooms_operator, "],",
             "\n        \"room_tickers\": {",
         );
 
@@ -718,7 +749,7 @@ final class CommandHandler
         }
 
         output ~= text(
-            "},",
+            "}",
             "\n    },",
             "\n    \"volatile_data\": {",
             "\n        \"private_messages_queued\": [",
@@ -736,8 +767,8 @@ final class CommandHandler
                 if (!first) output ~= ",";
                 output ~= text(
                     "\n            {",
-                    "\n                \"id\": \"", id, "\"",
-                    "\n                \"recipient\": \"", to_username, "\"",
+                    "\n                \"id\": ", id, ",",
+                    "\n                \"recipient\": \"", to_username, "\",",
                     "\n                \"timestamp\": \"", timestamp, "\",",
                     "\n                \"message\": \"", message, "\"",
                     "\n            }"

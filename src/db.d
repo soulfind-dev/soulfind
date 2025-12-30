@@ -235,7 +235,7 @@ final class Database
         }
         foreach (ref record ; query("PRAGMA foreign_key_check;")) {
             integrity_success = false;
-            writeln("[DB] Foreign key issue detected: ", record);
+            writeln("[DB] Foreign key issue detected: ", record.join(", "));
         }
 
         if (integrity_success) writeln("[DB] Database integrity verified");
