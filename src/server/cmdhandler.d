@@ -565,8 +565,9 @@ final class CommandHandler
 
             if (user.obfuscation_type == ObfuscationType.rotated)
                 obfuscation_type = "rotated";
+
             else if (user.obfuscation_type != ObfuscationType.none)
-                obfuscation_type = (cast(uint) user.obfuscation_type).text;
+                obfuscation_type = text(cast(uint) user.obfuscation_type);
         }
         else {
             const user_stats = server.db.user_stats(username);
@@ -699,7 +700,7 @@ final class CommandHandler
 
         else if (user.obfuscation_type != ObfuscationType.none)
             obfuscation_type = text(
-                quot, (cast(uint) user.obfuscation_type).text, quot
+                quot, cast(uint) user.obfuscation_type, quot
             );
 
         Appender!string output;
