@@ -667,7 +667,7 @@ final class User
 
     void room_operator_removed(string room_name)
     {
-        scope msg = new SPrivateRoomRemoved(room_name);
+        scope msg = new SPrivateRoomOperatorRemoved(room_name);
         send_message(msg);
         server.send_room_list(username);
     }
