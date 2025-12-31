@@ -44,17 +44,6 @@ final class MessageHandler
                 break;
 
             user.username = msg.username;
-            const banned_until = server.db.user_banned_until(msg.username);
-
-            if (banned_until > Clock.currTime)
-                // The official server doesn't send a response when a user
-                // is banned. We also ban users temporarily when kicking
-                // them, and simply closing the connection after some time
-                // allows the client to automatically reconnect to the
-                // server.
-                break;
-
-            if (banned_until > SysTime()) server.db.unban_user(msg.username);
             user.client_version = text(
                 msg.major_version, ".", msg.minor_version
             );

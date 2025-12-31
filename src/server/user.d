@@ -103,18 +103,6 @@ final class User
 
     void authenticate(string username, string password)
     {
-        const user_exists = server.db.user_exists(username);
-
-        if (!user_exists && server.db.server_private_mode) {
-            reject_login(LoginRejectionReason.server_private);
-            return;
-        }
-
-        if (server.num_connected_users >= server.db.server_max_users) {
-            reject_login(LoginRejectionReason.server_full);
-            return;
-        }
-
         const invalid_name_reason = check_username(username);
         if (invalid_name_reason !is null) {
             reject_login(
@@ -126,6 +114,28 @@ final class User
 
         if (password.length == 0) {
             reject_login(LoginRejectionReason.empty_password);
+            return;
+        }
+
+        const banned_until = server.db.user_banned_until(username);
+        if (banned_until > Clock.currTime)
+            // The official server doesn't send a response when a user
+            // is banned. We also ban users temporarily when kicking
+            // them, and simply closing the connection after some time
+            // allows the client to automatically reconnect to the
+            // server.
+            return;
+
+        if (banned_until > SysTime()) server.db.unban_user(username);
+
+        const user_exists = server.db.user_exists(username);
+        if (!user_exists && server.db.server_private_mode) {
+            reject_login(LoginRejectionReason.server_private);
+            return;
+        }
+
+        if (server.num_connected_users >= server.db.server_max_users) {
+            reject_login(LoginRejectionReason.server_full);
             return;
         }
 
