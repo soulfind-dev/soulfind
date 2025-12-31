@@ -312,7 +312,7 @@ final class MessageHandler
                 user_shared_files = target_user.shared_files;
                 user_shared_folders = target_user.shared_folders;
             }
-            else {
+            else if (msg.username != server_username) {
                 const user_stats = server.db.user_stats(msg.username);
                 user_upload_speed = user_stats.upload_speed;
                 user_shared_files = user_stats.shared_files;
@@ -545,7 +545,7 @@ final class MessageHandler
             auto target_user = server.get_user(msg.username);
             if (target_user !is null)
                 privileged = target_user.privileged;
-            else
+            else if (msg.username != server_username)
                 privileged = (
                     server.db.user_privileged_until(msg.username)
                     > Clock.currTime
@@ -567,6 +567,9 @@ final class MessageHandler
                 ? msg.duration : user.privileges
             );
             if (duration == 0.seconds)
+                break;
+
+            if (msg.username == server_username)
                 break;
 
             if (!server.db.add_user_privileges(msg.username, duration))
