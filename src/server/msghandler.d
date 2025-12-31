@@ -675,6 +675,18 @@ final class MessageHandler
             );
             break;
 
+        case PrivateRoomCancelOperatorship:
+            scope msg = new UPrivateRoomCancelOperatorship(
+                msg_buf, user.username
+            );
+            if (!msg.is_valid)
+                break;
+
+            server.cancel_room_operatorship(
+                msg.room_name, user.username, user.username
+            );
+            break;
+
         case MessageUsers:
             scope msg = new UMessageUsers(msg_buf, user.username);
             if (!msg.is_valid)
