@@ -655,6 +655,7 @@ final class User
     {
         scope msg = new SPrivateRoomRemoved(room_name);
         send_message(msg);
+        leave_room(room_name);
         server.send_room_list(username);
     }
 

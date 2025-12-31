@@ -621,12 +621,8 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            const room_name = msg.room_name;
-            if (server.db.get_room_owner(room_name) != user.username)
-                break;
-
-            server.del_room(room_name);
-            server.send_room_list(user.username);
+            enum permanent = true;
+            server.del_room(msg.room_name, permanent, user.username);
             break;
 
         case PrivateRoomToggle:

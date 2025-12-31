@@ -422,15 +422,36 @@ final class Server
         return room;
     }
 
-    void del_room(string room_name, bool permanent = true)
+    void del_room(string room_name, bool permanent = true, string actor = null)
     {
-        Room room;  // Satisfy linter
-        room = get_room(room_name);
+        if (permanent) {
+            string owner;
+            string[] members;
+
+            if (actor !is null) {
+                owner = db.get_room_owner(room_name);
+                if (actor != owner)
+                    return;
+
+                members = db.room_members!(RoomMemberType.any)(room_name);
+            }
+
+            db.del_room(room_name);
+
+            void send_user_msg(string room_username) {
+                auto room_user = get_user(room_username);
+                if (room_user !is null)
+                    room_user.room_membership_canceled(room_name);
+            }
+            foreach (ref room_username ; members) send_user_msg(room_username);
+            if (owner !is null) send_user_msg(owner);
+        }
+
+        auto room = get_room(room_name);
         if (room is null)
             return;
 
         room.disband();
-        if (permanent) db.del_room(room_name);
         rooms.remove(room_name);
     }
 
@@ -589,10 +610,8 @@ final class Server
         );
 
         auto target_user = get_user(target);
-        if (target_user !is null) {
-            target_user.leave_room(room_name);
+        if (target_user !is null)
             target_user.room_membership_canceled(room_name);
-        }
     }
 
    void grant_room_operatorship(string room_name, string actor, string target)
