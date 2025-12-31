@@ -7,7 +7,7 @@ module soulfind.server.server;
 @safe:
 
 import soulfind.db : Database;
-import soulfind.defines : blue, kick_duration, log_msg,
+import soulfind.defines : blue, default_port, kick_duration, log_msg,
                           max_chat_message_length, max_global_recommendations,
                           max_search_query_length, max_user_recommendations,
                           norm, red, RoomMemberType, RoomType,
@@ -60,7 +60,7 @@ final class Server
 
     bool listen(ushort port)
     {
-        if (port == 0) port = db.server_port;
+        if (port == 0) port = default_port;
         return conns.listen(port);
     }
 

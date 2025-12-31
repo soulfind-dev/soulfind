@@ -569,8 +569,10 @@ final class MessageHandler
             if (duration == 0.seconds)
                 break;
 
+            if (!server.db.add_user_privileges(msg.username, duration))
+                break;
+
             server.db.remove_user_privileges(user.username, duration);
-            server.db.add_user_privileges(msg.username, duration);
 
             auto target_user = server.get_user(msg.username);
             if (target_user !is null)

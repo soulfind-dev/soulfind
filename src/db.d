@@ -892,7 +892,7 @@ final class Database
         auto sql = text("SELECT username FROM ", users_table);
         string[] parameters;
 
-        if (field) {
+        if (field.length > 0) {
             sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
             parameters = [min.text, max.text];
         }
@@ -906,7 +906,7 @@ final class Database
         auto sql = text("SELECT COUNT(1) FROM ", users_table);
         string[] parameters;
 
-        if (field) {
+        if (field.length > 0) {
             sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
             parameters = [min.text, max.text];
         }
@@ -1232,14 +1232,11 @@ final class Database
         const error_code = extended_error_code;
         const error_string = error_string(error_code);
 
-        if (query)
+        if (query !is null) {
             writeln("DB: Query [", query, "]");
-
-        if (parameters)
             writeln("DB: Parameters [", parameters.join(", "), "]");
-
-        if (res)
             writeln("DB: Result code ", res, ".\n\n", error_msg, "\n");
+        }
 
         throw new DatabaseException(
             text("SQLite error ", error_code, " (", error_string, ")")

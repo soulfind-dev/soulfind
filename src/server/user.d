@@ -116,7 +116,7 @@ final class User
         }
 
         const invalid_name_reason = check_username(username);
-        if (invalid_name_reason) {
+        if (invalid_name_reason !is null) {
             reject_login(
                 LoginRejectionReason.invalid_username,
                 invalid_name_reason
@@ -588,7 +588,7 @@ final class User
     void join_room(RoomType type)(string room_name)
     {
         string fail_message = check_room_name(room_name);
-        if (fail_message) {
+        if (fail_message !is null) {
             server.send_pm(server_username, username, fail_message);
             return;
         }

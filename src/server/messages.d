@@ -207,25 +207,23 @@ class UMessage
 
         if (offset + size <= in_buf.length) {
             static if (is(T : string)) {
-                if (size > 0) {
-                    const(ubyte)[] bytes = in_buf[offset .. offset + size];
-                    offset += size;
+                const(ubyte)[] bytes = in_buf[offset .. offset + size];
+                offset += size;
 
-                    try {
-                        @trusted
-                        static string decode_utf8(const(ubyte)[] bytes) {
-                            const value = cast(string) bytes;
-                            value.validate();
-                            return value;
-                        }
-                        value = decode_utf8(bytes);
+                try {
+                    @trusted
+                    static string decode_utf8(const(ubyte)[] bytes) {
+                        const value = cast(string) bytes;
+                        value.validate();
+                        return value;
                     }
-                    catch (UTFException) {
-                        // Latin-1 fallback
-                        auto wchars = new wchar[bytes.length];
-                        foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
-                        value = wchars.text;
-                    }
+                    value = decode_utf8(bytes);
+                }
+                catch (UTFException) {
+                    // Latin-1 fallback
+                    auto wchars = new wchar[bytes.length];
+                    foreach (i, ref c; bytes) wchars[i] = cast(wchar) c;
+                    value = wchars.text;
                 }
             }
             else {
@@ -1007,7 +1005,7 @@ final class SLogin : SMessage
         if (!success) {
             write!string(rejection.reason);
 
-            if (rejection.detail)
+            if (rejection.detail !is null)
                 write!string(rejection.detail);
 
             return;

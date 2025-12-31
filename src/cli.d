@@ -74,11 +74,12 @@ void parse_args(string[] args, CommandOption[] options)
             throw new CommandException("Unknown option: " ~ arg);
 
         if (option.arg_name.length > 0) {
-            if (found_equals) {
+            if (found_equals && value.length > 0) {
                 option.callback(value);
                 i++;
             }
-            else if (args.length > i + 1
+            else if (!found_equals
+                     && args.length > i + 1
                      && !args[i + 1].startsWith(s_prefix)) {
                 option.callback(args[i + 1]);
                 i += 2;
