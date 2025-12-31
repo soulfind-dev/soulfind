@@ -630,23 +630,66 @@ final class Setup
             db.is_user_unsearchable(username) ? "false" : "true"
         );
 
-        const rooms_owner = text(
-            quot, db.rooms(username).join(j_quot), quot
-        ).replace(d_quot, "");
+        string rooms(bool is_owner = true) {
+            Appender!string output;
+            const rooms = is_owner
+                ? db.rooms(username) : db.rooms(null, username);
+            if (rooms.length == 0)
+                return output[];
 
-        const rooms_member = text(
-            quot, db.rooms(null, username).join(j_quot), quot
-        ).replace(d_quot, "");
+            auto first = true;
+            foreach (ref room_name ; rooms) {
+                const owner = db.get_room_owner(room_name);
+                const members = text(
+                    quot, db.room_members!(RoomMemberType.any)(room_name)
+                    .join(j_quot), quot
+                ).replace(d_quot, "");
 
-        const rooms_operator = text(
-            quot, db.rooms(null, username, RoomMemberType.operator)
-            .join(j_quot), quot
-        ).replace(d_quot, "");
+                const operators = text(
+                    quot, db.room_members!(RoomMemberType.operator)(room_name)
+                    .join(j_quot), quot
+                ).replace(d_quot, "");
 
-        const tickers = db.user_tickers!(RoomType.any)(username);
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"room_name\": \"", room_name, "\",",
+                    "\n                \"owner\": \"", owner, "\",",
+                    "\n                \"members\": [", members, "],",
+                    "\n                \"operators\": [", operators, "]",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+            return output[];
+        }
 
-        Appender!string output;
-        output ~= text(
+        string tickers() {
+            Appender!string output;
+            const tickers = db.user_tickers!(RoomType.any)(username);
+            if (tickers.length == 0)
+                return output[];
+
+            auto first = true;
+            foreach (ticker ; tickers) {
+                const name = ticker.room_name;
+                const content = ticker.content;
+
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"room_name\": \"", name, "\",",
+                    "\n                \"content\": \"", content, "\"",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+            return output[];
+        }
+
+        writeln(
             "\n", bold, username, "'s persistent data in JSON format",
             norm, "\n{",
             "\n    \"username\": \"", username, "\",",
@@ -659,31 +702,12 @@ final class Setup
             "\n        \"num_files\": ", stats.shared_files, ",",
             "\n        \"num_folders\": ", stats.shared_folders, ",",
             "\n        \"upload_speed\": ", stats.upload_speed, ",",
-            "\n        \"private_rooms_owner\": [", rooms_owner, "],",
-            "\n        \"private_rooms_member\": [", rooms_member, "],",
-            "\n        \"private_rooms_operator\": [", rooms_operator, "],",
-            "\n        \"room_tickers\": {",
-        );
-
-        if (tickers.length > 0) {
-            auto first = true;
-            foreach (ticker ; tickers) {
-                if (!first) output ~= ",";
-                output ~= text(
-                    "\n            \"", ticker.room_name, "\": \"",
-                    ticker.content, "\""
-                );
-                first = false;
-            }
-            output ~= "\n        ";
-        }
-
-        output ~= text(
-            "}",
+            "\n        \"private_rooms_owner\": {", rooms, "}",
+            "\n        \"private_rooms_member\": {", rooms(false), "}",
+            "\n        \"room_tickers\": {", tickers, "}",
             "\n    }",
             "\n}"
         );
-        writeln(output[]);
         registered_users();
     }
 

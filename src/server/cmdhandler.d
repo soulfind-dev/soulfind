@@ -681,19 +681,6 @@ final class CommandHandler
             quot, user.watched_usernames.join(j_quot), quot
         ).replace(d_quot, "");
 
-        const rooms_owner = text(
-            quot, server.db.rooms(username).join(j_quot), quot
-        ).replace(d_quot, "");
-
-        const rooms_member = text(
-            quot, server.db.rooms(null, username).join(j_quot), quot
-        ).replace(d_quot, "");
-
-        const rooms_operator = text(
-            quot, server.db.rooms(null, username, RoomMemberType.operator)
-            .join(j_quot), quot
-        ).replace(d_quot, "");
-
         auto obfuscation_type = "null";
         if (user.obfuscation_type == ObfuscationType.rotated)
             obfuscation_type = text(quot, "rotated", quot);
@@ -703,8 +690,96 @@ final class CommandHandler
                 quot, cast(uint) user.obfuscation_type, quot
             );
 
-        Appender!string output;
-        output ~= text(
+        string rooms(bool is_owner = true) {
+            Appender!string output;
+            const rooms = is_owner
+                ? server.db.rooms(username) : server.db.rooms(null, username);
+            if (rooms.length == 0)
+                return output[];
+
+            auto first = true;
+            foreach (ref room_name ; rooms) {
+                const owner = server.db.get_room_owner(room_name);
+                const members = text(
+                    quot,
+                    server.db.room_members!(RoomMemberType.any)(room_name)
+                    .join(j_quot), quot
+                ).replace(d_quot, "");
+
+                const operators = text(
+                    quot,
+                    server.db.room_members!(RoomMemberType.operator)(room_name)
+                    .join(j_quot), quot
+                ).replace(d_quot, "");
+
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"room_name\": \"", room_name, "\",",
+                    "\n                \"owner\": \"", owner, "\",",
+                    "\n                \"members\": [", members, "],",
+                    "\n                \"operators\": [", operators, "]",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+            return output[];
+        }
+
+        string tickers() {
+            Appender!string output;
+            const tickers = server.db.user_tickers!(RoomType.any)(username);
+            if (tickers.length == 0)
+                return output[];
+
+            auto first = true;
+            foreach (ticker ; tickers) {
+                const name = ticker.room_name;
+                const content = ticker.content;
+
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"room_name\": \"", name, "\",",
+                    "\n                \"content\": \"", content, "\"",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+            return output[];
+        }
+
+        string pms() {
+            Appender!string output;
+            const pms = server.get_queued_pms(username);
+            if (pms.length == 0)
+                return output[];
+
+            auto first = true;
+            foreach (pm ; pms) {
+                const id = pm.id;
+                const to_username = pm.to_username;
+                const timestamp = pm.time.toISOExtString;
+                const message = pm.message;
+
+                if (!first) output ~= ",";
+                output ~= text(
+                    "\n            {",
+                    "\n                \"id\": ", id, ",",
+                    "\n                \"recipient\": \"", to_username, "\",",
+                    "\n                \"timestamp\": \"", timestamp, "\",",
+                    "\n                \"message\": \"", message, "\"",
+                    "\n            }"
+                );
+                first = false;
+            }
+            output ~= "\n        ";
+            return output[];
+        }
+
+        return text(
             "{",
             "\n    \"username\": \"", username, "\",",
             "\n    \"session_data\": {",
@@ -729,61 +804,14 @@ final class CommandHandler
             "\n        \"num_files\": ", user.shared_files, ",",
             "\n        \"num_folders\": ", user.shared_folders, ",",
             "\n        \"upload_speed\": ", user.upload_speed, ",",
-            "\n        \"private_rooms_owner\": [", rooms_owner, "],",
-            "\n        \"private_rooms_member\": [", rooms_member, "],",
-            "\n        \"private_rooms_operator\": [", rooms_operator, "],",
-            "\n        \"room_tickers\": {",
-        );
-
-        const tickers = server.db.user_tickers!(RoomType.any)(username);
-        if (tickers.length > 0) {
-            auto first = true;
-            foreach (ticker ; tickers) {
-                if (!first) output ~= ",";
-                output ~= text(
-                    "\n            \"", ticker.room_name, "\": \"",
-                    ticker.content, "\""
-                );
-                first = false;
-            }
-            output ~= "\n        ";
-        }
-
-        output ~= text(
-            "}",
+            "\n        \"private_rooms_owner\": {", rooms, "}",
+            "\n        \"private_rooms_member\": {", rooms(false), "}",
+            "\n        \"room_tickers\": {", tickers, "}",
             "\n    },",
             "\n    \"volatile_data\": {",
-            "\n        \"private_messages_queued\": [",
-        );
-
-        const pms = server.get_queued_pms(username);
-        if (pms.length > 0) {
-            auto first = true;
-            foreach (pm ; pms) {
-                const id = pm.id;
-                const to_username = pm.to_username;
-                const timestamp = pm.time.toISOExtString;
-                const message = pm.message;
-
-                if (!first) output ~= ",";
-                output ~= text(
-                    "\n            {",
-                    "\n                \"id\": ", id, ",",
-                    "\n                \"recipient\": \"", to_username, "\",",
-                    "\n                \"timestamp\": \"", timestamp, "\",",
-                    "\n                \"message\": \"", message, "\"",
-                    "\n            }"
-                );
-                first = false;
-            }
-            output ~= "\n        ";
-        }
-
-        output ~= text(
-            "]",
+            "\n        \"private_messages_queued\": [", pms, "]",
             "\n    }",
             "\n}"
         );
-        return output[];
     }
 }
