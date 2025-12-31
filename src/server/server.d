@@ -564,7 +564,7 @@ final class Server
         }
 
         if (target_type == RoomMemberType.operator)
-            remove_room_operator(room_name, actor, target);
+            cancel_room_operatorship(room_name, actor, target);
 
         db.del_room_member(room_name, target);
 
@@ -595,7 +595,7 @@ final class Server
         }
     }
 
-   void add_room_operator(string room_name, string actor, string target)
+   void grant_room_operatorship(string room_name, string actor, string target)
     {
         if (actor == target)
             return;
@@ -650,7 +650,7 @@ final class Server
         foreach (ref room_username ; members) send_user_msg(room_username);
         send_user_msg(owner);
 
-        target_user.room_operator_added(room_name);
+        target_user.room_operatorship_granted(room_name);
 
         send_pm(
             server_username, owner,
@@ -658,7 +658,8 @@ final class Server
         );
     }
 
-    void remove_room_operator(string room_name, string actor, string target)
+    void cancel_room_operatorship(string room_name, string actor,
+                                  string target)
     {
         const target_type = db.get_room_member_type(room_name, target);
         if (target_type != RoomMemberType.operator)
@@ -692,7 +693,7 @@ final class Server
 
         auto target_user = get_user(target);
         if (target_user !is null)
-            target_user.room_operator_removed(room_name);
+            target_user.room_operatorship_canceled(room_name);
     }
 
     auto joined_rooms()

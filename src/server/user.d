@@ -658,14 +658,14 @@ final class User
         server.send_room_list(username);
     }
 
-    void room_operator_added(string room_name)
+    void room_operatorship_granted(string room_name)
     {
         scope msg = new SPrivateRoomOperatorAdded(room_name);
         send_message(msg);
         server.send_room_list(username);
     }
 
-    void room_operator_removed(string room_name)
+    void room_operatorship_canceled(string room_name)
     {
         scope msg = new SPrivateRoomOperatorRemoved(room_name);
         send_message(msg);

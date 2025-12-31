@@ -660,7 +660,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.add_room_operator(
+            server.grant_room_operatorship(
                 msg.room_name, user.username, msg.username
             );
             break;
@@ -670,7 +670,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.remove_room_operator(
+            server.cancel_room_operatorship(
                 msg.room_name, user.username, msg.username
             );
             break;
