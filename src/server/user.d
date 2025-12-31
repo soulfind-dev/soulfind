@@ -312,10 +312,8 @@ final class User
             // Only printable ASCII characters allowed
             return "Invalid characters in nick.";
 
-        static immutable forbidden_names = [server_username];
-
-        foreach (ref name ; forbidden_names) if (name == username)
-            // Official server returns empty detail
+        if (username == server_username)
+            // Disallowed, official server returns empty detail
             return "";
 
         return null;
