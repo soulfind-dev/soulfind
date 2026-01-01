@@ -564,14 +564,14 @@ final class Server
 
     void cancel_room_membership(string room_name, string actor, string target)
     {
-        cancel_room_operatorship(room_name, actor, target);
-
         const owner = db.get_room_owner(room_name);
         if (actor != target && actor != owner) {
             const actor_type = db.get_room_member_type(room_name, actor);
             if (actor_type != RoomMemberType.operator)
                 return;
         }
+
+        cancel_room_operatorship(room_name, actor, target);
 
         if (!db.del_room_member(room_name, target))
             return;
