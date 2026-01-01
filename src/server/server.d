@@ -474,17 +474,17 @@ final class Server
         return rooms[room_name];
     }
 
-   void grant_room_membership(string room_name, string actor, string target)
+   bool grant_room_membership(string room_name, string actor, string target)
     {
         if (actor == target)
-            return;
+            return false;
 
         RoomMemberType actor_type;
         const owner = db.get_room_owner(room_name);
         if (actor != owner) {
             actor_type = db.get_room_member_type(room_name, actor);
             if (actor_type != RoomMemberType.operator)
-                return;
+                return false;
         }
 
         auto target_user = get_user(target);
@@ -493,7 +493,7 @@ final class Server
                 server_username, actor,
                 text("user ", target, " is not logged in.")
             );
-            return;
+            return false;
         }
 
         if (!target_user.accept_room_invitations) {
@@ -505,7 +505,7 @@ final class Server
                     "do so before trying to add them again."
                 )
             );
-            return;
+            return false;
         }
 
         if (target == owner) {
@@ -516,7 +516,7 @@ final class Server
                     room_name
                 )
             );
-            return;
+            return false;
         }
 
         if (!db.add_room_member(room_name, target)) {
@@ -527,7 +527,7 @@ final class Server
                     " is already a member of room ", room_name
                 )
             );
-            return;
+            return false;
         }
 
         void send_user_msg(string room_username) {
@@ -560,21 +560,23 @@ final class Server
                     "] by operator [", actor, "]"
                 )
             );
+
+        return true;
     }
 
-    void cancel_room_membership(string room_name, string actor, string target)
+    bool cancel_room_membership(string room_name, string actor, string target)
     {
         const owner = db.get_room_owner(room_name);
         if (actor != target && actor != owner) {
             const actor_type = db.get_room_member_type(room_name, actor);
             if (actor_type != RoomMemberType.operator)
-                return;
+                return false;
         }
 
         cancel_room_operatorship(room_name, actor, target);
 
         if (!db.del_room_member(room_name, target))
-            return;
+            return false;
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -599,16 +601,18 @@ final class Server
         auto target_user = get_user(target);
         if (target_user !is null)
             target_user.room_membership_canceled(room_name);
+
+        return true;
     }
 
-   void grant_room_operatorship(string room_name, string actor, string target)
+    bool grant_room_operatorship(string room_name, string actor, string target)
     {
         if (actor == target)
-            return;
+            return false;
 
         const owner = db.get_room_owner(room_name);
         if (actor != owner)
-            return;
+            return false;
 
         auto target_user = get_user(target);
         if (target_user is null) {
@@ -616,7 +620,7 @@ final class Server
                 server_username, actor,
                 text("user ", target, " is not logged in.")
             );
-            return;
+            return false;
         }
 
         if (!db.grant_room_operatorship(room_name, target)) {
@@ -628,7 +632,7 @@ final class Server
                     : " must first be a member of room ", room_name
             );
             send_pm(server_username, actor, message);
-            return;
+            return false;
         }
 
         void send_user_msg(string room_username) {
@@ -649,17 +653,18 @@ final class Server
             server_username, owner,
             text("User ", target, " is now an operator of room ", room_name)
         );
+        return true;
     }
 
-    void cancel_room_operatorship(string room_name, string actor,
+    bool cancel_room_operatorship(string room_name, string actor,
                                   string target)
     {
         const owner = db.get_room_owner(room_name);
         if (actor != target && actor != owner)
-            return;
+            return false;
 
         if (!db.revoke_room_operatorship(room_name, target))
-            return;
+            return false;
 
         void send_user_msg(string room_username) {
             auto room_user = get_user(room_username);
@@ -684,6 +689,8 @@ final class Server
         auto target_user = get_user(target);
         if (target_user !is null)
             target_user.room_operatorship_canceled(room_name);
+
+        return true;
     }
 
     auto joined_rooms()
