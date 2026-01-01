@@ -874,7 +874,7 @@ final class Database
             " WHERE username = ?;"
         );
         parameters ~= username;
-        query(sql, parameters[]);
+        query(sql[], parameters[]);
 
         if (changes() == 0)
             return false;
@@ -888,30 +888,35 @@ final class Database
     string[] usernames(string field = null, ulong min = 1,
                        ulong max = ulong.max)
     {
-        Appender!(string[]) usernames;
-        auto sql = text("SELECT username FROM ", users_table);
+        Appender!string sql;
         string[] parameters;
+
+        sql ~= text("SELECT username FROM ", users_table);
 
         if (field.length > 0) {
             sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
             parameters = [min.text, max.text];
         }
         sql ~= ";";
-        foreach (ref record ; query(sql, parameters)) usernames ~= record[0];
+
+        Appender!(string[]) usernames;
+        foreach (ref record ; query(sql[], parameters)) usernames ~= record[0];
         return usernames[];
     }
 
     size_t num_users(string field = null, ulong min = 1, ulong max = ulong.max)
     {
-        auto sql = text("SELECT COUNT(1) FROM ", users_table);
+        Appender!string sql;
         string[] parameters;
+
+        sql ~= text("SELECT COUNT(1) FROM ", users_table);
 
         if (field.length > 0) {
             sql ~= text(" WHERE ", field, " BETWEEN ? AND ?");
             parameters = [min.text, max.text];
         }
         sql ~= ";";
-        return query(sql, parameters)[0][0].to!size_t;
+        return query(sql[], parameters)[0][0].to!size_t;
     }
 
 
@@ -969,9 +974,10 @@ final class Database
                    string member = null,
                    RoomMemberType member_type = RoomMemberType.any)
     {
-        Appender!(string[]) rooms;
-        auto sql = text("SELECT r.room FROM ", rooms_table, " r");
-        string[] parameters;
+        Appender!string sql;
+        Appender!(string[]) parameters;
+
+        sql ~= text("SELECT r.room FROM ", rooms_table, " r");
 
         if (owner !is null) {
             sql ~= text(" WHERE r.type = ? AND r.owner = ?");
@@ -986,16 +992,17 @@ final class Database
 
             if (member_type != RoomMemberType.any) {
                 sql ~= " AND m.type = ?";
-                parameters ~= [text(cast(uint) member_type)];
+                parameters ~= text(cast(uint) member_type);
             }
         }
         else {
             sql ~= text(" WHERE r.type = ?");
-            parameters ~= [text(cast(uint) RoomType._public)];
+            parameters ~= text(cast(uint) RoomType._public);
         }
         sql ~= ";";
 
-        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        Appender!(string[]) rooms;
+        foreach (record ; query(sql[], parameters[])) rooms ~= record[0];
         return rooms[];
     }
 
@@ -1116,22 +1123,24 @@ final class Database
 
     string[] room_members(RoomMemberType type)(string room_name)
     {
-        Appender!(string[]) members;
-        auto sql = text(
+        Appender!string sql;
+        Appender!(string[]) parameters;
+
+        sql ~= text(
             "SELECT m.username FROM ", room_members_table, " m",
             " JOIN ", rooms_table, " r ON m.room = r.room",
             " WHERE r.room = ? AND r.type = ?"
         );
-        auto parameters = [room_name, text(cast(int) RoomType._private)];
+        parameters ~= [room_name, text(cast(int) RoomType._private)];
 
         if (type != RoomMemberType.any) {
             sql ~= " AND m.type = ?";
-            parameters ~= [text(cast(int) type)];
+            parameters ~= text(cast(int) type);
         }
         sql ~= ";";
 
-        const res = query(sql, parameters);
-        foreach (ref record ; res) members ~= record[0];
+        Appender!(string[]) members;
+        foreach (ref record ; query(sql[], parameters[])) members ~= record[0];
         return members[];
     }
 
@@ -1177,21 +1186,24 @@ final class Database
 
     bool del_user_tickers(RoomType type)(string username)
     {
-        auto sql = text(
+        Appender!string sql;
+        Appender!(string[]) parameters;
+
+        sql ~= text(
             "DELETE FROM ", tickers_table, " WHERE rowid IN (",
             " SELECT t.rowid FROM ", tickers_table, " t",
             " JOIN ", rooms_table, " r ON t.room = r.room",
             " WHERE t.username = ?"
         );
-        auto parameters = [username];
+        parameters ~= username;
 
         if (type != RoomType.any) {
             sql ~= " AND r.type = ?";
-            parameters ~= [text(cast(int) type)];
+            parameters ~= text(cast(int) type);
         }
         sql ~= ");";
 
-        query(sql, parameters);
+        query(sql[], parameters[]);
 
         if (changes() == 0)
             return false;
@@ -1246,22 +1258,24 @@ final class Database
 
     RoomTicker[] user_tickers(RoomType type)(string username)
     {
-        Appender!(RoomTicker[]) tickers;
-        auto sql = text(
+        Appender!string sql;
+        Appender!(string[]) parameters;
+
+        sql ~= text(
             "SELECT t.room, t.content FROM ", tickers_table, " t",
             " JOIN ", rooms_table, " r ON t.room = r.room",
             " WHERE t.username = ?"
         );
-        auto parameters = [username];
+        parameters ~= username;
 
         if (type != RoomType.any) {
             sql ~= " AND r.type = ?";
-            parameters ~= [text(cast(int) type)];
+            parameters ~= text(cast(int) type);
         }
         sql ~= ";";
 
-        const res = query(sql, parameters);
-        foreach (ref record ; res) {
+        Appender!(RoomTicker[]) tickers;
+        foreach (ref record ; query(sql[], parameters[])) {
             const room_name = record[0], content = record[1];
             tickers ~= RoomTicker(room_name, username, content);
         }
