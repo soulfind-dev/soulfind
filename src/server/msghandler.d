@@ -583,8 +583,8 @@ final class MessageHandler
             user.send_message(response_msg);
             break;
 
-        case PrivateRoomAddUser:
-            scope msg = new UPrivateRoomAddUser(msg_buf, user.username);
+        case AddRoomMember:
+            scope msg = new UAddRoomMember(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
@@ -593,31 +593,31 @@ final class MessageHandler
             );
             break;
 
-        case PrivateRoomRemoveUser:
-            scope msg = new UPrivateRoomRemoveUser(msg_buf, user.username);
+        case RemoveRoomMember:
+            scope msg = new URemoveRoomMember(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
             if (msg.username != user.username)
-                server.cancel_room_membership(
+                server.revoke_room_membership(
                     msg.room_name, user.username, msg.username
                 );
             break;
 
-        case PrivateRoomCancelMembership:
-            scope msg = new UPrivateRoomCancelMembership(
+        case CancelRoomMembership:
+            scope msg = new UCancelRoomMembership(
                 msg_buf, user.username
             );
             if (!msg.is_valid)
                 break;
 
-            server.cancel_room_membership(
+            server.revoke_room_membership(
                 msg.room_name, user.username, user.username
             );
             break;
 
-        case PrivateRoomDisown:
-            scope msg = new UPrivateRoomDisown(msg_buf, user.username);
+        case CancelRoomOwnership:
+            scope msg = new UCancelRoomOwnership(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
@@ -625,14 +625,14 @@ final class MessageHandler
             server.del_room(msg.room_name, permanent, user.username);
             break;
 
-        case PrivateRoomToggle:
-            scope msg = new UPrivateRoomToggle(msg_buf, user.username);
+        case EnableRoomInvitations:
+            scope msg = new UEnableRoomInvitations(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
             user.accept_room_invitations = msg.enabled;
 
-            scope response_msg = new SPrivateRoomToggle(msg.enabled);
+            scope response_msg = new SEnableRoomInvitations(msg.enabled);
             user.send_message(response_msg);
             break;
 
@@ -651,8 +651,8 @@ final class MessageHandler
             );
             break;
 
-        case PrivateRoomAddOperator:
-            scope msg = new UPrivateRoomAddOperator(msg_buf, user.username);
+        case AddRoomOperator:
+            scope msg = new UAddRoomOperator(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
@@ -661,24 +661,22 @@ final class MessageHandler
             );
             break;
 
-        case PrivateRoomRemoveOperator:
-            scope msg = new UPrivateRoomRemoveOperator(msg_buf, user.username);
+        case RemoveRoomOperator:
+            scope msg = new URemoveRoomOperator(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
-            server.cancel_room_operatorship(
+            server.revoke_room_operatorship(
                 msg.room_name, user.username, msg.username
             );
             break;
 
-        case PrivateRoomCancelOperatorship:
-            scope msg = new UPrivateRoomCancelOperatorship(
-                msg_buf, user.username
-            );
+        case CancelRoomOperatorship:
+            scope msg = new UCancelRoomOperatorship(msg_buf, user.username);
             if (!msg.is_valid)
                 break;
 
-            server.cancel_room_operatorship(
+            server.revoke_room_operatorship(
                 msg.room_name, user.username, user.username
             );
             break;

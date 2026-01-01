@@ -1018,7 +1018,7 @@ final class Database
         return rooms[];
     }
 
-    bool add_room_member(string room_name, string username)
+    bool grant_room_membership(string room_name, string username)
     {
         enum sql = text(
             "INSERT OR IGNORE INTO ", room_members_table,
@@ -1037,7 +1037,7 @@ final class Database
         return true;
     }
 
-    bool del_room_member(string room_name, string username)
+    bool revoke_room_membership(string room_name, string username)
     {
         enum sql = text(
             "DELETE FROM ", room_members_table,
