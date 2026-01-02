@@ -14,7 +14,7 @@ import std.string : join, split;
 enum VERSION                     = __DATE__.split.join("-");
 enum default_db_filename         = "soulfind.db";
 enum default_port                = 2242;
-enum default_max_users           = 65535;
+enum default_max_users           = 100000;
 enum default_private_mode        = false;
 enum default_motd                = "Soulfind %sversion%";
 enum login_timeout               = 1.minutes;

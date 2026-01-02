@@ -65,7 +65,7 @@ to the `server` user in a private chat (`help` to see all commands).
 ### Default Configuration
 
  - port: `2242`
- - max_users: `65535`
+ - max_users: `100000`
  - private_mode: `false`
  - motd: `Soulfind <version>`
 
