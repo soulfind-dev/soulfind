@@ -8,7 +8,8 @@ module soulfind.server.room;
 
 import soulfind.db : Database;
 import soulfind.defines : blue, log_msg, max_chat_message_length,
-                          max_room_ticker_length, norm, RoomTicker, RoomType;
+                          max_room_ticker_length, norm, RoomMemberType,
+                          RoomTicker, RoomType;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
@@ -53,7 +54,9 @@ final class Room
             user.upload_slots_full, user.shared_files, user.shared_folders
         );
         scope join_room_msg = new SJoinRoom(
-            name, users, db.get_room_owner(name), null
+            name, users,
+            db.get_room_owner(name),
+            db.room_members!(RoomMemberType.operator)(name)
         );
         scope tickers_msg = new SRoomTickers(name, tickers);
 
