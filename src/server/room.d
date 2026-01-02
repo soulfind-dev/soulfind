@@ -87,7 +87,7 @@ final class Room
 
     bool can_access(string username)
     {
-        return type != RoomType._private
+        return type == RoomType._public
             || is_joined(username)
             || db.can_access_room(name, username);
     }

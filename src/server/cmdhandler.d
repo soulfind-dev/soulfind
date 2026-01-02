@@ -154,7 +154,7 @@ final class CommandHandler
         case "rooms":
             Room room;
             Appender!string output;
-            const names = server.db.rooms;
+            const names = server.db.public_rooms;
             output ~= text(names.length, " public rooms.");
             foreach (ref name ; names) {
                 ulong num_users;
@@ -693,7 +693,9 @@ final class CommandHandler
         string rooms(bool is_owner = true) {
             Appender!string output;
             const rooms = is_owner
-                ? server.db.rooms(username) : server.db.rooms(null, username);
+                ? server.db.owned_rooms(username)
+                : server.db.member_rooms!(RoomMemberType.any)(username);
+
             if (rooms.length == 0)
                 return output[];
 

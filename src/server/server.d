@@ -724,11 +724,44 @@ final class Server
         if (user is null)
             return;
 
-        auto public_rooms = room_stats;
-        auto owned_rooms = room_stats(username);
-        auto member_rooms = room_stats(null, username);
-        auto operated_rooms = db.rooms(
-            null, username, RoomMemberType.operator
+        RoomInfo[] public_room_stats()
+        {
+            Appender!(RoomInfo[]) stats;
+            foreach (ref room_name ; db.public_rooms) {
+                auto room = get_room(room_name);
+
+                if (room !is null)
+                    stats ~= RoomInfo(room_name, cast(uint) room.num_users);
+            }
+            return stats[];
+        }
+
+        RoomInfo[] private_room_stats(string username, bool is_owner = false)
+        {
+            string[] rooms;
+            if (is_owner)
+                rooms = db.owned_rooms(username);
+            else
+                rooms = db.member_rooms!(RoomMemberType.any)(username);
+
+            Appender!(RoomInfo[]) stats;
+            foreach (ref room_name ; rooms) {
+                uint num_users;
+                auto room = get_room(room_name);
+
+                if (room !is null)
+                    num_users = cast(uint) room.num_users;
+
+                stats ~= RoomInfo(room_name, num_users);
+            }
+            return stats[];
+        }
+
+        auto public_rooms = public_room_stats;
+        auto owned_rooms = private_room_stats(username, true);
+        auto member_rooms = private_room_stats(username);
+        auto operated_rooms = db.member_rooms!(RoomMemberType.operator)(
+            username
         );
         scope list_response_msg = new SRoomList(
             public_rooms,
@@ -768,25 +801,6 @@ final class Server
         foreach (ref user ; users)
             if (user.joined_same_room(sender_username))
                 user.send_message!(Logging.disabled)(msg);
-    }
-
-    private RoomInfo[] room_stats(string owner = null, string member = null)
-    {
-        Room room;
-        Appender!(RoomInfo[]) stats;
-
-        foreach (ref room_name ; db.rooms(owner, member)) {
-            uint num_users;
-            room = get_room(room_name);
-
-            if (room !is null)
-                num_users = cast(uint) room.num_users;
-            else if (owner is null && member is null)
-                continue;
-
-            stats ~= RoomInfo(room_name, num_users);
-        }
-        return stats[];
     }
 
 

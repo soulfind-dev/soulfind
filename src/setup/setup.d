@@ -552,11 +552,11 @@ final class Setup
             ? text("until ", privileged_until.toSimpleString) : "no";
         const supporter = (privileged_until > SysTime()) ? "yes" : "no";
         const searchable = db.is_user_unsearchable(username) ? "no" : "yes";
-        const private_rooms_owner = db.rooms(username).join(", ");
-        const private_rooms_member = db.rooms(null, username).join(", ");
-        const private_rooms_operator = db.rooms(
-            null, username, RoomMemberType.operator
-        ).join(", ");
+        const rooms_owner = db.owned_rooms(username).join(", ");
+        const rooms_member = db.member_rooms!(RoomMemberType.any)(
+            username).join(", ");
+        const rooms_operator = db.member_rooms!(RoomMemberType.operator)(
+            username).join(", ");
         const tickers = db.user_tickers!(RoomType.any)(username);
 
         if (banned_until == SysTime.max)
@@ -576,9 +576,9 @@ final class Setup
             "\n\tfiles: ", stats.shared_files,
             "\n\tfolders: ", stats.shared_folders,
             "\n\tupload speed: ", stats.upload_speed,
-            "\n\towned private rooms: ", private_rooms_owner,
-            "\n\tjoined private rooms: ", private_rooms_member,
-            "\n\toperated private rooms: ", private_rooms_operator,
+            "\n\towned rooms: ", rooms_owner,
+            "\n\tmember rooms: ", rooms_member,
+            "\n\toperated rooms: ", rooms_operator,
             "\n\troom tickers: "
         );
 
@@ -633,7 +633,9 @@ final class Setup
         string rooms(bool is_owner = true) {
             Appender!string output;
             const rooms = is_owner
-                ? db.rooms(username) : db.rooms(null, username);
+                ? db.owned_rooms(username)
+                : db.member_rooms!(RoomMemberType.any)(username);
+
             if (rooms.length == 0)
                 return output[];
 

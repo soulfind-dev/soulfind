@@ -970,39 +970,48 @@ final class Database
         return RoomType.non_existent;
     }
 
-    string[] rooms(string owner = null,
-                   string member = null,
-                   RoomMemberType member_type = RoomMemberType.any)
+    string[] public_rooms()
     {
-        Appender!string sql;
-        Appender!(string[]) parameters;
-
-        sql ~= text("SELECT r.room FROM ", rooms_table, " r");
-
-        if (owner !is null) {
-            sql ~= text(" WHERE r.type = ? AND r.owner = ?");
-            parameters ~= [text(cast(uint) RoomType._private), owner];
-        }
-        else if (member !is null) {
-            sql ~= text(
-                " JOIN ", room_members_table, " m ON r.room = m.room",
-                " WHERE r.type = ? AND m.username = ?"
-            );
-            parameters ~= [text(cast(uint) RoomType._private), member];
-
-            if (member_type != RoomMemberType.any) {
-                sql ~= " AND m.type = ?";
-                parameters ~= text(cast(uint) member_type);
-            }
-        }
-        else {
-            sql ~= text(" WHERE r.type = ?");
-            parameters ~= text(cast(uint) RoomType._public);
-        }
-        sql ~= ";";
+        enum sql = text(
+            "SELECT r.room FROM ", rooms_table, " r",
+            " WHERE r.type = ?;"
+        );
+        enum parameters = [text(cast(uint) RoomType._public)];
 
         Appender!(string[]) rooms;
-        foreach (record ; query(sql[], parameters[])) rooms ~= record[0];
+        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        return rooms[];
+    }
+
+    string[] owned_rooms(string username)
+    {
+        enum sql = text(
+            "SELECT r.room FROM ", rooms_table, " r",
+            " WHERE r.type != ? AND r.owner = ?;"
+        );
+        auto parameters = [text(cast(uint) RoomType._public), username];
+
+        Appender!(string[]) rooms;
+        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        return rooms[];
+    }
+
+    string[] member_rooms(RoomMemberType type)(string username)
+    {
+        auto sql = text(
+            "SELECT r.room FROM ", rooms_table, " r",
+            " JOIN ", room_members_table, " m ON r.room = m.room",
+            " WHERE r.type != ? AND m.username = ?"
+        );
+        auto parameters = [text(cast(uint) RoomType._public), username];
+
+        if (type != RoomMemberType.any) {
+            sql ~= " AND m.type = ?";
+            parameters ~= text(cast(uint) type);
+        }
+
+        Appender!(string[]) rooms;
+        foreach (record ; query(sql, parameters)) rooms ~= record[0];
         return rooms[];
     }
 
