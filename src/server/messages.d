@@ -123,8 +123,8 @@ enum SimilarUsers                   = 110;
 enum ItemRecommendations            = 111;
 enum ItemSimilarUsers               = 112;
 enum RoomTickers                    = 113;
-enum RoomTickerAdd                  = 114;
-enum RoomTickerRemove               = 115;
+enum RoomTickerAdded                = 114;
+enum RoomTickerRemoved              = 115;
 enum SetRoomTicker                  = 116;
 enum AddThingIHate                  = 117;
 enum RemoveThingIHate               = 118;
@@ -134,21 +134,21 @@ enum UserPrivileged                 = 122;   // Obsolete
 enum GivePrivileges                 = 123;
 enum NotifyPrivileges               = 124;   // Obsolete
 enum AckNotifyPrivileges            = 125;   // Obsolete
-enum PrivateRoomUsers               = 133;
-enum PrivateRoomAddUser             = 134;
-enum PrivateRoomRemoveUser          = 135;
-enum PrivateRoomCancelMembership    = 136;
-enum PrivateRoomDisown              = 137;
-enum PrivateRoomAdded               = 139;
-enum PrivateRoomRemoved             = 140;
-enum PrivateRoomToggle              = 141;
+enum RoomMembers                    = 133;
+enum AddRoomMember                  = 134;
+enum RemoveRoomMember               = 135;
+enum CancelRoomMembership           = 136;
+enum CancelRoomOwnership            = 137;
+enum RoomMembershipGranted          = 139;
+enum RoomMembershipRevoked          = 140;
+enum EnableRoomInvitations          = 141;
 enum ChangePassword                 = 142;
-enum PrivateRoomAddOperator         = 143;
-enum PrivateRoomRemoveOperator      = 144;
-enum PrivateRoomOperatorAdded       = 145;
-enum PrivateRoomOperatorRemoved     = 146;
-enum PrivateRoomCancelOperatorship  = 147;
-enum PrivateRoomOperators           = 148;
+enum AddRoomOperator                = 143;
+enum RemoveRoomOperator             = 144;
+enum RoomOperatorshipGranted        = 145;
+enum RoomOperatorshipRevoked        = 146;
+enum CancelRoomOperatorship         = 147;
+enum RoomOperators                  = 148;
 enum MessageUsers                   = 149;
 enum JoinGlobalRoom                 = 150;
 enum LeaveGlobalRoom                = 151;
@@ -792,7 +792,7 @@ final class UNotifyPrivileges : UMessage
     }
 }
 
-final class UPrivateRoomAddUser : UMessage
+final class UAddRoomMember : UMessage
 {
     string  room_name;
     string  username;
@@ -806,7 +806,7 @@ final class UPrivateRoomAddUser : UMessage
     }
 }
 
-final class UPrivateRoomRemoveUser : UMessage
+final class URemoveRoomMember : UMessage
 {
     string  room_name;
     string  username;
@@ -820,7 +820,7 @@ final class UPrivateRoomRemoveUser : UMessage
     }
 }
 
-final class UPrivateRoomCancelMembership : UMessage
+final class UCancelRoomMembership : UMessage
 {
     string room_name;
 
@@ -832,7 +832,7 @@ final class UPrivateRoomCancelMembership : UMessage
     }
 }
 
-final class UPrivateRoomDisown : UMessage
+final class UCancelRoomOwnership : UMessage
 {
     string room_name;
 
@@ -844,7 +844,7 @@ final class UPrivateRoomDisown : UMessage
     }
 }
 
-final class UPrivateRoomToggle : UMessage
+final class UEnableRoomInvitations : UMessage
 {
     bool enabled;
 
@@ -868,7 +868,7 @@ final class UChangePassword : UMessage
     }
 }
 
-final class UPrivateRoomAddOperator : UMessage
+final class UAddRoomOperator : UMessage
 {
     string  room_name;
     string  username;
@@ -882,7 +882,7 @@ final class UPrivateRoomAddOperator : UMessage
     }
 }
 
-final class UPrivateRoomRemoveOperator : UMessage
+final class URemoveRoomOperator : UMessage
 {
     string  room_name;
     string  username;
@@ -896,7 +896,7 @@ final class UPrivateRoomRemoveOperator : UMessage
     }
 }
 
-final class UPrivateRoomCancelOperatorship : UMessage
+final class UCancelRoomOperatorship : UMessage
 {
     string room_name;
 
@@ -1095,9 +1095,9 @@ final class SSayChatroom : SMessage
 final class SRoomList : SMessage
 {
     this(RoomInfo[] rooms,
-         RoomInfo[] owned_private_rooms,
-         RoomInfo[] other_private_rooms,
-         string[] operated_private_rooms) scope
+         RoomInfo[] rooms_owner,
+         RoomInfo[] rooms_member,
+         string[] rooms_operator) scope
     {
         super(RoomList);
 
@@ -1109,24 +1109,24 @@ final class SRoomList : SMessage
         foreach (ref room ; rooms)
             write!uint(room.num_users);
 
-        write!uint(cast(uint) owned_private_rooms.length);
-        foreach (ref room ; owned_private_rooms)
+        write!uint(cast(uint) rooms_owner.length);
+        foreach (ref room ; rooms_owner)
             write!string(room.room_name);
 
-        write!uint(cast(uint) owned_private_rooms.length);
-        foreach (ref room ; owned_private_rooms)
+        write!uint(cast(uint) rooms_owner.length);
+        foreach (ref room ; rooms_owner)
             write!uint(room.num_users);
 
-        write!uint(cast(uint) other_private_rooms.length);
-        foreach (ref room ; other_private_rooms)
+        write!uint(cast(uint) rooms_member.length);
+        foreach (ref room ; rooms_member)
             write!string(room.room_name);
 
-        write!uint(cast(uint) other_private_rooms.length);
-        foreach (ref room ; other_private_rooms)
+        write!uint(cast(uint) rooms_member.length);
+        foreach (ref room ; rooms_member)
             write!uint(room.num_users);
 
-        write!uint(cast(uint) operated_private_rooms.length);
-        foreach (ref room_name ; operated_private_rooms)
+        write!uint(cast(uint) rooms_operator.length);
+        foreach (ref room_name ; rooms_operator)
             write!string(room_name);
     }
 }
@@ -1514,11 +1514,11 @@ final class SRoomTickers : SMessage
     }
 }
 
-final class SRoomTickerAdd : SMessage
+final class SRoomTickerAdded : SMessage
 {
     this(string room_name, string username, string ticker) scope
     {
-        super(RoomTickerAdd);
+        super(RoomTickerAdded);
 
         write!string(room_name);
         write!string(username);
@@ -1526,11 +1526,11 @@ final class SRoomTickerAdd : SMessage
     }
 }
 
-final class SRoomTickerRemove : SMessage
+final class SRoomTickerRemoved : SMessage
 {
     this(string room_name, string username) scope
     {
-        super(RoomTickerRemove);
+        super(RoomTickerRemoved);
 
         write!string(room_name);
         write!string(username);
@@ -1558,11 +1558,11 @@ final class SAckNotifyPrivileges : SMessage
     }
 }
 
-final class SPrivateRoomUsers : SMessage
+final class SRoomMembers : SMessage
 {
     this(string room_name, string[] usernames) scope
     {
-        super(PrivateRoomUsers);
+        super(RoomMembers);
 
         write!string(room_name);
         write!uint(cast(uint) usernames.length);
@@ -1570,53 +1570,53 @@ final class SPrivateRoomUsers : SMessage
     }
 }
 
-final class SPrivateRoomAddUser : SMessage
+final class SAddRoomMember : SMessage
 {
     this(string room_name, string username) scope
     {
-        super(PrivateRoomAddUser);
+        super(AddRoomMember);
 
         write!string(room_name);
         write!string(username);
     }
 }
 
-final class SPrivateRoomRemoveUser : SMessage
+final class SRemoveRoomMember : SMessage
 {
     this(string room_name, string username) scope
     {
-        super(PrivateRoomRemoveUser);
+        super(RemoveRoomMember);
 
         write!string(room_name);
         write!string(username);
     }
 }
 
-final class SPrivateRoomAdded : SMessage
+final class SRoomMembershipGranted : SMessage
 {
     this(string room_name) scope
     {
-        super(PrivateRoomAdded);
+        super(RoomMembershipGranted);
 
         write!string(room_name);
     }
 }
 
-final class SPrivateRoomRemoved : SMessage
+final class SRoomMembershipRevoked : SMessage
 {
     this(string room_name) scope
     {
-        super(PrivateRoomRemoved);
+        super(RoomMembershipRevoked);
 
         write!string(room_name);
     }
 }
 
-final class SPrivateRoomToggle : SMessage
+final class SEnableRoomInvitations : SMessage
 {
     this(bool enabled) scope
     {
-        super(PrivateRoomToggle);
+        super(EnableRoomInvitations);
 
         write!bool(enabled);
     }
@@ -1632,53 +1632,53 @@ final class SChangePassword : SMessage
     }
 }
 
-final class SPrivateRoomAddOperator : SMessage
+final class SAddRoomOperator : SMessage
 {
     this(string room_name, string username) scope
     {
-        super(PrivateRoomAddOperator);
+        super(AddRoomOperator);
 
         write!string(room_name);
         write!string(username);
     }
 }
 
-final class SPrivateRoomRemoveOperator : SMessage
+final class SRemoveRoomOperator : SMessage
 {
     this(string room_name, string username) scope
     {
-        super(PrivateRoomRemoveOperator);
+        super(RemoveRoomOperator);
 
         write!string(room_name);
         write!string(username);
     }
 }
 
-final class SPrivateRoomOperatorAdded : SMessage
+final class SRoomOperatorshipGranted : SMessage
 {
     this(string room_name) scope
     {
-        super(PrivateRoomOperatorAdded);
+        super(RoomOperatorshipGranted);
 
         write!string(room_name);
     }
 }
 
-final class SPrivateRoomOperatorRemoved : SMessage
+final class SRoomOperatorshipRevoked : SMessage
 {
     this(string room_name) scope
     {
-        super(PrivateRoomOperatorRemoved);
+        super(RoomOperatorshipRevoked);
 
         write!string(room_name);
     }
 }
 
-final class SPrivateRoomOperators : SMessage
+final class SRoomOperators : SMessage
 {
     this(string room_name, string[] usernames) scope
     {
-        super(PrivateRoomOperators);
+        super(RoomOperators);
 
         write!string(room_name);
         write!uint(cast(uint) usernames.length);

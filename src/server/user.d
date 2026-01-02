@@ -647,14 +647,14 @@ final class User
 
     void room_membership_granted(string room_name)
     {
-        scope msg = new SPrivateRoomAdded(room_name);
+        scope msg = new SRoomMembershipGranted(room_name);
         send_message(msg);
         server.send_room_list(username);
     }
 
-    void room_membership_canceled(string room_name)
+    void room_membership_revoked(string room_name)
     {
-        scope msg = new SPrivateRoomRemoved(room_name);
+        scope msg = new SRoomMembershipRevoked(room_name);
         send_message(msg);
         leave_room(room_name);
         server.send_room_list(username);
@@ -662,14 +662,14 @@ final class User
 
     void room_operatorship_granted(string room_name)
     {
-        scope msg = new SPrivateRoomOperatorAdded(room_name);
+        scope msg = new SRoomOperatorshipGranted(room_name);
         send_message(msg);
         server.send_room_list(username);
     }
 
-    void room_operatorship_canceled(string room_name)
+    void room_operatorship_revoked(string room_name)
     {
-        scope msg = new SPrivateRoomOperatorRemoved(room_name);
+        scope msg = new SRoomOperatorshipRevoked(room_name);
         send_message(msg);
         server.send_room_list(username);
     }

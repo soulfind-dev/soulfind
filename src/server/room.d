@@ -149,7 +149,7 @@ final class Room
         enum permanent = false;
         del_ticker(username, permanent);
 
-        scope msg = new SRoomTickerAdd(name, username, content);
+        scope msg = new SRoomTickerAdded(name, username, content);
         send_to_all(msg);
 
         db.del_excessive_tickers(name);
@@ -160,7 +160,7 @@ final class Room
         if (permanent && !db.del_ticker(name, username))
             return;
 
-        scope msg = new SRoomTickerRemove(name, username);
+        scope msg = new SRoomTickerRemoved(name, username);
         send_to_all(msg);
     }
 

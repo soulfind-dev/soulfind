@@ -441,7 +441,7 @@ final class Server
             void send_user_msg(string room_username) {
                 auto room_user = get_user(room_username);
                 if (room_user !is null)
-                    room_user.room_membership_canceled(room_name);
+                    room_user.room_membership_revoked(room_name);
             }
             foreach (ref room_username ; members) send_user_msg(room_username);
             if (owner !is null) send_user_msg(owner);
@@ -519,7 +519,7 @@ final class Server
             return false;
         }
 
-        if (!db.add_room_member(room_name, target)) {
+        if (!db.grant_room_membership(room_name, target)) {
             send_pm(
                 server_username, actor,
                 text(
@@ -535,7 +535,7 @@ final class Server
             if (room_user is null)
                 return;
 
-            scope msg = new SPrivateRoomAddUser(room_name, target);
+            scope msg = new SAddRoomMember(room_name, target);
             room_user.send_message(msg);
         }
         const members = db.room_members!(RoomMemberType.any)(room_name);
@@ -564,7 +564,7 @@ final class Server
         return true;
     }
 
-    bool cancel_room_membership(string room_name, string actor, string target)
+    bool revoke_room_membership(string room_name, string actor, string target)
     {
         const owner = db.get_room_owner(room_name);
         if (actor != target && actor != owner) {
@@ -573,9 +573,9 @@ final class Server
                 return false;
         }
 
-        cancel_room_operatorship(room_name, actor, target);
+        revoke_room_operatorship(room_name, actor, target);
 
-        if (!db.del_room_member(room_name, target))
+        if (!db.revoke_room_membership(room_name, target))
             return false;
 
         void send_user_msg(string room_username) {
@@ -583,7 +583,7 @@ final class Server
             if (room_user is null)
                 return;
 
-            scope msg = new SPrivateRoomRemoveUser(room_name, target);
+            scope msg = new SRemoveRoomMember(room_name, target);
             room_user.send_message(msg);
         }
         const members = db.room_members!(RoomMemberType.any)(room_name);
@@ -600,7 +600,7 @@ final class Server
 
         auto target_user = get_user(target);
         if (target_user !is null)
-            target_user.room_membership_canceled(room_name);
+            target_user.room_membership_revoked(room_name);
 
         return true;
     }
@@ -640,7 +640,7 @@ final class Server
             if (room_user is null)
                 return;
 
-            scope msg = new SPrivateRoomAddOperator(room_name, target);
+            scope msg = new SAddRoomOperator(room_name, target);
             room_user.send_message(msg);
         }
         const members = db.room_members!(RoomMemberType.any)(room_name);
@@ -656,7 +656,7 @@ final class Server
         return true;
     }
 
-    bool cancel_room_operatorship(string room_name, string actor,
+    bool revoke_room_operatorship(string room_name, string actor,
                                   string target)
     {
         const owner = db.get_room_owner(room_name);
@@ -671,7 +671,7 @@ final class Server
             if (room_user is null)
                 return;
 
-            scope msg = new SPrivateRoomRemoveOperator(room_name, target);
+            scope msg = new SRemoveRoomOperator(room_name, target);
             room_user.send_message(msg);
         }
         const members = db.room_members!(RoomMemberType.any)(room_name);
@@ -688,7 +688,7 @@ final class Server
 
         auto target_user = get_user(target);
         if (target_user !is null)
-            target_user.room_operatorship_canceled(room_name);
+            target_user.room_operatorship_revoked(room_name);
 
         return true;
     }
@@ -773,7 +773,7 @@ final class Server
         user.send_message(list_response_msg);
 
         void send_users_msg(string room_name) {
-            scope users_msg = new SPrivateRoomUsers(
+            scope users_msg = new SRoomMembers(
                 room_name,
                 db.room_members!(RoomMemberType.any)(room_name)
             );
@@ -783,7 +783,7 @@ final class Server
         foreach (ref room ; member_rooms) send_users_msg(room.room_name);
 
         void send_operators_msg(string room_name) {
-            scope operators_msg = new SPrivateRoomOperators(
+            scope operators_msg = new SRoomOperators(
                 room_name,
                 db.room_members!(RoomMemberType.operator)(room_name)
             );
