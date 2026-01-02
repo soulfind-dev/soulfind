@@ -738,16 +738,17 @@ final class Server
 
         RoomInfo[] private_room_stats(string username, bool is_owner = false)
         {
-            string[] rooms;
+            string[] stored_rooms;
             if (is_owner)
-                rooms = db.owned_rooms(username);
+                stored_rooms = db.owned_rooms(username);
             else
-                rooms = db.member_rooms!(RoomMemberType.any)(username);
+                stored_rooms = db.member_rooms!(RoomMemberType.any)(username);
 
+            Room room;  // Satisfy linter
             Appender!(RoomInfo[]) stats;
-            foreach (ref room_name ; rooms) {
+            foreach (ref room_name ; stored_rooms) {
                 uint num_users;
-                auto room = get_room(room_name);
+                room = get_room(room_name);
 
                 if (room !is null)
                     num_users = cast(uint) room.num_users;

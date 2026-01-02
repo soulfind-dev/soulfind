@@ -976,10 +976,10 @@ final class Database
             "SELECT r.room FROM ", rooms_table, " r",
             " WHERE r.type = ?;"
         );
-        enum parameters = [text(cast(uint) RoomType._public)];
 
         Appender!(string[]) rooms;
-        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        foreach (record ; query(sql, [text(cast(uint) RoomType._public)]))
+            rooms ~= record[0];
         return rooms[];
     }
 
@@ -989,21 +989,24 @@ final class Database
             "SELECT r.room FROM ", rooms_table, " r",
             " WHERE r.type != ? AND r.owner = ?;"
         );
-        auto parameters = [text(cast(uint) RoomType._public), username];
+        const res = query(sql, [text(cast(uint) RoomType._public), username]);
 
         Appender!(string[]) rooms;
-        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        foreach (record ; res) rooms ~= record[0];
         return rooms[];
     }
 
     string[] member_rooms(RoomMemberType type)(string username)
     {
-        auto sql = text(
+        Appender!string sql;
+        string[] parameters;
+
+        sql ~= text(
             "SELECT r.room FROM ", rooms_table, " r",
             " JOIN ", room_members_table, " m ON r.room = m.room",
             " WHERE r.type != ? AND m.username = ?"
         );
-        auto parameters = [text(cast(uint) RoomType._public), username];
+        parameters ~= [text(cast(uint) RoomType._public), username];
 
         if (type != RoomMemberType.any) {
             sql ~= " AND m.type = ?";
@@ -1011,7 +1014,7 @@ final class Database
         }
 
         Appender!(string[]) rooms;
-        foreach (record ; query(sql, parameters)) rooms ~= record[0];
+        foreach (record ; query(sql[], parameters[])) rooms ~= record[0];
         return rooms[];
     }
 
