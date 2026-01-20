@@ -173,7 +173,8 @@ final class Server
 
     void refresh_unsearchable_users()
     {
-        unsearchable_users.clear();
+        // Not using clear(), since it's @system in older D versions
+        unsearchable_users = null;
         foreach (ref username ; db.usernames("unsearchable"))
             unsearchable_users[username] = true;
     }
