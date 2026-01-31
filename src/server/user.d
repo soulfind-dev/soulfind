@@ -358,9 +358,6 @@ final class User
         server.add_user(this);
         watch(username);
 
-        // Empty list of users for privacy reasons. Clients can use
-        // other server messages to know if a user is privileged.
-        string[] privileged_users;
         const md5_hash = digest!MD5(password)
             .toHexString!(LetterCase.lower)
             .idup;
@@ -372,7 +369,7 @@ final class User
             privileged ? wish_interval_privileged : wish_interval
         );
         scope privileged_users_msg = new SPrivilegedUsers(
-            privileged_users
+            server.db.usernames("privileges", Clock.currTime.toUnixTime)
         );
 
         send_message(response_msg);
