@@ -462,10 +462,34 @@ final class MessageHandler
             user.disconnect();
             break;
 
+        case HaveNoParent:
+            // Distributed network, unused in Soulfind
+            scope msg = new UHaveNoParent(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
+            break;
+
+        case ParentIP:
+            // Distributed network, unused in Soulfind
+            scope msg = new UParentIP(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
+            break;
+
         case CheckPrivileges:
             scope msg = new UCheckPrivileges(msg_buf, user.username);
             scope response_msg = new SCheckPrivileges(user.privileges);
             user.send_message(response_msg);
+            break;
+
+        case AcceptChildren:
+            // Distributed network, unused in Soulfind
+            scope msg = new UAcceptChildren(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
             break;
 
         case WishlistSearch:
@@ -581,6 +605,30 @@ final class MessageHandler
 
             scope response_msg = new SAckNotifyPrivileges(msg.token);
             user.send_message(response_msg);
+            break;
+
+        case BranchLevel:
+            // Distributed network, unused in Soulfind
+            scope msg = new UBranchLevel(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
+            break;
+
+        case BranchRoot:
+            // Distributed network, unused in Soulfind
+            scope msg = new UBranchRoot(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
+            break;
+
+        case ChildDepth:
+            // Distributed network, unused in Soulfind
+            scope msg = new UChildDepth(msg_buf, user.username);
+            if (!msg.is_valid)
+                break;
+
             break;
 
         case AddRoomMember:

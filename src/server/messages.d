@@ -117,7 +117,14 @@ enum RoomList                       = 64;
 enum AdminMessage                   = 66;
 enum GlobalUserList                 = 67;    // Obsolete
 enum PrivilegedUsers                = 69;
+enum HaveNoParent                   = 71;
+enum ParentIP                       = 73;    // Deprecated
+enum ParentMinSpeed                 = 83;
+enum ParentSpeedRatio               = 84;
 enum CheckPrivileges                = 92;
+enum EmbeddedMessage                = 93;
+enum AcceptChildren                 = 100;
+enum PossibleParents                = 102;
 enum WishlistSearch                 = 103;
 enum WishlistInterval               = 104;
 enum SimilarUsers                   = 110;
@@ -135,6 +142,10 @@ enum UserPrivileged                 = 122;   // Obsolete
 enum GivePrivileges                 = 123;
 enum NotifyPrivileges               = 124;   // Obsolete
 enum AckNotifyPrivileges            = 125;   // Obsolete
+enum BranchLevel                    = 126;
+enum BranchRoot                     = 127;
+enum ChildDepth                     = 129;   // Deprecated
+enum ResetDistributed               = 130;
 enum RoomMembers                    = 133;
 enum AddRoomMember                  = 134;
 enum RemoveRoomMember               = 135;
@@ -159,6 +170,7 @@ enum ExcludedSearchPhrases          = 160;
 enum CantConnectToPeer              = 1001;
 enum CantCreateRoom                 = 1003;
 
+enum DistribSearch                  = 3;
 
 // Incoming Messages
 
@@ -667,11 +679,47 @@ final class UGlobalUserList : UMessage
     }
 }
 
+final class UHaveNoParent : UMessage
+{
+    bool no_parent;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        no_parent = read!bool();
+    }
+}
+
+final class UParentIP : UMessage
+{
+    uint ip_address;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        ip_address = read!uint();
+    }
+}
+
 final class UCheckPrivileges : UMessage
 {
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
+    }
+}
+
+final class UAcceptChildren : UMessage
+{
+    bool accept_children;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        accept_children = read!bool();
     }
 }
 
@@ -790,6 +838,42 @@ final class UNotifyPrivileges : UMessage
 
         token = read!uint();
         username = read!string();
+    }
+}
+
+final class UBranchLevel : UMessage
+{
+    uint level;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        level = read!int();
+    }
+}
+
+final class UBranchRoot : UMessage
+{
+    string username;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        username = read!string();
+    }
+}
+
+final class UChildDepth : UMessage
+{
+    uint depth;
+
+    this(const(ubyte)[] in_buf, string in_username) scope
+    {
+        super(in_buf, in_username);
+
+        depth = read!uint();
     }
 }
 
@@ -1437,6 +1521,26 @@ final class SPrivilegedUsers : SMessage
     }
 }
 
+final class SParentMinSpeed : SMessage
+{
+    this(uint speed) scope
+    {
+        super(ParentMinSpeed);
+
+        write!uint(speed);
+    }
+}
+
+final class SParentSpeedRatio : SMessage
+{
+    this(uint ratio) scope
+    {
+        super(ParentSpeedRatio);
+
+        write!uint(ratio);
+    }
+}
+
 final class SCheckPrivileges : SMessage
 {
     this(Duration duration) scope
@@ -1447,6 +1551,32 @@ final class SCheckPrivileges : SMessage
         write!uint(
             cast(uint) (duration_value > uint.max ? uint.max : duration_value)
         );
+    }
+}
+
+final class SEmbeddedMessage : SMessage
+{
+    this(SMessage distributed_message) scope
+    {
+        super(EmbeddedMessage);
+
+        write!ubyte(cast(ubyte) distributed_message.code);
+        out_buf ~= distributed_message.bytes[uint.sizeof .. $];
+    }
+}
+
+final class SPossibleParents : SMessage
+{
+    this(User[] users) scope
+    {
+        super(PossibleParents);
+
+        write!uint(cast(uint) users.length);
+        foreach (ref user ; users) {
+            write!string(user.username);
+            write!uint(user.address.addr);
+            write!uint(user.address.port);
+        }
     }
 }
 
@@ -1563,6 +1693,14 @@ final class SAckNotifyPrivileges : SMessage
         super(AckNotifyPrivileges);
 
         write!uint(token);
+    }
+}
+
+final class SResetDistributed : SMessage
+{
+    this() scope
+    {
+        super(ResetDistributed);
     }
 }
 
@@ -1750,5 +1888,18 @@ final class SCantCreateRoom : SMessage
         super(CantCreateRoom);
 
         write!string(room_name);
+    }
+}
+
+final class SDistribSearch : SMessage
+{
+    this(uint unknown, string username, uint token, string query) scope
+    {
+        super(DistribSearch);
+
+        write!uint(unknown);
+        write!string(username);
+        write!uint(token);
+        write!string(query);
     }
 }
