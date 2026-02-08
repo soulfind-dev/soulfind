@@ -128,4 +128,4 @@ People who have contributed to Soulfind:
  - mathiascode
  - slook
 
-© 2005–2025 Soulfind Contributors
+© 2005–2026 Soulfind Contributors

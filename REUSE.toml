@@ -13,7 +13,7 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 [[annotations]]
 path = ["README.md"]
 SPDX-FileCopyrightText = [
-    "2024-2025 Soulfind Contributors",
+    "2024-2026 Soulfind Contributors",
     "2005 SeeSchloss <seeschloss@seeschloss.org>"
 ]
 SPDX-License-Identifier = "GPL-3.0-or-later"
