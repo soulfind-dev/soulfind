@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Soulfind Contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
