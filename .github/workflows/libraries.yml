@@ -19,7 +19,7 @@ jobs:
         arch: [x86, x64, arm64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Remove old import libraries
         run: Remove-Item -Path lib\*.lib
@@ -49,7 +49,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Download import libraries
         uses: actions/download-artifact@v7
