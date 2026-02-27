@@ -121,7 +121,7 @@ jobs:
 
       - name: Archive artifacts
         if: matrix.compiler == 'ldc'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: soulfind-${{ matrix.os }}
           path: |
