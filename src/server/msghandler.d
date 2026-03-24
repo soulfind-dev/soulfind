@@ -44,8 +44,8 @@ final class MessageHandler
                 break;
 
             user.username = msg.username;
-            user.client_version = text(
-                msg.major_version, ".", msg.minor_version
+            user.client_variant = text(
+                msg.client_type, ".", msg.client_subtype
             );
             user.authenticate(msg.username, msg.password);
             break;

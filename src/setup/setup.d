@@ -300,7 +300,7 @@ final class Setup
             "\n\t%%sversion%% - server version (", VERSION, ")",
             "\n\t%%users%%    - number of connected users",
             "\n\t%%username%% - name of the connecting user",
-            "\n\t%%version%%  - version of the user's client software",
+            "\n\t%%variant%%  - user's client type and subtype",
             "\n\nNew MOTD (end with a dot on a single line):"
         );
 

@@ -461,7 +461,7 @@ final class CommandHandler
                 output ~= "\n    ";
                 output ~= user.username;
                 output ~= text(
-                    " (client version: ", user.client_version, ")"
+                    " (client variant: ", user.client_variant, ")"
                 );
             }
             break;
@@ -520,7 +520,7 @@ final class CommandHandler
         User user;
         const now = Clock.currTime;
         auto status = "offline";
-        auto client_version = "none";
+        auto client_variant = "none";
         auto ip_address = "none";
         ushort listening_port;
         ushort obfuscated_port;
@@ -543,7 +543,7 @@ final class CommandHandler
         user = server.get_user(username);
         if (user !is null) {
             status = (user.status == UserStatus.away) ? "away" : "online";
-            client_version = user.client_version;
+            client_variant = user.client_variant;
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
@@ -601,7 +601,7 @@ final class CommandHandler
             "\n",
             "\nSession info:",
             "\n    status: ", status,
-            "\n    client version: ", client_version,
+            "\n    client variant: ", client_variant,
             "\n    IP address: ", ip_address,
             "\n    port: ", listening_port,
             "\n    obfuscated port: ", obfuscated_port,
@@ -786,7 +786,7 @@ final class CommandHandler
             "\n    \"username\": \"", username, "\",",
             "\n    \"session_data\": {",
             "\n        \"status\": \"", status, "\",",
-            "\n        \"client_version\": \"", user.client_version, "\",",
+            "\n        \"client_variant\": \"", user.client_variant, "\",",
             "\n        \"ip_address\": \"", user.address.toAddrString ~ "\",",
             "\n        \"port\": ", user.address.port, ",",
             "\n        \"obfuscated_port\": ", user.obfuscated_port, ",",

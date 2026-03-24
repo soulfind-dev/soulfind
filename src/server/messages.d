@@ -259,24 +259,24 @@ final class ULogin : UMessage
 {
     string  username;
     string  password;
-    uint    major_version;
+    uint    client_type;     // protocol major version
     string  hash;            // MD5 hash of username + password
-    uint    minor_version;
+    uint    client_subtype;  // protocol minor version
 
     this(const(ubyte)[] in_buf) scope
     {
         super(in_buf);
 
-        username      = read!string();
-        password      = read!string();
-        major_version = read!uint();
+        username    = read!string();
+        password    = read!string();
+        client_type = read!uint();
 
         if (!has_unread_data)
             return;
 
         // Older clients would not send these
-        hash          = read!string();
-        minor_version = read!uint();
+        hash           = read!string();
+        client_subtype = read!uint();
     }
 }
 
