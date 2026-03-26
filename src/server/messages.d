@@ -6,7 +6,7 @@
 module soulfind.server.messages;
 @safe:
 
-import soulfind.defines : blue, log_msg, norm, RoomTicker;
+import soulfind.defines : blue, log_bytes_rx, log_msg, norm, RoomTicker;
 import soulfind.server.room : Room;
 import soulfind.server.user : User;
 import std.array : Appender;

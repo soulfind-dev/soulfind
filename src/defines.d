@@ -101,3 +101,4 @@ enum red                         = "\033[01;91m";    // foreground red
 bool log_db;
 bool log_conn;
 bool log_msg;
+bool log_bytes_rx;

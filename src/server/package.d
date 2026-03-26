@@ -7,8 +7,8 @@ module soulfind.server;
 @safe:
 
 import soulfind.cli : CommandOption, parse_args, print_help, print_version;
-import soulfind.defines : default_db_filename, exit_message, log_conn, log_db,
-                          log_msg;
+import soulfind.defines : default_db_filename, exit_message, log_bytes_rx,
+                          log_conn, log_db, log_msg;
 import soulfind.server.server : Server;
 import std.conv : text, to;
 import std.stdio : writeln;
