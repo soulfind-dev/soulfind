@@ -18,6 +18,7 @@ int run(string[] args)
     string  db_filename = default_db_filename;
     ushort  port;
     bool    enable_debug;
+    bool    enable_debug_rx_bytes;
     bool    show_version;
     bool    show_help;
 
@@ -35,6 +36,10 @@ int run(string[] args)
         CommandOption(
             "", "debug", "Enable debug logging.", null,
             (_) { enable_debug = true; }
+        ),
+        CommandOption(
+            "", "rx-bytes", "Enable debug logging of received bytes.", null,
+            (_) { enable_debug_rx_bytes = true; }
         ),
         CommandOption(
             "v", "version", "Show version.", null,
@@ -64,6 +69,15 @@ int run(string[] args)
     }
 
     if (enable_debug) log_db = log_conn = log_msg = true;
+
+    if (enable_debug_rx_bytes) {
+        if (!enable_debug) {
+            writeln("Warning: '--rx-bytes' flag requires '--debug'");
+        }
+        else {
+            log_bytes_rx = true;
+        }
+    }
 
     auto server = new Server(db_filename);
     const success = server.listen(port);
