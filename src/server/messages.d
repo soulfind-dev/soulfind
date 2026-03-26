@@ -13,6 +13,7 @@ import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
 import std.datetime : days, Duration, SysTime;
+import std.format : format;
 import std.stdio : writeln;
 import std.utf : UTFException, validate;
 
@@ -188,7 +189,8 @@ class UMessage
 
         if (log_msg) writeln(
             "[Msg] Receive <- ", blue, this.name, norm, " (code ", code,
-            ") <- from user ", blue, in_username, norm
+            ") <- from user ", blue, in_username, norm,
+            log_bytes_rx ? " (" ~ format!"%-(%02x %)"(in_buf) ~ ")" : ""
         );
     }
 
