@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors
+// SPDX-FileCopyrightText: 2024-2026 Soulfind Contributors
 // SPDX-FileCopyrightText: 2005-2017 SeeSchloss <seeschloss@seeschloss.org>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -6,6 +6,8 @@
 module soulfind.defines;
 @safe:
 
+import std.compiler : name, version_major, version_minor;
+import std.conv : text;
 import std.datetime : minutes, msecs, seconds;
 import std.string : join, split;
 
@@ -40,6 +42,10 @@ enum speed_weight                = 50;
 enum pbkdf2_iterations           = 100000;
 enum server_username             = "server";
 enum exit_message                = "A la prochaine...";
+enum version_message             = text(
+    "Soulfind ", VERSION, " (compiled with ", name, " ", version_major,
+    ".", version_minor, ")"
+);
 
 
 // Types
