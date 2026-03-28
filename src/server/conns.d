@@ -6,8 +6,8 @@ module soulfind.server.conns;
 @safe:
 
 import soulfind.defines : blue, bold, conn_backlog_length, conn_buffer_size,
-                          log_conn, log_msg, max_in_msg_size, norm, red,
-                          user_check_interval, VERSION;
+                          log_conn, log_msg_in, log_msg_out, max_in_msg_size,
+                          norm, red, user_check_interval, VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.server.messages : SMessage;
 import soulfind.server.msghandler : MessageHandler;
@@ -235,8 +235,8 @@ final class UserConnection
         const offset = out_buf.length;
 
         if (log == Logging.redacted) target_username = "[ redacted ]";
-        if (log_msg && log != Logging.disabled) writeln(
-            "[Msg] Sending -> ", blue, msg.name, norm, " (code ", msg.code,
+        if (log_msg_out && log != Logging.disabled) writeln(
+            "[MSG OUT] Sending -> ", blue, msg.name, norm, " (code ", msg.code,
             ") -> to user ", blue, target_username, norm
         );
 
@@ -275,8 +275,8 @@ final class UserConnection
                 in_msg_size = in_buf.read!(uint, Endian.littleEndian);
             }
             if (in_msg_size < 0 || in_msg_size > max_in_msg_size) {
-                if (log_msg) writeln(
-                    "[Msg] Received unexpected message size ", in_msg_size,
+                if (log_msg_in) writeln(
+                    "[MSG IN] Received unexpected message size ", in_msg_size,
                     " from user ", blue, target_user.username, norm,
                     ", disconnecting them"
                 );

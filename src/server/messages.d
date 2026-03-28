@@ -6,7 +6,7 @@
 module soulfind.server.messages;
 @safe:
 
-import soulfind.defines : blue, log_msg, norm, RoomTicker;
+import soulfind.defines : blue, log_msg_in, norm, RoomTicker;
 import soulfind.server.room : Room;
 import soulfind.server.user : User;
 import std.array : Appender;
@@ -186,8 +186,8 @@ class UMessage
         this.in_buf = in_buf;
         code = read!uint();
 
-        if (log_msg) writeln(
-            "[Msg] Receive <- ", blue, this.name, norm, " (code ", code,
+        if (log_msg_in) writeln(
+            "[MSG IN] Receive <- ", blue, this.name, norm, " (code ", code,
             ") <- from user ", blue, in_username, norm
         );
     }
@@ -245,8 +245,8 @@ class UMessage
             }
         }
         else {
-            if (log_msg) writeln(
-                "[Msg] Message code ", code, ", offset ", offset,
+            if (log_msg_in) writeln(
+                "[MSG IN] Message code ", code, ", offset ", offset,
                 ", not enough data reading ", T.stringof, " of size ", size
             );
             is_valid = false;

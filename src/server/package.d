@@ -8,16 +8,17 @@ module soulfind.server;
 
 import soulfind.cli : CommandOption, parse_args, print_help, print_version;
 import soulfind.defines : default_db_filename, exit_message, log_conn, log_db,
-                          log_msg;
+                          log_msg_in, log_msg_out;
 import soulfind.server.server : Server;
 import std.conv : text, to;
 import std.stdio : writeln;
+import std.string : join, split;
 
 int run(string[] args)
 {
     string  db_filename = default_db_filename;
     ushort  port;
-    bool    enable_debug;
+    string  log_categories;
     bool    show_version;
     bool    show_help;
 
@@ -25,26 +26,30 @@ int run(string[] args)
         CommandOption(
             "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
-            ), "path",
+            ), "path", null,
             (value) { db_filename = value; }
         ),
         CommandOption(
-            "p", "port", "Listening port.", "port",
+            "p", "port", "Listening port.", "port", null,
             (value) { port = value.to!ushort; }
         ),
         CommandOption(
-            "", "debug", "Enable debug logging.", null,
-            (_) { enable_debug = true; }
+            "l", "log", "Enable additional logging.", "categories", "default",
+            (value) { log_categories = value; }
         ),
         CommandOption(
-            "v", "version", "Show version.", null,
+            "v", "version", "Show version.", null, null,
             (_) { show_version = true; }
         ),
         CommandOption(
-            "h", "help", "Show this help message.", null,
+            "h", "help", "Show this help message.", null, null,
             (_) { show_help = true; }
         )
     ];
+    static available_log_categories = [
+        "default", "conn", "db", "msg", "msg-in", "msg-out"
+    ];
+
     try {
         parse_args(args, options);
     }
@@ -63,7 +68,40 @@ int run(string[] args)
         return 0;
     }
 
-    if (enable_debug) log_db = log_conn = log_msg = true;
+    foreach (category ; log_categories.split!(c => c == ' ' || c == ',')) {
+        switch (category) {
+        case "default":
+            log_conn = log_db = true;
+            break;
+
+        case "conn":
+            log_conn = true;
+            break;
+
+        case "db":
+            log_db = true;
+            break;
+
+        case "msg":
+            log_msg_in = log_msg_out = true;
+            break;
+
+        case "msg-in":
+            log_msg_in = true;
+            break;
+
+        case "msg-out":
+            log_msg_out = true;
+            break;
+
+        default:
+            writeln(
+                "Unknown log category ", category, ". Available categories: ",
+                available_log_categories.join(", ")
+            );
+            return 0;
+        }
+    }
 
     auto server = new Server(db_filename);
     const success = server.listen(port);

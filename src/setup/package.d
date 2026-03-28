@@ -11,12 +11,13 @@ import soulfind.defines : default_db_filename, exit_message, log_db;
 import soulfind.setup.setup : Setup;
 import std.conv : text;
 import std.stdio : writeln;
+import std.string : join, split;
 
 int run(string[] args)
 {
     string  db_filename = default_db_filename;
     string  db_backup_filename;
-    bool    enable_debug;
+    string  log_categories;
     bool    show_version;
     bool    show_help;
 
@@ -24,28 +25,30 @@ int run(string[] args)
         CommandOption(
             "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
-            ), "path",
+            ), "path", null,
             (value) { db_filename = value; }
         ),
         CommandOption(
             "b", "backup", text(
                 "Back up database to file path."
-            ), "path",
+            ), "path", null,
             (value) { db_backup_filename = value; }
         ),
         CommandOption(
-            "", "debug", "Enable debug logging.", null,
-            (_) { enable_debug = true; }
+            "l", "log", "Enable additional logging.", "categories", "default",
+            (value) { log_categories = value; }
         ),
         CommandOption(
-            "v", "version", "Show version.", null,
+            "v", "version", "Show version.", null, null,
             (_) { show_version = true; }
         ),
         CommandOption(
-            "h", "help", "Show this help message.", null,
+            "h", "help", "Show this help message.", null, null,
             (_) { show_help = true; }
         )
     ];
+    static available_log_categories = ["default", "db"];
+
     try {
         parse_args(args, options);
     }
@@ -64,7 +67,21 @@ int run(string[] args)
         return 0;
     }
 
-    if (enable_debug) log_db = true;
+    foreach (category ; log_categories.split!(c => c == ' ' || c == ',')) {
+        switch (category) {
+        case "default":
+        case "db":
+            log_db = true;
+            break;
+
+        default:
+            writeln(
+                "Unknown log category ", category, ". Available categories: ",
+                available_log_categories.join(", ")
+            );
+            return 0;
+        }
+    }
 
     int exit_code;
     auto setup = new Setup(db_filename);

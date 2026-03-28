@@ -20,6 +20,7 @@ struct CommandOption {
     string                 l_parameter;
     string                 description;
     string                 arg_name;
+    string                 default_value;
     void delegate(string)  callback;
 }
 
@@ -84,6 +85,10 @@ void parse_args(string[] args, CommandOption[] options)
                 option.callback(args[i + 1]);
                 i += 2;
             }
+            else if (option.default_value.length > 0) {
+                option.callback(option.default_value);
+                i++;
+            }
             else {
                 throw new CommandException("Missing value for option: " ~ arg);
             }
@@ -126,13 +131,18 @@ void print_help(string description, CommandOption[] options)
     foreach (option; options) {
         output ~= "\n";
 
-        auto s_parameter = option.s_parameter;
-        auto l_parameter = option.l_parameter;
-        auto arg_name    = option.arg_name;
+        auto s_parameter   = option.s_parameter;
+        auto l_parameter   = option.l_parameter;
+        auto arg_name      = option.arg_name;
 
         if (s_parameter.length > 0)  s_parameter = s_prefix ~ s_parameter;
         if (l_parameter.length > 0)  l_parameter = l_prefix ~ l_parameter;
-        if (arg_name.length > 0)     l_parameter ~= " <" ~ arg_name ~ ">";
+        if (arg_name.length > 0) {
+            if (option.default_value.length > 0)
+                l_parameter ~= " [" ~ arg_name ~ "]";
+            else
+                l_parameter ~= " <" ~ arg_name ~ ">";
+        }
 
         output ~= s_parameter;
         output ~= spacing(s_max - s_parameter.length);

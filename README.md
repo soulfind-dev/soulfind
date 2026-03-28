@@ -104,17 +104,32 @@ argument:
 soulfind -p 1234
 ```
 
-### Debug Logging
+### Additional Logging
 
-Enable detailed debug logging by providing the `--debug` flag:
-
-```
-soulfind --debug
-```
+Enable additional logging by providing a `-l` or `--log` flag:
 
 ```
-soulsetup --debug
+soulfind -l
 ```
+
+```
+soulsetup -l
+```
+
+An optional list of log categories can also be provided:
+
+```
+soulfind -l default,msg
+```
+
+Available log categories:
+
+ - `default`: Includes `conn` and `db`
+ - `conn`: Connections
+ - `db`: Database operations
+ - `msg`: Includes `msg-in` and `msg-out`
+ - `msg-in`: Incoming network messages
+ - `msg-out`: Outgoing network messages
 
 
 ## Authors

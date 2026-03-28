@@ -6,7 +6,7 @@
 module soulfind.server.msghandler;
 @safe:
 
-import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
+import soulfind.defines : blue, bold, log_msg_in, norm, pbkdf2_iterations, red,
                           RoomMemberType, RoomType, server_username;
 import soulfind.pwhash : create_salt, hash_password_async;
 import soulfind.server.conns : Logging;
@@ -778,8 +778,8 @@ final class MessageHandler
             break;
 
         default:
-            if (log_msg) writeln(
-                "[Msg] Unimplemented message code ", red, code, norm,
+            if (log_msg_in) writeln(
+                "[MSG IN] Unimplemented message code ", red, code, norm,
                 " from user ", blue, user.username, norm, " with length ",
                 msg_buf.length
             );
