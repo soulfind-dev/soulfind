@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Soulfind Contributors
+// SPDX-FileCopyrightText: 2025-2026 Soulfind Contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -6,6 +6,7 @@ module soulfind.cli;
 @safe:
 
 import soulfind.defines : VERSION;
+import std.algorithm.mutation : remove;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.stdio : writeln;
@@ -19,7 +20,8 @@ struct CommandOption {
     string                 s_parameter;
     string                 l_parameter;
     string                 description;
-    string                 arg_name;
+    string                 choice_name;
+    string[]               choices;
     void delegate(string)  callback;
 }
 
@@ -37,14 +39,12 @@ void parse_args(string[] args, CommandOption[] options)
         string arg = args[i];
         string name;
         string value;
-        bool found_equals;
 
         if (arg.startsWith(l_prefix)) {
             foreach (j, ref c; arg) {
                 if (c == '=') {
                     name = arg[l_prefix.length .. j];
                     value = arg[j + 1 .. $];
-                    found_equals = true;
                     break;
                 }
             }
@@ -73,25 +73,29 @@ void parse_args(string[] args, CommandOption[] options)
         if (!found_option)
             throw new CommandException("Unknown option: " ~ arg);
 
-        if (option.arg_name.length > 0) {
-            if (found_equals && value.length > 0) {
-                option.callback(value);
-                i++;
+        if (option.choice_name.length > 0) {
+            while (args.length > i + 1
+                   && !args[i + 1].startsWith(s_prefix)
+                   && !args[i + 1].startsWith(l_prefix)) {
+                if (value.length > 0) {
+                    value ~= " ";
+                }
+                value ~= args[i + 1];
+                args = args.remove(i + 1);
             }
-            else if (!found_equals
-                     && args.length > i + 1
-                     && !args[i + 1].startsWith(s_prefix)) {
-                option.callback(args[i + 1]);
-                i += 2;
-            }
-            else {
-                throw new CommandException("Missing value for option: " ~ arg);
+            if (value.length == 0) {
+                if (option.choices.length == 0) {
+                    throw new CommandException("Missing value for " ~ arg);
+                }
+                value = option.choices[0];  // use first choice as default
             }
         }
-        else {
-            option.callback(null);
-            i++;
+        else if (value.length > 0) {
+            throw new CommandException(
+                "Unexpected value for " ~ name ~ ": " ~ value);
         }
+        option.callback(value);
+        args = args.remove(i);
     }
 }
 
@@ -113,9 +117,9 @@ void print_help(string description, CommandOption[] options)
     foreach (option; options) {
         const s_length = option.s_parameter.length;
         auto l_length = option.l_parameter.length;
-        const argument_len = option.arg_name.length;
+        const choice_len = option.choice_name.length;
 
-        if (argument_len > 0)  l_length += argument_len + 3;
+        if (choice_len > 0)  l_length += choice_len + 3;
         if (s_length > s_max)  s_max = s_length;
         if (l_length > l_max)  l_max = l_length;
     }
@@ -128,11 +132,16 @@ void print_help(string description, CommandOption[] options)
 
         auto s_parameter = option.s_parameter;
         auto l_parameter = option.l_parameter;
-        auto arg_name    = option.arg_name;
+        auto choice_name = option.choice_name;
 
         if (s_parameter.length > 0)  s_parameter = s_prefix ~ s_parameter;
         if (l_parameter.length > 0)  l_parameter = l_prefix ~ l_parameter;
-        if (arg_name.length > 0)     l_parameter ~= " <" ~ arg_name ~ ">";
+        if (choice_name.length > 0) {
+            if (option.choices.length > 0)
+                l_parameter ~= " [" ~ choice_name ~ "]";
+            else
+                l_parameter ~= " <" ~ choice_name ~ ">";
+        }
 
         output ~= s_parameter;
         output ~= spacing(s_max - s_parameter.length);

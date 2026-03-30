@@ -104,18 +104,43 @@ argument:
 soulfind -p 1234
 ```
 
-### Debug Logging
+### Logging
 
-Enable detailed debug logging by providing the `--debug` flag:
-
-```
-soulfind --debug
-```
+Enable additional logging by providing a `-l` or `--log` flag:
 
 ```
-soulsetup --debug
+soulfind -l
 ```
 
+```
+soulsetup -l
+```
+
+This includes the `conn` and `db` log categories by default.
+
+Specific log categories and message codes can also be logged. For example, this
+enables the `conn`, `rx` and `t` log categories, then filtering of only message
+codes `1`, `2` and `1003` to reduce the amount of output:
+
+```
+soulfind -l conn rx t 1 2 1003
+```
+
+There is no difference which order the categories and filter numbers are
+specified. It's not possible to assign complex filtering rules, the code
+numbers simply apply to both received and transmitted network messages.
+
+#### Log categories:
+
+ - `conn`: Connections
+ - `db`: Database operations
+ - `msg`: Includes both `r` and `t`
+ - `r`: Received network messages
+ - `rx`: Received network messages with hexadecimal bytes
+ - `t`: Transmitted network messages
+ - `tx`: Transmitted network messages with hexadecimal bytes
+ - `x`: Includes both `rx` and `tx`
+ - `1` .. `1003`: Filter by message code
 
 ## Authors
 
