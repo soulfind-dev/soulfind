@@ -11,32 +11,28 @@ import soulfind.defines : default_db_filename, exit_message, log_db;
 import soulfind.setup.setup : Setup;
 import std.conv : text;
 import std.stdio : writeln;
-import std.string : join, split, strip;
+import std.string : join;
 
-static available_log_categories = ["db"];  // first choice is default
+static all_log_categories = ["db"];
 
 private void enable_log_category(string category)
 {
-    switch (strip(category)) {
-    case "":
-        // Trailing whitespaces after comma, noop
-        break;
-
+    switch (category) {
     case "db":
         log_db = true;
         break;
 
     default:
         writeln(
-            "Available log categories: ", available_log_categories.join(", ")
+            "Available log categories: '", all_log_categories.join("' '"), "'"
         );
-        throw new Exception("Unknown log category: " ~ category);
+        throw new Exception("Unknown log category '" ~ category ~ "'");
     }
 }
 
-private void enable_log_categories(string log_categories)
+private void enable_log_categories(string[] log_categories)
 {
-    foreach (category ; log_categories.split!(c => c == ' ' || c == ','))
+    foreach (category ; log_categories)
         enable_log_category(category);
 }
 
@@ -52,18 +48,17 @@ int run(string[] args)
             "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
             ), "path", null,
-            (value) { db_filename = value; }
+            (values) { db_filename = values[0]; }
         ),
         CommandOption(
             "b", "backup", text(
                 "Back up database to file path."
             ), "path", null,
-            (value) { db_backup_filename = value; }
+            (values) { db_backup_filename = values[0]; }
         ),
         CommandOption(
-            "l", "log", "Additional logging.", "categories",
-            available_log_categories,
-            (value) { enable_log_categories(value); }
+            "l", "log", "Additional logging.", "categories", ["db"],
+            (values) { enable_log_categories(values); }
         ),
         CommandOption(
             "v", "version", "Show version.", null, null,

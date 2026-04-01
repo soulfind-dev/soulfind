@@ -17,12 +17,12 @@ enum l_prefix        = "--";
 enum column_spacing  = 2;
 
 struct CommandOption {
-    string                 s_parameter;
-    string                 l_parameter;
-    string                 description;
-    string                 choice_name;
-    string[]               choices;
-    void delegate(string)  callback;
+    string                  s_parameter;
+    string                  l_parameter;
+    string                  description;
+    string                  choice_name;
+    string[]                defaults;
+    void delegate(string[]) callback;
 }
 
 final class CommandException : Exception
@@ -38,13 +38,13 @@ void parse_args(string[] args, CommandOption[] options)
     while (i < args.length) {
         string arg = args[i];
         string name;
-        string value;
+        string[] values;
 
         if (arg.startsWith(l_prefix)) {
             foreach (j, ref c; arg) {
                 if (c == '=') {
                     name = arg[l_prefix.length .. j];
-                    value = arg[j + 1 .. $];
+                    values ~= arg[j + 1 .. $];
                     break;
                 }
             }
@@ -55,7 +55,7 @@ void parse_args(string[] args, CommandOption[] options)
         }
         else {
             throw new CommandException(
-                "Unexpected positional argument: " ~ arg
+                args[0] ~ ": Unexpected positional argument '" ~ arg ~ "'"
             );
         }
 
@@ -69,32 +69,32 @@ void parse_args(string[] args, CommandOption[] options)
                 break;
             }
         }
+        if (!found_option) throw new CommandException(
+            args[0] ~ ": Unknown option '" ~ arg ~ "'"
+        );
 
-        if (!found_option)
-            throw new CommandException("Unknown option: " ~ arg);
+        while (args.length > i + 1
+               && !args[i + 1].startsWith(s_prefix)
+               && !args[i + 1].startsWith(l_prefix)) {
+            values ~= args[i + 1];
+            args = args.remove(i + 1);
+        }
+        if (option.defaults.length == 0) {
+            auto max_i = (option.choice_name is null ? 0 : 1);
+            if (values.length > max_i) throw new CommandException(
+                name ~ ": Unexpected value '" ~ values[max_i] ~ "'"
+            );
+        }
+        if (option.choice_name !is null && values.length == 0) {
+            if (option.defaults.length == 0) throw new CommandException(
+                name ~ ": Missing value for <" ~ option.choice_name ~ ">"
+            );
+            values = option.defaults;
+        }
 
-        if (option.choice_name.length > 0) {
-            while (args.length > i + 1
-                   && !args[i + 1].startsWith(s_prefix)
-                   && !args[i + 1].startsWith(l_prefix)) {
-                if (value.length > 0) {
-                    value ~= " ";
-                }
-                value ~= args[i + 1];
-                args = args.remove(i + 1);
-            }
-            if (value.length == 0) {
-                if (option.choices.length == 0) {
-                    throw new CommandException("Missing value for " ~ arg);
-                }
-                value = option.choices[0];  // use first choice as default
-            }
-        }
-        else if (value.length > 0) {
-            throw new CommandException(
-                "Unexpected value for " ~ name ~ ": " ~ value);
-        }
-        option.callback(value);
+        try option.callback(values);
+        catch (Exception e) throw new CommandException(name ~ ": " ~ e.msg);
+
         args = args.remove(i);
     }
 }
@@ -137,7 +137,7 @@ void print_help(string description, CommandOption[] options)
         if (s_parameter.length > 0)  s_parameter = s_prefix ~ s_parameter;
         if (l_parameter.length > 0)  l_parameter = l_prefix ~ l_parameter;
         if (choice_name.length > 0) {
-            if (option.choices.length > 0)
+            if (option.defaults.length > 0)
                 l_parameter ~= " [" ~ choice_name ~ "]";
             else
                 l_parameter ~= " <" ~ choice_name ~ ">";
