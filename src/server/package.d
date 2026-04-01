@@ -11,23 +11,15 @@ import soulfind.defines : bold, default_db_filename, exit_message, log_conn,
                           log_db, log_msg_codes, log_msg_in, log_msg_out,
                           log_msg_rx, log_msg_tx, norm;
 import soulfind.server.server : Server;
-import std.algorithm : sort;
-import std.array : array;
 import std.conv : text, to;
 import std.stdio : writeln;
-import std.string : isNumeric, join, split, strip;
+import std.string : isNumeric, join;
 
-static available_log_categories = [
-    "conn, db", "msg", "r", "rx", "t", "tx", "x"  // first choice is default
-];
+static all_log_categories = ["conn", "db", "msg", "r", "rx", "t", "tx", "x"];
 
 private void enable_log_category(string category)
 {
-    switch (strip(category)) {
-    case "":
-        // Trailing whitespaces after comma, noop
-        break;
-
+    switch (category) {
     case "conn":
         log_conn = true;
         break;
@@ -62,38 +54,32 @@ private void enable_log_category(string category)
 
     default:
         if (isNumeric(category)) {
-            int code = category.to!int;
-            log_msg_codes[code] = true;
+            uint msg_code = category.to!uint;
+            log_msg_codes[msg_code] = true;
             break;
         }
         writeln(
-            "Available log categories: ", available_log_categories.join(", "),
-            ", 1 .. ", int.max
+            "Available log categories: '", all_log_categories.join("' '"),
+            "' '", uint.min, "..", uint.max, "'"
         );
-        throw new Exception("Unknown log category: " ~ category);
+        throw new Exception("Unknown log category '" ~ category ~ "'");
     }
 }
 
-private void enable_log_categories(string log_categories)
+private void enable_log_categories(string[] log_categories)
 {
-    foreach (category ; log_categories.split!(c => c == ' ' || c == ','))
+    foreach (category ; log_categories)
         enable_log_category(category);
 
     if (log_msg_codes.length > 0 && !log_msg_in && !log_msg_out) {
         enable_log_category("r");
         enable_log_category("t");
     }
-    if (log_msg_in || log_msg_out) {
-        if (log_msg_codes.length > 0) {
-            writeln("[MSG] Logging filtered codes: ",
-                    log_msg_codes.keys.array.sort!((a, b) => a < b));
-        }
-        else {
-            foreach (code; 1 .. 161) log_msg_codes[code] = true;
-            foreach (code; 1001 .. 1004) log_msg_codes[code] = true;
-            writeln("[MSG] Logging all ", log_msg_codes.length, " codes",
-                    " (no message code number filters were specified)");
-        }
+    if (log_msg_codes.length == 0 && (log_msg_in || log_msg_out)) {
+        foreach (code; 1 .. 161) log_msg_codes[code] = true;
+        foreach (code; 1001 .. 1004) log_msg_codes[code] = true;
+        writeln("[MSG] Logging all ", log_msg_codes.length, " codes",
+                " (no message code number filters were specified)");
     }
 }
 
@@ -109,16 +95,15 @@ int run(string[] args)
             "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
             ), "path", null,
-            (value) { db_filename = value; }
+            (values) { db_filename = values[0]; }
         ),
         CommandOption(
             "p", "port", "Listening port.", "port", null,
-            (value) { port = value.to!ushort; }
+            (values) { port = values[0].to!ushort; }
         ),
         CommandOption(
-            "l", "log", "Additional logging.", "categories",
-            available_log_categories,
-            (value) { enable_log_categories(value); }
+            "l", "log", "Additional logging.", "categories", ["conn", "db"],
+            (values) { enable_log_categories(values); }
         ),
         CommandOption(
             "v", "version", "Show version.", null, null,
