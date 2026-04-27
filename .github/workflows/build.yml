@@ -102,7 +102,7 @@ jobs:
 
       - name: Set up D (Alpine Linux)
         if: matrix.container == 'alpine:edge'
-        run: apk add ${{ matrix.package }} dub gcc musl-dev sqlite-static
+        run: apk add ${{ matrix.package }} dub gcc llvm-dev musl-dev sqlite-static zlib-static
 
       - name: Set up D (macOS & Windows)
         if: runner.os == 'macOS' || runner.os == 'Windows'
