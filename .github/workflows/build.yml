@@ -27,9 +27,6 @@ jobs:
             image: ubuntu-latest
             container: alpine:edge
 
-          - os: linux-x86_64
-            compiler: dmd
-
           - os: linux-arm64
             image: ubuntu-24.04-arm
             container: alpine:edge
@@ -52,6 +49,9 @@ jobs:
             image: windows-latest
 
         exclude:
+          - os: linux-x86_64
+            compiler: dmd
+
           - os: linux-arm64
             compiler: dmd
 
