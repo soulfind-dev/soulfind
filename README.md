@@ -11,8 +11,9 @@ production.
 ### Binaries
 
 The [Releases](https://github.com/soulfind-dev/soulfind/releases) page contains
-precompiled binaries for Linux, Windows and macOS. This includes the server
-itself (`soulfind`), as well as the CLI server management tool (`soulsetup`).
+precompiled binaries for Linux, FreeBSD, OpenBSD, Windows and macOS. This
+includes the server itself (`soulfind`), as well as the CLI server management
+tool (`soulsetup`).
 
 ### Container Image
 
