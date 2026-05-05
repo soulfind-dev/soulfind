@@ -115,13 +115,13 @@ jobs:
 
       - name: Set up D (macOS & Windows)
         if: runner.os == 'macOS' || runner.os == 'Windows'
-        uses: dlang-community/setup-dlang@v2
+        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
         with:
           compiler: ${{ matrix.compiler }}
 
       - name: Build (FreeBSD)
         if: startsWith(matrix.os, 'freebsd')
-        uses: cross-platform-actions/action@v1.0.0
+        uses: cross-platform-actions/action@233156312992f3f169d8d0c633c21d12a5d30455 # v1.0.0
         with:
           operating_system: freebsd
           version: '15.0'
@@ -132,7 +132,7 @@ jobs:
 
       - name: Build (OpenBSD)
         if: startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@v1.0.0
+        uses: cross-platform-actions/action@233156312992f3f169d8d0c633c21d12a5d30455 # v1.0.0
         with:
           operating_system: openbsd
           version: '7.7'
