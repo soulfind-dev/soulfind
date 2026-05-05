@@ -52,9 +52,6 @@ jobs:
             image: windows-latest
 
         exclude:
-          - os: linux-x86_64
-            compiler: dmd
-
           - os: linux-arm64
             compiler: dmd
 
