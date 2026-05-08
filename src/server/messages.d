@@ -23,6 +23,7 @@ enum LoginRejectionReason : string
     invalid_username  = "INVALIDUSERNAME",
     empty_password    = "EMPTYPASSWORD",
     invalid_password  = "INVALIDPASS",
+    invalid_version   = "INVALIDVERSION",
     server_full       = "SVRFULL",
     server_private    = "SVRPRIVATE"
 }
@@ -42,6 +43,17 @@ enum UserStatus : uint
 
 
 // Structs
+
+struct ClientVersion
+{
+    uint  major;
+    uint  minor;
+
+    string toString() const
+    {
+        return text(major, ".", minor);
+    }
+}
 
 struct LoginRejection
 {
@@ -267,15 +279,24 @@ final class ULogin : UMessage
     {
         super(in_buf);
 
-        username      = read!string();
-        password      = read!string();
+        username = read!string();
+        password = read!string();
+
+        // Older clients would not send these
+
+        if (!has_unread_data)
+            return;
+
         major_version = read!uint();
 
         if (!has_unread_data)
             return;
 
-        // Older clients would not send these
-        hash          = read!string();
+        hash = read!string();
+
+        if (!has_unread_data)
+            return;
+
         minor_version = read!uint();
     }
 }
