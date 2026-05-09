@@ -461,7 +461,7 @@ final class CommandHandler
                 output ~= "\n    ";
                 output ~= user.username;
                 output ~= text(
-                    " (client version: ", user.client_version, ")"
+                    " (client version: ", user.client_version.toString, ")"
                 );
             }
             break;
@@ -543,7 +543,7 @@ final class CommandHandler
         user = server.get_user(username);
         if (user !is null) {
             status = (user.status == UserStatus.away) ? "away" : "online";
-            client_version = user.client_version;
+            client_version = user.client_version.toString;
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
@@ -642,6 +642,7 @@ final class CommandHandler
         enum j_quot = "\", \"";
 
         auto user = server.get_user(username);
+        auto client_version = user.client_version.toString;
         const status = (user.status == UserStatus.away) ? "away" : "online";
 
         const admin_until = server.db.admin_until(username);
@@ -786,7 +787,7 @@ final class CommandHandler
             "\n    \"username\": \"", username, "\",",
             "\n    \"session_data\": {",
             "\n        \"status\": \"", status, "\",",
-            "\n        \"client_version\": \"", user.client_version, "\",",
+            "\n        \"client_version\": \"", client_version, "\",",
             "\n        \"ip_address\": \"", user.address.toAddrString ~ "\",",
             "\n        \"port\": ", user.address.port, ",",
             "\n        \"obfuscated_port\": ", user.obfuscated_port, ",",
