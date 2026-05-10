@@ -104,21 +104,21 @@ final class User
     void authenticate(string password)
     {
         if (client_version.major == 0 || client_version.minor == 0) {
-            reject_login(LoginRejectionReason.invalid_version);
+            reject_login(LoginRejectionReason.INVALIDVERSION);
             return;
         }
 
         const invalid_name_reason = check_username(username);
         if (invalid_name_reason !is null) {
             reject_login(
-                LoginRejectionReason.invalid_username,
+                LoginRejectionReason.INVALIDUSERNAME,
                 invalid_name_reason
             );
             return;
         }
 
         if (password.length == 0) {
-            reject_login(LoginRejectionReason.empty_password);
+            reject_login(LoginRejectionReason.EMPTYPASSWORD);
             return;
         }
 
@@ -135,12 +135,12 @@ final class User
 
         const user_exists = server.db.user_exists(username);
         if (!user_exists && server.db.server_private_mode) {
-            reject_login(LoginRejectionReason.server_private);
+            reject_login(LoginRejectionReason.SVRPRIVATE);
             return;
         }
 
         if (server.num_connected_users >= server.db.server_max_users) {
-            reject_login(LoginRejectionReason.server_full);
+            reject_login(LoginRejectionReason.SVRFULL);
             return;
         }
 
@@ -198,7 +198,7 @@ final class User
             return;
 
         if (!matches) {
-            reject_login(LoginRejectionReason.invalid_password);
+            reject_login(LoginRejectionReason.INVALIDPASS);
             return;
         }
 

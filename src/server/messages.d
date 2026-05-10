@@ -20,12 +20,12 @@ import std.utf : UTFException, validate;
 
 enum LoginRejectionReason : string
 {
-    invalid_username  = "INVALIDUSERNAME",
-    empty_password    = "EMPTYPASSWORD",
-    invalid_password  = "INVALIDPASS",
-    invalid_version   = "INVALIDVERSION",
-    server_full       = "SVRFULL",
-    server_private    = "SVRPRIVATE"
+    INVALIDUSERNAME  = "INVALIDUSERNAME",
+    EMPTYPASSWORD    = "EMPTYPASSWORD",
+    INVALIDPASS      = "INVALIDPASS",
+    INVALIDVERSION   = "INVALIDVERSION",
+    SVRFULL          = "SVRFULL",
+    SVRPRIVATE       = "SVRPRIVATE"
 }
 
 enum ObfuscationType : uint
