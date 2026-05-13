@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Remove old import libraries
         run: Remove-Item -Path lib\*.lib
@@ -50,6 +52,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Download import libraries
         uses: actions/download-artifact@v8
