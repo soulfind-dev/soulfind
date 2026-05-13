@@ -28,16 +28,16 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t $IMAGE_NAME:latest-${{ matrix.arch }} .
+        run: docker build -t "$IMAGE_NAME":latest-${{ matrix.arch }} .
 
       - name: Save image
-        run: docker save -o soulfind-image-${{ matrix.arch }}.tar $IMAGE_NAME:latest-${{ matrix.arch }}
+        run: docker save -o soulfind-image-${{ matrix.arch }}.tar "$IMAGE_NAME":latest-${{ matrix.arch }}
 
       - name: Push image
         if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push $IMAGE_NAME:latest-${{ matrix.arch }}
+          docker push "$IMAGE_NAME":latest-${{ matrix.arch }}
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v7
@@ -54,4 +54,4 @@ jobs:
       - name: Create manifest
         run: |
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker buildx imagetools create --tag $IMAGE_NAME:latest $IMAGE_NAME:latest-amd64 $IMAGE_NAME:latest-arm64
+          docker buildx imagetools create --tag "$IMAGE_NAME":latest "$IMAGE_NAME":latest-amd64 "$IMAGE_NAME":latest-arm64
