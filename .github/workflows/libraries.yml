@@ -45,7 +45,7 @@ jobs:
 
   push-libraries:
     needs: update-libraries
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
       contents: write
