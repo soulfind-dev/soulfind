@@ -3,8 +3,7 @@
 
 name: Container
 on: [push, pull_request]
-permissions:
-  packages: write
+permissions: {}
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
@@ -28,16 +27,12 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t "$IMAGE_NAME":latest-${{ matrix.arch }} .
+        run: docker build -t "$IMAGE_NAME:latest-${{ matrix.arch }}" .
 
       - name: Save image
-        run: docker save -o soulfind-image-${{ matrix.arch }}.tar "$IMAGE_NAME":latest-${{ matrix.arch }}
-
-      - name: Push image
-        if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
         run: |
-          echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push "$IMAGE_NAME":latest-${{ matrix.arch }}
+          docker save -o soulfind-image-${{ matrix.arch }}.tar \
+            "$IMAGE_NAME:latest-${{ matrix.arch }}"
 
       - name: Upload image artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -45,13 +40,32 @@ jobs:
           name: soulfind-image-${{ matrix.arch }}
           path: soulfind-image-${{ matrix.arch }}.tar
 
-  manifest:
-    needs: build
+  publish:
     if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
-    runs-on: ubuntu-slim
+    needs: build
+    runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      packages: write
     steps:
-      - name: Create manifest
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          merge-multiple: true
+
+      - name: Load images
         run: |
-          echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker buildx imagetools create --tag "$IMAGE_NAME":latest "$IMAGE_NAME":latest-amd64 "$IMAGE_NAME":latest-arm64
+          docker load --input soulfind-image-amd64.tar
+          docker load --input soulfind-image-arm64.tar
+
+      - name: Publish images
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+          docker push "$IMAGE_NAME:latest-amd64"
+          docker push "$IMAGE_NAME:latest-arm64"
+
+          docker buildx imagetools create \
+            --tag "$IMAGE_NAME:latest" \
+            "$IMAGE_NAME:latest-amd64" \
+            "$IMAGE_NAME:latest-arm64"
