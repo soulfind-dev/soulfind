@@ -186,7 +186,7 @@ jobs:
           subject-path: dist/
 
   release:
-    if: github.repository == 'mathiascode/soulfind' && github.ref == 'refs/heads/master'
+    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
     needs: attestation
     runs-on: ubuntu-slim
     timeout-minutes: 15
