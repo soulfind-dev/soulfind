@@ -165,9 +165,29 @@ jobs:
             bin
             !bin/*test*
 
-  release:
-    needs: build
+  attestation:
     if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist/
+          skip-decompress: true
+
+      - name: Attest
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: dist/
+
+  release:
+    if: github.repository == 'mathiascode/soulfind' && github.ref == 'refs/heads/master'
+    needs: attestation
     runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:

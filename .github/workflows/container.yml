@@ -46,6 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      id-token: write
+      attestations: write
       packages: write
     steps:
       - name: Download artifacts
@@ -58,10 +60,11 @@ jobs:
           docker load --input soulfind-image-amd64.tar
           docker load --input soulfind-image-arm64.tar
 
+      - name: Authentication
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
       - name: Publish images
         run: |
-          echo "${{ github.token }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
           docker push "$IMAGE_NAME:latest-amd64"
           docker push "$IMAGE_NAME:latest-arm64"
 
@@ -69,3 +72,27 @@ jobs:
             --tag "$IMAGE_NAME:latest" \
             "$IMAGE_NAME:latest-amd64" \
             "$IMAGE_NAME:latest-arm64"
+
+      - name: Load image digests
+        run: |
+          echo "IMAGE_AMD64_SHA=$(
+            docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:latest-amd64" |
+            cut -d'@' -f2
+          )" >> "$GITHUB_ENV"
+
+          echo "IMAGE_ARM64_SHA=$(
+            docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_NAME:latest-arm64" |
+            cut -d'@' -f2
+          )" >> "$GITHUB_ENV"
+
+      - name: Attest amd64 image
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ env.IMAGE_AMD64_SHA }}
+
+      - name: Attest arm64 image
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ env.IMAGE_ARM64_SHA }}
