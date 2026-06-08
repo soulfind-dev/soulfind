@@ -33,9 +33,13 @@ jobs:
 
           - os: freebsd-x86_64
             image: ubuntu-latest
+            vm_os: freebsd
+            vm_version: '15.0'
 
           - os: openbsd-x86_64
             image: ubuntu-latest
+            vm_os: openbsd
+            vm_version: '7.7'
 
           - os: macos-x86_64
             image: macos-latest
@@ -108,9 +112,26 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up D (Alpine Linux)
+      - name: Set up VM (BSD)
+        if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
+        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
+        with:
+          operating_system: ${{ matrix.vm_os }}
+          version: ${{ matrix.vm_version }}
+
+      - name: Set up D (Linux)
         if: matrix.container == 'alpine:edge'
         run: apk add ${{ matrix.package }} dub gcc llvm-dev musl-dev sqlite-static zlib-static
+
+      - name: Set up D (FreeBSD)
+        if: startsWith(matrix.os, 'freebsd')
+        shell: cpa.sh {0}
+        run: sudo pkg install -y ${{ matrix.package }} dub sqlite3
+
+      - name: Set up D (OpenBSD)
+        if: startsWith(matrix.os, 'openbsd')
+        shell: cpa.sh {0}
+        run: sudo pkg_add ${{ matrix.package }} dub sqlite3
 
       - name: Set up D (macOS & Windows)
         if: runner.os == 'macOS' || runner.os == 'Windows'
@@ -118,27 +139,12 @@ jobs:
         with:
           compiler: ${{ matrix.compiler }}
 
-      - name: Build (FreeBSD)
-        if: startsWith(matrix.os, 'freebsd')
-        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
-        with:
-          operating_system: freebsd
-          version: '15.0'
-          run: |
-            sudo pkg install -y ${{ matrix.package }} dub sqlite3
-            dub build -v --build=release-debug --config=release
-            dub test
-
-      - name: Build (OpenBSD)
-        if: startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
-        with:
-          operating_system: openbsd
-          version: '7.7'
-          run: |
-            sudo pkg_add ${{ matrix.package }} dub sqlite3
-            dub build -v --build=release-debug --config=release
-            dub test
+      - name: Build (BSD)
+        if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
+        shell: cpa.sh {0}
+        run: |
+          dub build -v --build=release-debug --config=release
+          dub test
 
       - name: Build (Windows arm64)
         if: matrix.os == 'windows-arm64'
