@@ -33,9 +33,13 @@ jobs:
 
           - os: freebsd-x86_64
             image: ubuntu-latest
+            vm_os: freebsd
+            vm_version: '15.0'
 
           - os: openbsd-x86_64
             image: ubuntu-latest
+            vm_os: openbsd
+            vm_version: '7.7'
 
           - os: macos-x86_64
             image: macos-latest
@@ -52,9 +56,6 @@ jobs:
             image: windows-latest
 
         exclude:
-          - os: linux-x86_64
-            compiler: dmd
-
           - os: linux-arm64
             compiler: dmd
 
@@ -107,39 +108,43 @@ jobs:
           ln -s /usr/bin/node /opt/bin/node
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
-      - name: Set up D (Alpine Linux)
+      - name: Set up VM (BSD)
+        if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
+        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
+        with:
+          operating_system: ${{ matrix.vm_os }}
+          version: ${{ matrix.vm_version }}
+
+      - name: Set up D (Linux)
         if: matrix.container == 'alpine:edge'
         run: apk add ${{ matrix.package }} dub gcc llvm-dev musl-dev sqlite-static zlib-static
 
+      - name: Set up D (FreeBSD)
+        if: startsWith(matrix.os, 'freebsd')
+        shell: cpa.sh {0}
+        run: sudo pkg install -y ${{ matrix.package }} dub sqlite3
+
+      - name: Set up D (OpenBSD)
+        if: startsWith(matrix.os, 'openbsd')
+        shell: cpa.sh {0}
+        run: sudo pkg_add ${{ matrix.package }} dub sqlite3
+
       - name: Set up D (macOS & Windows)
         if: runner.os == 'macOS' || runner.os == 'Windows'
-        uses: dlang-community/setup-dlang@v2
+        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
         with:
           compiler: ${{ matrix.compiler }}
 
-      - name: Build (FreeBSD)
-        if: startsWith(matrix.os, 'freebsd')
-        uses: cross-platform-actions/action@v1.0.0
-        with:
-          operating_system: freebsd
-          version: '15.0'
-          run: |
-            sudo pkg install -y ${{ matrix.package }} dub sqlite3
-            dub build -v --build=release-debug --config=release
-            dub test
-
-      - name: Build (OpenBSD)
-        if: startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@v1.0.0
-        with:
-          operating_system: openbsd
-          version: '7.7'
-          run: |
-            sudo pkg_add ${{ matrix.package }} dub sqlite3
-            dub build -v --build=release-debug --config=release
-            dub test
+      - name: Build (BSD)
+        if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
+        shell: cpa.sh {0}
+        run: |
+          dub build -v --build=release-debug --config=release
+          dub test
 
       - name: Build (Windows arm64)
         if: matrix.os == 'windows-arm64'
@@ -159,17 +164,37 @@ jobs:
 
       - name: Archive artifacts
         if: matrix.compiler == 'ldc' || (startsWith(matrix.os, 'openbsd') && matrix.compiler == 'dmd')
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: soulfind-${{ matrix.os }}
           path: |
             bin
             !bin/*test*
 
-  release:
-    needs: build
+  attestation:
     if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
+    needs: build
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist/
+          skip-decompress: true
+
+      - name: Attest
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: dist/
+
+  release:
+    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    needs: attestation
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
       contents: write
@@ -178,10 +203,12 @@ jobs:
       TAG_NAME: latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Download artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist/
           skip-decompress: true

@@ -34,7 +34,7 @@ import std.string : replace, strip, toLower;
 final class User
 {
     string                  username;
-    string                  client_version;
+    ClientVersion           client_version;
     InternetAddress         address;
     ObfuscationType         obfuscation_type;
     ushort                  obfuscated_port;
@@ -79,7 +79,7 @@ final class User
             .replace("%sversion%", VERSION)
             .replace("%users%", server.num_connected_users.text)
             .replace("%username%", username)
-            .replace("%version%", client_version);
+            .replace("%version%", client_version.toString);
     }
 
     bool login_timed_out(MonoTime current_time)
@@ -101,19 +101,24 @@ final class User
         );
     }
 
-    void authenticate(string username, string password)
+    void authenticate(string password)
     {
+        if (client_version.major == 0 || client_version.minor == 0) {
+            reject_login(LoginRejectionReason.INVALIDVERSION);
+            return;
+        }
+
         const invalid_name_reason = check_username(username);
         if (invalid_name_reason !is null) {
             reject_login(
-                LoginRejectionReason.invalid_username,
+                LoginRejectionReason.INVALIDUSERNAME,
                 invalid_name_reason
             );
             return;
         }
 
         if (password.length == 0) {
-            reject_login(LoginRejectionReason.empty_password);
+            reject_login(LoginRejectionReason.EMPTYPASSWORD);
             return;
         }
 
@@ -130,12 +135,12 @@ final class User
 
         const user_exists = server.db.user_exists(username);
         if (!user_exists && server.db.server_private_mode) {
-            reject_login(LoginRejectionReason.server_private);
+            reject_login(LoginRejectionReason.SVRPRIVATE);
             return;
         }
 
         if (server.num_connected_users >= server.db.server_max_users) {
-            reject_login(LoginRejectionReason.server_full);
+            reject_login(LoginRejectionReason.SVRFULL);
             return;
         }
 
@@ -168,7 +173,7 @@ final class User
 
         if (!server.db.add_user(username, hash)) {
             // User was added externally while registering, reauthenticate
-            authenticate(username, password);
+            authenticate(password);
             return;
         }
 
@@ -193,7 +198,7 @@ final class User
             return;
 
         if (!matches) {
-            reject_login(LoginRejectionReason.invalid_password);
+            reject_login(LoginRejectionReason.INVALIDPASS);
             return;
         }
 
@@ -352,7 +357,8 @@ final class User
         writeln(
             server.db.admin_until(username) > Clock.currTime ?
             "Admin " : "User ", blue, username, norm,
-            " logged in with client version ", bold, client_version, norm
+            " logged in with client version ", bold, client_version.toString,
+            norm
         );
 
         server.add_user(this);

@@ -46,10 +46,10 @@ final class MessageHandler
                 break;
 
             user.username = msg.username;
-            user.client_version = text(
-                msg.major_version, ".", msg.minor_version
+            user.client_version = ClientVersion(
+                msg.major_version, msg.minor_version
             );
-            user.authenticate(msg.username, msg.password);
+            user.authenticate(msg.password);
             break;
 
         case SetWaitPort:
