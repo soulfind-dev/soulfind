@@ -766,7 +766,7 @@ final class User
             // e.g. a Relogged message, wait until the output buffer is sent
             return;
 
-        if (io_success && !disconnecting && !login_rejection.reason)
+        if (io_success && !disconnecting)
             return;
 
         disconnect();
