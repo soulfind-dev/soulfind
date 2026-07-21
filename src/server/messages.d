@@ -219,20 +219,20 @@ class UMessage
     }
 
     private T read(T)() scope
-        if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
+        if (is(T == bool) || is(T == int) || is(T == uint) || is(T == string))
     {
         T value;
         if (!is_valid)
             return value;
 
         uint size;
-        static if (is(T : string))
+        static if (is(T == string))
             size = read!uint();
         else
             size = T.sizeof;
 
         if (offset + size <= in_buf.length) {
-            static if (is(T : string)) {
+            static if (is(T == string)) {
                 const(ubyte)[] bytes = in_buf[offset .. offset + size];
                 offset += size;
 
@@ -1099,7 +1099,8 @@ class SMessage
     }
 
     private void write(T)(T value) scope
-        if (is(T : int) || is(T : uint) || is(T : bool) || is(T : string))
+        if (is(T == bool) || is(T == ubyte) || is(T == ushort)
+            || is(T == int) || is(T == uint) || is(T == string))
     {
         static if (is(T == string)) {
             write!uint(cast(uint) value.length);
