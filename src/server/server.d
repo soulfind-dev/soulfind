@@ -7,11 +7,11 @@ module soulfind.server.server;
 @safe:
 
 import soulfind.db : Database;
-import soulfind.defines : blue, default_port, kick_duration, log_msg,
-                          max_chat_message_length, max_global_recommendations,
-                          max_search_query_length, max_user_recommendations,
-                          norm, red, RoomMemberType, RoomType,
-                          search_dist_interval, SearchFilterType,
+import soulfind.defines : blue, default_port, kick_duration, log_msg_codes,
+                          log_msg_out, max_chat_message_length,
+                          max_global_recommendations, max_search_query_length,
+                          max_user_recommendations, norm, red, RoomMemberType,
+                          RoomType, search_dist_interval, SearchFilterType,
                           server_username;
 import soulfind.server.cmdhandler : CommandHandler;
 import soulfind.server.conns : Logging, UserConnection, UserConnections;
@@ -804,8 +804,8 @@ final class Server
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+        if (log_msg_out && msg.code in log_msg_codes) writeln(
+            "[MSG] Transmit => ", blue, msg.name, norm, " (code ", msg.code,
             ") to user ", blue, sender_username, norm, "'s joined rooms..."
         );
         foreach (ref user ; users)
@@ -846,8 +846,8 @@ final class Server
 
     void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+        if (log_msg_out && msg.code in log_msg_codes) writeln(
+            "[MSG] Transmit => ", blue, msg.name, norm, " (code ", msg.code,
             ") to all users..."
         );
         foreach (ref user ; users)
@@ -857,8 +857,8 @@ final class Server
 
     void send_to_watching(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
+        if (log_msg_out && msg.code in log_msg_codes) writeln(
+            "[MSG] Transmit => ", blue, msg.name, norm, " (code ", msg.code,
             ") to users watching user ", blue, sender_username, norm, "..."
         );
         foreach (ref user ; users)

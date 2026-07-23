@@ -79,11 +79,11 @@ Use a different path for the database file by providing a `-d` or `--database`
 argument:
 
 ```
-soulfind -d path/to/database.db
+soulfind -d "path/to/database.db"
 ```
 
 ```
-soulsetup -d path/to/database.db
+soulsetup -d "path/to/database.db"
 ```
 
 ### Backup File
@@ -93,30 +93,54 @@ or `--backup` argument. This is useful for automatic backups using e.g. a cron
 job, and is safe even while the database is in use.
 
 ```
-soulsetup -b path/to/save/backup.db
+soulsetup -b "path/to/save/backup of soulfind database file.db"
 ```
 
 ### Listening Port
 
-Always enforce a specific listening port by providing a `-p` or `--port`
-argument:
+Enforce a specific listening port by providing a `-p` or `--port` argument:
 
 ```
 soulfind -p 1234
 ```
 
-### Debug Logging
+### Logging
 
-Enable detailed debug logging by providing the `--debug` flag:
-
-```
-soulfind --debug
-```
+Enable additional logging by providing a `-l` or `--log` flag:
 
 ```
-soulsetup --debug
+soulfind -l
 ```
 
+```
+soulsetup -l
+```
+
+This includes the `conn` and `db` log categories by default.
+
+Specific log categories and message codes can also be logged. In the following
+example, the `conn`, `rx` and `t` log categories are enabled with filtering of
+only message codes `1`, `2` and `1003`, to customize the `soulfind` log output:
+
+```
+soulfind -l conn rx t 1 2 1003
+```
+
+It makes no difference as to the order of the specified categories and filtered
+codes, the code numbers simply apply to either or both received and transmitted
+network messages. It is not possible to assign complex code filtering rules.
+
+#### Log categories:
+
+ - `conn`: Connections
+ - `db`: Database operations
+ - `msg`: Includes both `r` and `t`
+ - `r`: Received network messages
+ - `rx`: Received network messages with hexadecimal bytes
+ - `t`: Transmitted network messages
+ - `tx`: Transmitted network messages with hexadecimal bytes
+ - `x`: Includes both `rx` and `tx`
+ - `1` .. `1003`: Filter by message code
 
 ## Authors
 
@@ -128,5 +152,6 @@ People who have contributed to Soulfind:
  - seeschloss (creator)
  - mathiascode
  - slook
+ - jpdillingham
 
 © 2005–2026 Soulfind Contributors
