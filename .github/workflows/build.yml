@@ -216,4 +216,4 @@ jobs:
       - name: Create release
         run: |
           gh release delete "$TAG_NAME" --cleanup-tag || true
-          gh release create "$TAG_NAME" --title "$TAG_NAME" dist/**/*.zip
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --target "$GITHUB_SHA" dist/**/*.zip
