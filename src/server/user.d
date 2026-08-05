@@ -425,8 +425,8 @@ final class User
     void update_upload_speed(uint new_speed)
     {
         if (upload_speed > 0)
-            upload_speed = (
-                (upload_speed * speed_weight + new_speed) / (speed_weight + 1)
+            upload_speed = cast(uint) (
+                upload_speed * (1.0 - speed_weight) + new_speed * speed_weight
             );
         else
             upload_speed = new_speed;
