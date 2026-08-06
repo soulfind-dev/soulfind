@@ -15,8 +15,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up D
-        uses: dlang-community/setup-dlang@0a7469b93f791d83f30932c6fd105796c6966e20 # v2.0.0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install dub
 
       - name: Lint code
         run: dub lint
