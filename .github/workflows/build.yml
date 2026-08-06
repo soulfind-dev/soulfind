@@ -34,7 +34,7 @@ jobs:
           - os: freebsd-x86_64
             image: ubuntu-latest
             vm_os: freebsd
-            vm_version: '15.0'
+            vm_version: '15.1'
 
           - os: openbsd-x86_64
             image: ubuntu-latest
