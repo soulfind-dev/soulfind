@@ -12,6 +12,7 @@ permissions: {}
 
 jobs:
   update-libraries:
+    if: github.event.repository.fork == false
     runs-on: windows-latest
     timeout-minutes: 15
     strategy:
