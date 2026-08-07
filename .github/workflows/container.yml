@@ -31,17 +31,17 @@ jobs:
 
       - name: Save image
         run: |
-          docker save -o soulfind-image-${{ matrix.arch }}.tar \
+          docker save -o ${{ github.event.repository.name }}-image-${{ matrix.arch }}.tar \
             "$IMAGE_NAME:latest-${{ matrix.arch }}"
 
       - name: Upload image artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: soulfind-image-${{ matrix.arch }}
-          path: soulfind-image-${{ matrix.arch }}.tar
+          name: ${{ github.event.repository.name }}-image-${{ matrix.arch }}
+          path: ${{ github.event.repository.name }}-image-${{ matrix.arch }}.tar
 
   publish:
-    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    if: github.event.repository.fork == false && github.ref_name == github.event.repository.default_branch
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -57,8 +57,8 @@ jobs:
 
       - name: Load images
         run: |
-          docker load --input soulfind-image-amd64.tar
-          docker load --input soulfind-image-arm64.tar
+          docker load --input ${{ github.event.repository.name }}-image-amd64.tar
+          docker load --input ${{ github.event.repository.name }}-image-arm64.tar
 
       - name: Authenticate
         run: echo "${{ github.token }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
