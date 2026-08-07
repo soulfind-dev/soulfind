@@ -39,6 +39,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-image-${{ matrix.arch }}
           path: ${{ github.event.repository.name }}-image-${{ matrix.arch }}.tar
+          if-no-files-found: error
 
   publish:
     if: github.event.repository.fork == false && github.ref_name == github.event.repository.default_branch

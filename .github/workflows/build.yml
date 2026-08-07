@@ -170,6 +170,7 @@ jobs:
           path: |
             bin
             !bin/*test*
+          if-no-files-found: error
 
   attestation:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -185,6 +186,7 @@ jobs:
         with:
           path: dist/
           skip-decompress: true
+          merge-multiple: true
 
       - name: Attest
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
@@ -212,8 +214,9 @@ jobs:
         with:
           path: dist/
           skip-decompress: true
+          merge-multiple: true
 
       - name: Create release
         run: |
           gh release delete "$TAG_NAME" --cleanup-tag || true
-          gh release create "$TAG_NAME" --title "$TAG_NAME" --target "$GITHUB_SHA" dist/**/*.zip
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --target "$GITHUB_SHA" dist/*.zip
