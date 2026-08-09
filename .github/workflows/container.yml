@@ -22,7 +22,7 @@ jobs:
     runs-on: ${{ matrix.image }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -31,17 +31,18 @@ jobs:
 
       - name: Save image
         run: |
-          docker save -o soulfind-image-${{ matrix.arch }}.tar \
+          docker save -o ${{ github.event.repository.name }}-image-${{ matrix.arch }}.tar \
             "$IMAGE_NAME:latest-${{ matrix.arch }}"
 
       - name: Upload image artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: soulfind-image-${{ matrix.arch }}
-          path: soulfind-image-${{ matrix.arch }}.tar
+          name: ${{ github.event.repository.name }}-image-${{ matrix.arch }}
+          path: ${{ github.event.repository.name }}-image-${{ matrix.arch }}.tar
+          if-no-files-found: error
 
   publish:
-    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    if: github.event.repository.fork == false && github.ref_name == github.event.repository.default_branch
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -57,8 +58,8 @@ jobs:
 
       - name: Load images
         run: |
-          docker load --input soulfind-image-amd64.tar
-          docker load --input soulfind-image-arm64.tar
+          docker load --input ${{ github.event.repository.name }}-image-amd64.tar
+          docker load --input ${{ github.event.repository.name }}-image-arm64.tar
 
       - name: Authenticate
         run: echo "${{ github.token }}" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
@@ -86,13 +87,13 @@ jobs:
           )" >> "$GITHUB_ENV"
 
       - name: Attest amd64 image
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ env.IMAGE_AMD64_SHA }}
 
       - name: Attest arm64 image
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ env.IMAGE_ARM64_SHA }}

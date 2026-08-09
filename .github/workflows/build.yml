@@ -34,7 +34,7 @@ jobs:
           - os: freebsd-x86_64
             image: ubuntu-latest
             vm_os: freebsd
-            vm_version: '15.0'
+            vm_version: '15.1'
 
           - os: openbsd-x86_64
             image: ubuntu-latest
@@ -108,13 +108,13 @@ jobs:
           ln -s /usr/bin/node /opt/bin/node
 
       - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up VM (BSD)
         if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@be3d7e9ff5c8770b9c51b1a8c8c5446e1cad7cf9 # v1.2.0
+        uses: cross-platform-actions/action@5ea7e8e4677bd726033a10b094ba1c5762b15dee # v1.3.0
         with:
           operating_system: ${{ matrix.vm_os }}
           version: ${{ matrix.vm_version }}
@@ -166,13 +166,14 @@ jobs:
         if: matrix.compiler == 'ldc' || (startsWith(matrix.os, 'openbsd') && matrix.compiler == 'dmd')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: soulfind-${{ matrix.os }}
+          name: ${{ github.event.repository.name }}-${{ matrix.os }}
           path: |
             bin
             !bin/*test*
+          if-no-files-found: error
 
   attestation:
-    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-slim
     timeout-minutes: 15
@@ -185,14 +186,15 @@ jobs:
         with:
           path: dist/
           skip-decompress: true
+          merge-multiple: true
 
       - name: Attest
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-path: dist/
 
   release:
-    if: github.repository == 'soulfind-dev/soulfind' && github.ref == 'refs/heads/master'
+    if: github.event.repository.fork == false && github.ref_name == github.event.repository.default_branch
     needs: attestation
     runs-on: ubuntu-slim
     timeout-minutes: 15
@@ -203,7 +205,7 @@ jobs:
       TAG_NAME: latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -212,8 +214,9 @@ jobs:
         with:
           path: dist/
           skip-decompress: true
+          merge-multiple: true
 
       - name: Create release
         run: |
           gh release delete "$TAG_NAME" --cleanup-tag || true
-          gh release create "$TAG_NAME" --title "$TAG_NAME" dist/**/*.zip
+          gh release create "$TAG_NAME" --title "$TAG_NAME" --target "$GITHUB_SHA" dist/*.zip

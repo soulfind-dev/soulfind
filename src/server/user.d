@@ -425,8 +425,8 @@ final class User
     void update_upload_speed(uint new_speed)
     {
         if (upload_speed > 0)
-            upload_speed = (
-                (upload_speed * speed_weight + new_speed) / (speed_weight + 1)
+            upload_speed = cast(uint) (
+                upload_speed * (1.0 - speed_weight) + new_speed * speed_weight
             );
         else
             upload_speed = new_speed;
@@ -766,7 +766,7 @@ final class User
             // e.g. a Relogged message, wait until the output buffer is sent
             return;
 
-        if (io_success && !disconnecting && !login_rejection.reason)
+        if (io_success && !disconnecting)
             return;
 
         disconnect();
