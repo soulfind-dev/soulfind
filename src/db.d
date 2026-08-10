@@ -97,7 +97,11 @@ final class Database
     this(string filename)
     {
         this.db_filename = filename.absolutePath.buildNormalizedPath;
-        if (log_db) writeln("[DB] Using database: ", db_filename);
+
+        if (log_db) {
+            writeln("[DB] Using SQLite ", sqlite_version);
+            writeln("[DB] Using database: ", db_filename);
+        }
 
         // Soulfind is single-threaded. Disable SQLite mutexes for a slight
         // performance improvement.
