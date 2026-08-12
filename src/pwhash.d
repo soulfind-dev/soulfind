@@ -133,7 +133,7 @@ void process_password_tasks()
     Appender!(VerifyCallback[])  verify_password_tasks_to_remove;
 
     foreach (ref callback, ref task ; hash_password_tasks) {
-        if (!task.done)
+        if (taskPool.size > 0 && !task.done)
             continue;
 
         auto result = task.yieldForce;
@@ -144,7 +144,7 @@ void process_password_tasks()
         hash_password_tasks.remove(callback);
 
     foreach (ref callback, ref task ; verify_password_tasks) {
-        if (!task.done)
+        if (taskPool.size > 0 && !task.done)
             continue;
 
         auto result = task.yieldForce;
