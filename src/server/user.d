@@ -6,6 +6,7 @@
 module soulfind.server.user;
 @safe:
 
+import core.atomic : atomicStore;
 import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           max_room_name_length, max_user_interests,
                           max_username_length, norm,
@@ -42,6 +43,7 @@ final class User
     UserStatus              status;
     bool                    hashing_password;
     bool                    authenticated;
+    shared bool             disconnecting;      // shared due to pwhash threads
 
     uint                    upload_speed;       // in B/s
     uint                    upload_slots_full;  // unused in clients
@@ -54,7 +56,6 @@ final class User
     private UserConnection  conn;
     private LoginRejection  login_rejection;
     private MonoTime        last_state_refresh;
-    private bool            disconnecting;
 
     private bool[string]    liked_items;
     private bool[string]    hated_items;
@@ -144,18 +145,22 @@ final class User
             return;
         }
 
+        hashing_password = true;
+
         if (!user_exists) {
-            hashing_password = true;
             const salt = create_salt();
             hash_password_async(
-                password, salt, pbkdf2_iterations, &password_hashed
+                password, salt, pbkdf2_iterations,
+                &password_hashed, &disconnecting
             );
             return;
         }
 
-        hashing_password = true;
         const stored_hash = server.db.user_password_hash(username);
-        verify_password_async(stored_hash, password, &password_verified);
+        verify_password_async(
+            stored_hash, password,
+            &password_verified, &disconnecting
+        );
     }
 
     void password_hashed(string password, string hash)
@@ -209,7 +214,8 @@ final class User
             hashing_password = true;
             const salt = create_salt();
             hash_password_async(
-                password, salt, pbkdf2_iterations, &password_upgraded
+                password, salt, pbkdf2_iterations,
+                &password_upgraded, &disconnecting
             );
         }
     }
@@ -234,7 +240,7 @@ final class User
                 writeln("User ", red, username, norm, " logged out");
             }
         }
-        disconnecting = true;
+        atomicStore(disconnecting, true);  // atomic due to pwhash threads
 
         if (relogged) {
             scope relogged_msg = new SRelogged();
@@ -358,7 +364,7 @@ final class User
             server.db.admin_until(username) > Clock.currTime ?
             "Admin " : "User ", blue, username, norm,
             " logged in with client version ", bold, client_version.toString,
-            norm
+            norm, " (", MonoTime.currTime - conn.created_monotime, ")"
         );
 
         server.add_user(this);
