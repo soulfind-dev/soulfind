@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors
+// SPDX-FileCopyrightText: 2024-2026 Soulfind Contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -6,7 +6,8 @@ module soulfind.server.conns;
 @safe:
 
 import soulfind.defines : blue, bold, conn_backlog_length, conn_buffer_size,
-                          log_conn, log_msg, max_in_msg_size, norm, red,
+                          dim, log_conn, log_msg_codes, log_msg_in,
+                          log_msg_out, log_msg_tx, max_in_msg_size, norm, red,
                           user_check_interval, VERSION;
 import soulfind.pwhash : process_password_tasks;
 import soulfind.server.messages : SMessage;
@@ -17,6 +18,7 @@ import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : MonoTime, msecs;
+import std.format : format;
 import std.socket : InternetAddress, parseAddress, Socket, socket_t,
                     SocketAcceptException, SocketOption, SocketOptionLevel,
                     SocketOSException, SocketShutdown, TcpSocket, UdpSocket;
@@ -230,19 +232,15 @@ final class UserConnection
     void send_message(Logging log = Logging.all)(scope SMessage msg,
                                                  string target_username)
     {
+        const uint code = msg.code;
         const msg_buf = msg.bytes;
         const msg_len = msg_buf.length;
         const offset = out_buf.length;
 
         if (log == Logging.redacted) target_username = "[ redacted ]";
-        if (log_msg && log != Logging.disabled) writeln(
-            "[Msg] Sending -> ", blue, msg.name, norm, " (code ", msg.code,
-            ") -> to user ", blue, target_username, norm
-        );
-
         if (msg_len > uint.max) {
             writeln(
-                "Message ", red, msg.name, norm, " (code ", msg.code,
+                "Message ", red, msg.name, norm, " (code ", code,
                 ") of ", msg_len, " bytes to user ", blue, target_username,
                 norm, " is too large, not sending"
             );
@@ -253,6 +251,14 @@ final class UserConnection
         out_buf[offset .. offset + uint.sizeof] = (cast(uint) msg_len)
             .nativeToLittleEndian;
         out_buf[offset + uint.sizeof .. $] = msg_buf;
+
+        if (log_msg_out && log != Logging.disabled && code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit -> ", blue, msg.name, norm, " (code ", code,
+                ") -> to user ", blue, target_username, norm
+            );
+            if (log_msg_tx) writeln(dim, format!"%-(%02x %)"(out_buf), norm);
+        }
 
         selector.register(sock.handle, SelectEvent.write);
     }
@@ -275,8 +281,8 @@ final class UserConnection
                 in_msg_size = in_buf.read!(uint, Endian.littleEndian);
             }
             if (in_msg_size < 0 || in_msg_size > max_in_msg_size) {
-                if (log_msg) writeln(
-                    "[Msg] Received unexpected message size ", in_msg_size,
+                if (log_msg_in) writeln(
+                    "[MSG] Received unexpected message size ", in_msg_size,
                     " from user ", blue, target_user.username, norm,
                     ", disconnecting them"
                 );

@@ -6,8 +6,9 @@
 module soulfind.server.msghandler;
 @safe:
 
-import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
-                          RoomMemberType, RoomType, server_username;
+import soulfind.defines : blue, bold, log_msg_codes, log_msg_in, log_msg_rx,
+                          norm, pbkdf2_iterations, red, RoomMemberType,
+                          RoomType, server_username;
 import soulfind.pwhash : create_salt, hash_password_async;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
@@ -16,6 +17,7 @@ import soulfind.server.user : User;
 import std.array : array;
 import std.conv : text;
 import std.datetime : Clock, seconds, SysTime;
+import std.format : format;
 import std.socket : InternetAddress;
 import std.stdio : writeln;
 
@@ -778,11 +780,15 @@ final class MessageHandler
             break;
 
         default:
-            if (log_msg) writeln(
-                "[Msg] Unimplemented message code ", red, code, norm,
-                " from user ", blue, user.username, norm, " with length ",
-                msg_buf.length
-            );
+            if (log_msg_in) {
+                writeln(
+                    "[MSG] Unimplemented message code ", red, code, norm,
+                    " from user ", blue, user.username, norm, " with length ",
+                    msg_buf.length
+                );
+                if (log_msg_rx && code in log_msg_codes)
+                    writeln(red, format!"%-(%02x %)"(msg_buf), norm);
+            }
             break;
         }
         return true;
