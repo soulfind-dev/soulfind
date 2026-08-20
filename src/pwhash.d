@@ -132,6 +132,11 @@ void process_password_tasks()
     Appender!(HashCallback[])    hash_password_tasks_to_remove;
     Appender!(VerifyCallback[])  verify_password_tasks_to_remove;
 
+    if (taskPool.size == 0)
+        // totalCPUs == 1 single-core (taskPool.size is usually totalCPUs-1)
+        // One task per call forced because worker threads are non-existant
+        force_password_task();
+
     foreach (ref callback, ref task ; hash_password_tasks) {
         if (!task.done)
             continue;
@@ -153,6 +158,17 @@ void process_password_tasks()
     }
     foreach (ref callback ; verify_password_tasks_to_remove)
         verify_password_tasks.remove(callback);
+}
+
+private void force_password_task()
+{
+    // Existing accounts always take higher priority
+    if (verify_password_tasks.length > 0)
+        verify_password_tasks.byKeyValue.front.value.yieldForce;
+
+    // New registrations and password changes may take longer
+    else if (hash_password_tasks.length > 0)
+        hash_password_tasks.byKeyValue.front.value.yieldForce;
 }
 
 
