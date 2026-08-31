@@ -42,12 +42,12 @@ jobs:
             vm_version: '7.7'
 
           - os: macos-x86_64
-            image: macos-latest
-            target: -ax86_64-apple-macos10.12
+            image: macos-26-intel
+            target: 10.12
 
           - os: macos-arm64
             image: macos-latest
-            target: -aarm64-apple-macos11
+            target: 11
 
           - os: windows-x86_64
             image: windows-latest
@@ -72,9 +72,6 @@ jobs:
             compiler: gdc
 
           - os: macos-x86_64
-            compiler: dmd
-
-          - os: macos-x86_64
             compiler: gdc
 
           - os: macos-arm64
@@ -97,6 +94,8 @@ jobs:
       volumes:
         - ${{ matrix.container == 'alpine:edge' && '/opt:/opt:rw,rshared' || ' ' }}
         - ${{ matrix.container == 'alpine:edge' && '/opt:/__e/node24:ro,rshared' || ' ' }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
     steps:
       # Workaround from https://github.com/actions/runner/issues/801#issuecomment-2976165281
       - name: Patch native Alpine NodeJS into Runner environment
@@ -114,7 +113,7 @@ jobs:
 
       - name: Set up VM (BSD)
         if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@5ea7e8e4677bd726033a10b094ba1c5762b15dee # v1.3.0
+        uses: cross-platform-actions/action@24ef01df165c76df1ed2b9f9e9212e78dc2fc963 # v1.4.0
         with:
           operating_system: ${{ matrix.vm_os }}
           version: ${{ matrix.vm_version }}
@@ -155,8 +154,8 @@ jobs:
       - name: Build (Other)
         if: startsWith(matrix.os, 'linux') || startsWith(matrix.os, 'macos') || matrix.os == 'windows-x86_64'
         run: |
-          dub build -v --build=release-debug --config=release ${{ matrix.target }}
-          dub test ${{ matrix.target }}
+          dub build -v --build=release-debug --config=release
+          dub test
 
       - name: Sign binaries (macOS)
         if: runner.os == 'macOS'
@@ -189,7 +188,7 @@ jobs:
           merge-multiple: true
 
       - name: Attest
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: dist/
 
