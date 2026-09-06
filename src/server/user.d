@@ -133,19 +133,14 @@ final class User
 
         if (banned_until > SysTime()) server.db.unban_user(username);
 
-        const user_exists = server.db.user_exists(username);
-        if (!user_exists && server.db.server_private_mode) {
-            reject_login(LoginRejectionReason.SVRPRIVATE);
-            return;
-        }
-
         if (server.num_connected_users >= server.db.server_max_users) {
             reject_login(LoginRejectionReason.SVRFULL);
             return;
         }
 
-        if (!user_exists) {
-            hashing_password = true;
+        hashing_password = true;
+
+        if (!server.db.user_exists(username)) {
             const salt = create_salt();
             hash_password_async(
                 password, salt, pbkdf2_iterations, &password_hashed
@@ -153,7 +148,6 @@ final class User
             return;
         }
 
-        hashing_password = true;
         const stored_hash = server.db.user_password_hash(username);
         verify_password_async(stored_hash, password, &password_verified);
     }
@@ -168,6 +162,11 @@ final class User
         if (authenticated) {
             enum notify_user = true;
             change_password(password, hash, notify_user);
+            return;
+        }
+
+        if (server.db.server_private_mode) {
+            reject_login(LoginRejectionReason.SVRPRIVATE);
             return;
         }
 
@@ -198,7 +197,10 @@ final class User
             return;
 
         if (!matches) {
-            reject_login(LoginRejectionReason.INVALIDPASS);
+            if (server.db.server_private_mode)
+                reject_login(LoginRejectionReason.SVRPRIVATE);
+            else
+                reject_login(LoginRejectionReason.INVALIDPASS);
             return;
         }
 
