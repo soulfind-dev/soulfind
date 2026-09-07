@@ -5,6 +5,7 @@
 module soulfind.pwhash;
 @safe:
 
+import core.atomic : atomicLoad;
 import std.algorithm.iteration : splitter;
 import std.array : Appender;
 import std.bitmanip : nativeToBigEndian;
@@ -16,11 +17,13 @@ import std.parallelism : Task, task, taskPool;
 import std.random : unpredictableSeed;
 import std.string : split;
 
-private alias HashTask    = Task!(hash_password_task, string, string, uint)*;
-private alias VerifyTask  = Task!(verify_password_task, string, string)*;
-
 private alias HashCallback    = void delegate(string, string);
+private alias HashTask        = Task!(hash_password_task, string, string, uint,
+                                      shared(bool)*)*;
+
 private alias VerifyCallback  = void delegate(string, bool, uint);
+private alias VerifyTask      = Task!(verify_password_task, string, string,
+                                      shared(bool)*)*;
 
 private HashTask[HashCallback]      hash_password_tasks;
 private VerifyTask[VerifyCallback]  verify_password_tasks;
@@ -72,9 +75,11 @@ string hash_password(string password, string salt, uint iterations)
 }
 
 void hash_password_async(string password, string salt, uint iterations,
-                         HashCallback callback)
+                         HashCallback callback, shared(bool)* disconnecting)
 {
-    auto task = task!hash_password_task(password, salt, iterations);
+    auto task = task!hash_password_task(
+        password, salt, iterations, disconnecting
+    );
     taskPool.put(task);
     hash_password_tasks[callback] = task;
 }
@@ -120,9 +125,10 @@ VerifyPasswordResult verify_password(string hash, string password)
 }
 
 void verify_password_async(string hash, string password,
-                           VerifyCallback callback)
+                           VerifyCallback callback,
+                           shared(bool)* disconnecting)
 {
-    auto task = task!verify_password_task(hash, password);
+    auto task = task!verify_password_task(hash, password, disconnecting);
     taskPool.put(task);
     verify_password_tasks[callback] = task;
 }
@@ -166,14 +172,22 @@ private struct TaskResult
     uint    iterations;
 }
 
-TaskResult hash_password_task(string password, string salt, uint iterations)
+TaskResult hash_password_task(string password, string salt, uint iterations,
+                              shared(bool)* disconnecting)
 {
+    if (atomicLoad(*disconnecting))
+        return TaskResult();  // Registration abandoned
+
     const hash = hash_password(password, salt, iterations);
     return TaskResult(hash, password);
 }
 
-TaskResult verify_password_task(string hash, string password)
+TaskResult verify_password_task(string hash, string password,
+                                shared(bool)* disconnecting)
 {
+    if (atomicLoad(*disconnecting))
+        return TaskResult();  // Login abandoned
+
     const result = verify_password(hash, password);
     return TaskResult(hash, password, result.matches, result.iterations);
 }
