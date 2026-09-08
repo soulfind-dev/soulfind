@@ -125,7 +125,7 @@ final class Database
         query("PRAGMA page_size = 4096;");
         query("PRAGMA wal_autocheckpoint = 5000;");
 
-        if (log_db) check_integrity();
+        check_integrity();
 
         enum users_table_sql = text(
             "CREATE TABLE IF NOT EXISTS ", users_table,
@@ -226,14 +226,16 @@ final class Database
 
     private void check_integrity()
     {
-        auto integrity_success = true;
-        writeln("[DB] Checking database integrity");
+        bool integrity_success;
+        if (log_db) writeln("[DB] Checking database integrity");
 
         foreach (ref record ; query("PRAGMA integrity_check;")) {
             const result = record[0];
-            if (result == "ok")
+            if (result == "ok") {
+                integrity_success = true;
+                if (log_db) writeln("[DB] Integrity check result: ", result);
                 continue;
-
+            }
             integrity_success = false;
             writeln("[DB] Integrity issue detected: ", result);
         }
@@ -242,7 +244,7 @@ final class Database
             writeln("[DB] Foreign key issue detected: ", record.join(", "));
         }
 
-        if (integrity_success) writeln("[DB] Database integrity verified");
+        if (!integrity_success) raise_sql_error();
     }
 
 
