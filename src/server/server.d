@@ -100,10 +100,8 @@ final class Server
         if (db.is_search_term_filtered(search_term))
             return;
 
-        // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(
-            from_username, token, search_term, user
-        );
+        scope msg = new SFileSearch(from_username, token, search_term);
+        user.send_message(msg);
     }
 
     void search_room_files(uint token, string search_term, string username,
@@ -123,9 +121,7 @@ final class Server
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(
-            username, token, search_term, null, room
-        );
+        queued_searches ~= new SFileSearch(username, token, search_term, room);
     }
 
     void send_queued_searches(MonoTime current_time)
@@ -134,10 +130,6 @@ final class Server
             return;
 
         foreach (ref msg ; queued_searches) {
-            if (msg.receiving_user !is null) {
-                msg.receiving_user.send_message(msg);
-                continue;
-            }
             if (msg.receiving_room !is null) {
                 msg.receiving_room.send_to_all(msg, unsearchable_users);
                 continue;
