@@ -13,6 +13,7 @@ import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
 import std.datetime : days, Duration, SysTime;
+import std.socket : InternetAddress;
 import std.stdio : writeln;
 import std.utf : UTFException, validate;
 
@@ -1589,15 +1590,15 @@ final class SEmbeddedMessage : SMessage
 
 final class SPossibleParents : SMessage
 {
-    this(User[] users) scope
+    this(InternetAddress[string] parents) scope
     {
         super(PossibleParents);
 
-        write!uint(cast(uint) users.length);
-        foreach (ref user ; users) {
-            write!string(user.username);
-            write!uint(user.address.addr);
-            write!uint(user.address.port);
+        write!uint(cast(uint) parents.length);
+        foreach (ref username, ref address ; parents) {
+            write!string(username);
+            write!uint(address.addr);
+            write!uint(address.port);
         }
     }
 }
