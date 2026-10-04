@@ -10,20 +10,6 @@ module soulfind.main;
 shared bool running = true;
 
 @trusted
-private void increase_fd_limit()
-{
-    // Increase file descriptor limit for concurrent connections
-    version (Posix) version (Have_soulfind_server) {
-        import core.sys.posix.sys.resource : getrlimit, rlimit, RLIMIT_NOFILE,
-                                             setrlimit;
-        rlimit rlim;
-        getrlimit(RLIMIT_NOFILE, &rlim);
-        rlim.rlim_cur = rlim.rlim_max;
-        setrlimit(RLIMIT_NOFILE, &rlim);
-    }
-}
-
-@trusted
 private void setup_console()
 {
     version (Windows) {
@@ -80,7 +66,6 @@ private int main(string[] args)
     version (Have_soulfind_server) import soulfind.server : run;
     version (Have_soulfind_setup)  import soulfind.setup  : run;
 
-    increase_fd_limit();
     setup_console();
     setup_signal_handler();
 
