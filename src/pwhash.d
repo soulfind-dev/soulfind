@@ -13,7 +13,7 @@ import std.conv : ConvException, text, to;
 import std.digest : LetterCase, secureEqual, toHexString;
 import std.digest.hmac : HMAC;
 import std.digest.sha : SHA512;
-import std.parallelism : Task, task, taskPool;
+import std.parallelism : Task, task, TaskPool, totalCPUs;
 import std.random : unpredictableSeed;
 import std.string : split;
 
@@ -27,11 +27,18 @@ private alias VerifyTask      = Task!(verify_password_task, string, string,
 
 private HashTask[HashCallback]      hash_password_tasks;
 private VerifyTask[VerifyCallback]  verify_password_tasks;
+private TaskPool                    pool;
 
 struct VerifyPasswordResult
 {
     bool  matches;
     uint  iterations;
+}
+
+shared static this()
+{
+    pool = new TaskPool(totalCPUs > 1 ? totalCPUs - 1 : 1);
+    pool.isDaemon = true;
 }
 
 string create_salt()
@@ -80,7 +87,7 @@ void hash_password_async(string password, string salt, uint iterations,
     auto task = task!hash_password_task(
         password, salt, iterations, disconnecting
     );
-    taskPool.put(task);
+    pool.put(task);
     hash_password_tasks[callback] = task;
 }
 
@@ -129,7 +136,7 @@ void verify_password_async(string hash, string password,
                            shared(bool)* disconnecting)
 {
     auto task = task!verify_password_task(hash, password, disconnecting);
-    taskPool.put(task);
+    pool.put(task);
     verify_password_tasks[callback] = task;
 }
 
