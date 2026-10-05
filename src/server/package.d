@@ -65,10 +65,26 @@ int run(string[] args)
 
     if (enable_debug) log_db = log_conn = log_msg = true;
 
+    increase_fd_limit();
+
     auto server = new Server(db_filename);
     const success = server.listen(port);
     const exit_code = success ? 0 : 1;
 
     writeln("\n", exit_message);
     return exit_code;
+}
+
+@trusted
+private void increase_fd_limit()
+{
+    // Increase file descriptor limit for concurrent connections
+    version (Posix) {
+        import core.sys.posix.sys.resource : getrlimit, rlimit, RLIMIT_NOFILE,
+                                             setrlimit;
+        rlimit rlim;
+        getrlimit(RLIMIT_NOFILE, &rlim);
+        rlim.rlim_cur = rlim.rlim_max;
+        setrlimit(RLIMIT_NOFILE, &rlim);
+    }
 }
