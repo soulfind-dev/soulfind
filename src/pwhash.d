@@ -12,7 +12,7 @@ import std.conv : ConvException, text, to;
 import std.digest : LetterCase, secureEqual, toHexString;
 import std.digest.hmac : HMAC;
 import std.digest.sha : SHA512;
-import std.parallelism : Task, task, taskPool;
+import std.parallelism : Task, task, TaskPool, totalCPUs;
 import std.random : unpredictableSeed;
 import std.string : split;
 
@@ -24,11 +24,18 @@ private alias VerifyCallback  = void delegate(string, bool, uint);
 
 private HashTask[HashCallback]      hash_password_tasks;
 private VerifyTask[VerifyCallback]  verify_password_tasks;
+private TaskPool                    pool;
 
 struct VerifyPasswordResult
 {
     bool  matches;
     uint  iterations;
+}
+
+shared static this()
+{
+    pool = new TaskPool(totalCPUs > 1 ? totalCPUs - 1 : 1);
+    pool.isDaemon = true;
 }
 
 string create_salt()
@@ -75,7 +82,7 @@ void hash_password_async(string password, string salt, uint iterations,
                          HashCallback callback)
 {
     auto task = task!hash_password_task(password, salt, iterations);
-    taskPool.put(task);
+    pool.put(task);
     hash_password_tasks[callback] = task;
 }
 
@@ -123,7 +130,7 @@ void verify_password_async(string hash, string password,
                            VerifyCallback callback)
 {
     auto task = task!verify_password_task(hash, password);
-    taskPool.put(task);
+    pool.put(task);
     verify_password_tasks[callback] = task;
 }
 
@@ -131,11 +138,6 @@ void process_password_tasks()
 {
     Appender!(HashCallback[])    hash_password_tasks_to_remove;
     Appender!(VerifyCallback[])  verify_password_tasks_to_remove;
-
-    if (taskPool.size == 0)
-        // totalCPUs == 1 single-core (taskPool.size is usually totalCPUs-1)
-        // One task per call forced because worker threads are non-existant
-        force_password_task();
 
     foreach (ref callback, ref task ; hash_password_tasks) {
         if (!task.done)
@@ -158,17 +160,6 @@ void process_password_tasks()
     }
     foreach (ref callback ; verify_password_tasks_to_remove)
         verify_password_tasks.remove(callback);
-}
-
-private void force_password_task()
-{
-    // Existing accounts always take higher priority
-    if (verify_password_tasks.length > 0)
-        verify_password_tasks.byKeyValue.front.value.yieldForce;
-
-    // New registrations and password changes may take longer
-    else if (hash_password_tasks.length > 0)
-        hash_password_tasks.byKeyValue.front.value.yieldForce;
 }
 
 
