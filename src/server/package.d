@@ -25,32 +25,33 @@ int run(string[] args)
         CommandOption(
             "d", "database", text(
                 "Database path (default: ", default_db_filename, ")."
-            ), "path",
-            (value) { db_filename = value; }
+            ), "path", null,
+            (values) { db_filename = values[0]; }
         ),
         CommandOption(
-            "p", "port", "Listening port.", "port",
-            (value) { port = value.to!ushort; }
+            "p", "port", "Listening port.", "port", null,
+            (values) { port = values[0].to!ushort; }
         ),
         CommandOption(
-            "", "debug", "Enable debug logging.", null,
+            "", "debug", "Enable debug logging.", null, null,
             (_) { enable_debug = true; }
         ),
         CommandOption(
-            "v", "version", "Show version.", null,
+            "v", "version", "Show version.", null, null,
             (_) { show_version = true; }
         ),
         CommandOption(
-            "h", "help", "Show this help message.", null,
+            "h", "help", "Show this help message.", null, null,
             (_) { show_help = true; }
         )
     ];
+
     try {
         parse_args(args, options);
     }
     catch (Exception e) {
         writeln(e.msg);
-        return 1;
+        return 2;
     }
 
     if (show_version) {
