@@ -232,7 +232,7 @@ final class UserConnection
     void send_message(Logging log = Logging.all)(scope SMessage msg,
                                                  string target_username)
     {
-        const uint code = msg.code;
+        const code = msg.code;
         const msg_buf = msg.bytes;
         const msg_len = msg_buf.length;
         const offset = out_buf.length;

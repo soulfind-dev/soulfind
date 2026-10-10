@@ -134,12 +134,11 @@ network messages. It is not possible to assign complex code filtering rules.
 
  - `conn`: Connections
  - `db`: Database operations
- - `msg`: Includes both `r` and `t`
  - `r`: Received network messages
  - `rx`: Received network messages with hexadecimal bytes
  - `t`: Transmitted network messages
  - `tx`: Transmitted network messages with hexadecimal bytes
- - `x`: Includes both `rx` and `tx`
+ - `msg`: Includes both `r` and `t`
  - `1` .. `1003`: Filter by message code
 
 ## Authors

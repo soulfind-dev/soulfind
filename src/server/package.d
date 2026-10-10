@@ -15,7 +15,7 @@ import std.conv : text, to;
 import std.stdio : writeln;
 import std.string : isNumeric, join;
 
-static all_log_categories = ["conn", "db", "msg", "r", "rx", "t", "tx", "x"];
+static all_log_categories = ["conn", "db", "msg", "r", "rx", "t", "tx"];
 
 private void enable_log_category(string category)
 {
@@ -28,28 +28,24 @@ private void enable_log_category(string category)
         log_db = true;
         break;
 
-    case "x":
-        log_msg_rx = log_msg_tx = true;
-        goto case "msg";
-
     case "msg":
         log_msg_in = log_msg_out = true;
         break;
-
-    case "rx":
-        log_msg_rx = true;
-        goto case "r";
 
     case "r":
         log_msg_in = true;
         break;
 
-    case "tx":
-        log_msg_tx = true;
-        goto case "t";
+    case "rx":
+        log_msg_in = log_msg_rx = true;
+        break;
 
     case "t":
         log_msg_out = true;
+        break;
+
+    case "tx":
+        log_msg_out = log_msg_tx = true;
         break;
 
     default:
@@ -60,7 +56,7 @@ private void enable_log_category(string category)
         }
         writeln(
             "Available log categories: '", all_log_categories.join("' '"),
-            "' '", uint.min, "..", uint.max, "'"
+            "' '", uint.min, "'..'", uint.max, "'"
         );
         throw new Exception("Unknown log category '" ~ category ~ "'");
     }
@@ -71,10 +67,9 @@ private void enable_log_categories(string[] log_categories)
     foreach (category ; log_categories)
         enable_log_category(category);
 
-    if (log_msg_codes.length > 0 && !log_msg_in && !log_msg_out) {
-        enable_log_category("r");
-        enable_log_category("t");
-    }
+    if (log_msg_codes.length > 0 && !log_msg_in && !log_msg_out)
+        enable_log_category("msg");
+
     if (log_msg_codes.length == 0 && (log_msg_in || log_msg_out)) {
         foreach (code; 1 .. 161) log_msg_codes[code] = true;
         foreach (code; 1001 .. 1004) log_msg_codes[code] = true;
