@@ -6,13 +6,15 @@
 module soulfind.server.messages;
 @safe:
 
-import soulfind.defines : blue, log_msg, norm, RoomTicker;
+import soulfind.defines : blue, dim, log_msg_codes, log_msg_in, log_msg_rx,
+                          norm, RoomTicker;
 import soulfind.server.room : Room;
 import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
 import std.datetime : days, Duration, SysTime;
+import std.format : format;
 import std.stdio : writeln;
 import std.utf : UTFException, validate;
 
@@ -198,10 +200,13 @@ class UMessage
         this.in_buf = in_buf;
         code = read!uint();
 
-        if (log_msg) writeln(
-            "[Msg] Receive <- ", blue, this.name, norm, " (code ", code,
-            ") <- from user ", blue, in_username, norm
-        );
+        if (log_msg_in && code in log_msg_codes) {
+            writeln(
+                "[MSG] Received <- ", blue, this.name, norm, " (code ", code,
+                ") <- from user ", blue, in_username, norm
+            );
+            if (log_msg_rx) writeln(dim, format!"%-(%02x %)"(in_buf), norm);
+        }
     }
 
     private string name() scope
@@ -257,8 +262,8 @@ class UMessage
             }
         }
         else {
-            if (log_msg) writeln(
-                "[Msg] Message code ", code, ", offset ", offset,
+            if (log_msg_in) writeln(
+                "[MSG] Message code ", code, ", offset ", offset,
                 ", not enough data reading ", T.stringof, " of size ", size
             );
             is_valid = false;
