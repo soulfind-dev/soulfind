@@ -10,11 +10,12 @@ import soulfind.defines : blue, dim, log_msg_codes, log_msg_in, log_msg_rx,
                           norm, RoomTicker;
 import soulfind.server.room : Room;
 import soulfind.server.user : User;
-import std.array : Appender;
+import std.array : Appender, join;
 import std.bitmanip : Endian, nativeToLittleEndian, peek;
 import std.conv : text;
 import std.datetime : days, Duration, SysTime;
-import std.format : format;
+import std.digest : toHexString;
+import std.range : chunks;
 import std.stdio : writeln;
 import std.utf : UTFException, validate;
 
@@ -205,7 +206,7 @@ class UMessage
                 "[MSG] Received <- ", blue, this.name, norm, " (code ", code,
                 ") <- from user ", blue, in_username, norm
             );
-            if (log_msg_rx) writeln(dim, format!"%-(%02x %)"(in_buf), norm);
+            if (log_msg_rx) writeln(dim, hexadecimal, norm);
         }
     }
 
@@ -216,6 +217,11 @@ class UMessage
             if (cls_name[i] == '.')
                 return cls_name[i + 1 .. $];
         return cls_name;
+    }
+
+    private dchar[] hexadecimal() scope
+    {
+        return toHexString(in_buf).chunks(2).join(" ");  // log rx
     }
 
     private bool has_unread_data() scope
@@ -1096,6 +1102,11 @@ class SMessage
             if (cls_name[i] == '.')
                 return cls_name[i + 1 .. $];
         return cls_name;
+    }
+
+    dchar[] hexadecimal() scope
+    {
+        return toHexString(out_buf[]).chunks(2).join(" ");  // log tx
     }
 
     ubyte[] bytes() scope

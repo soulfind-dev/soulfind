@@ -18,7 +18,6 @@ import soulfind.server.user : User;
 import std.array : Appender;
 import std.bitmanip : Endian, nativeToLittleEndian, peek, read;
 import std.datetime : MonoTime, msecs;
-import std.format : format;
 import std.socket : InternetAddress, parseAddress, Socket, socket_t,
                     SocketAcceptException, SocketOption, SocketOptionLevel,
                     SocketOSException, SocketShutdown, TcpSocket, UdpSocket;
@@ -238,6 +237,14 @@ final class UserConnection
         const offset = out_buf.length;
 
         if (log == Logging.redacted) target_username = "[ redacted ]";
+        if (log != Logging.disabled && log_msg_out && code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit -> ", blue, msg.name, norm, " (code ", code,
+                ") -> to user ", blue, target_username, norm
+            );
+            if (log_msg_tx) writeln(dim, msg.hexadecimal, norm);
+        }
+
         if (msg_len > uint.max) {
             writeln(
                 "Message ", red, msg.name, norm, " (code ", code,
@@ -251,14 +258,6 @@ final class UserConnection
         out_buf[offset .. offset + uint.sizeof] = (cast(uint) msg_len)
             .nativeToLittleEndian;
         out_buf[offset + uint.sizeof .. $] = msg_buf;
-
-        if (log_msg_out && log != Logging.disabled && code in log_msg_codes) {
-            writeln(
-                "[MSG] Transmit -> ", blue, msg.name, norm, " (code ", code,
-                ") -> to user ", blue, target_username, norm
-            );
-            if (log_msg_tx) writeln(dim, format!"%-(%02x %)"(out_buf), norm);
-        }
 
         selector.register(sock.handle, SelectEvent.write);
     }
