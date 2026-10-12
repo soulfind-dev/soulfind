@@ -5,7 +5,7 @@
 module soulfind.pwhash;
 @safe:
 
-import core.atomic : atomicLoad;
+import core.atomic : atomicLoad, atomicStore;
 import std.algorithm.iteration : splitter;
 import std.array : Appender;
 import std.bitmanip : nativeToBigEndian;
@@ -17,13 +17,20 @@ import std.parallelism : Task, task, TaskPool, totalCPUs;
 import std.random : unpredictableSeed;
 import std.string : split;
 
-private alias HashCallback    = void delegate(string, string);
-private alias HashTask        = Task!(hash_password_task, string, string, uint,
-                                      shared(bool)*)*;
+private struct HashTask
+{
+    Task!(hash_password_task, string, string, uint, shared(bool)*)*  task;
+    shared(bool)*                                                    cancel;
+}
 
+private struct VerifyTask
+{
+    Task!(verify_password_task, string, string, shared(bool)*)*      task;
+    shared(bool)*                                                    cancel;
+}
+
+private alias HashCallback    = void delegate(string, string);
 private alias VerifyCallback  = void delegate(string, bool, uint);
-private alias VerifyTask      = Task!(verify_password_task, string, string,
-                                      shared(bool)*)*;
 
 private HashTask[HashCallback]      hash_password_tasks;
 private VerifyTask[VerifyCallback]  verify_password_tasks;
@@ -84,9 +91,10 @@ string hash_password(string password, string salt, uint iterations)
 void hash_password_async(string password, string salt, uint iterations,
                          HashCallback callback)
 {
-    auto task = task!hash_password_task(password, salt, iterations);
+    auto cancel = new shared bool;
+    auto task = task!hash_password_task(password, salt, iterations, cancel);
     pool.put(task);
-    hash_password_tasks[callback] = task;
+    hash_password_tasks[callback] = HashTask(task, cancel);
 }
 
 VerifyPasswordResult verify_password(string hash, string password)
@@ -132,9 +140,10 @@ VerifyPasswordResult verify_password(string hash, string password)
 void verify_password_async(string hash, string password,
                            VerifyCallback callback)
 {
-    auto task = task!verify_password_task(hash, password);
+    auto cancel = new shared bool;
+    auto task = task!verify_password_task(hash, password, cancel);
     pool.put(task);
-    verify_password_tasks[callback] = task;
+    verify_password_tasks[callback] = VerifyTask(task, cancel);
 }
 
 void process_password_tasks()
@@ -142,27 +151,53 @@ void process_password_tasks()
     Appender!(HashCallback[])    hash_password_tasks_to_remove;
     Appender!(VerifyCallback[])  verify_password_tasks_to_remove;
 
-    foreach (ref callback, ref task ; hash_password_tasks) {
-        if (!task.done)
+    foreach (ref callback, ref queued ; hash_password_tasks) {
+        if (!queued.task.done)
             continue;
 
-        auto result = task.yieldForce;
-        callback(result.password, result.hash);
+        auto result = queued.task.yieldForce;
         hash_password_tasks_to_remove ~= callback;
+
+        if (atomicLoad(*queued.cancel))
+            continue;
+
+        callback(result.password, result.hash);
     }
     foreach (ref callback ; hash_password_tasks_to_remove)
         hash_password_tasks.remove(callback);
 
-    foreach (ref callback, ref task ; verify_password_tasks) {
-        if (!task.done)
+    foreach (ref callback, ref queued ; verify_password_tasks) {
+        if (!queued.task.done)
             continue;
 
-        auto result = task.yieldForce;
-        callback(result.password, result.matches, result.iterations);
+        auto result = queued.task.yieldForce;
         verify_password_tasks_to_remove ~= callback;
+
+        if (atomicLoad(*queued.cancel))
+            continue;
+
+        callback(result.password, result.matches, result.iterations);
     }
     foreach (ref callback ; verify_password_tasks_to_remove)
         verify_password_tasks.remove(callback);
+}
+
+void cancel_password_task(HashCallback callback)
+{
+    auto queued_task = callback in hash_password_tasks;
+    if (queued_task is null)
+        return;
+
+    atomicStore(*queued_task.cancel, true);
+}
+
+void cancel_password_task(VerifyCallback callback)
+{
+    auto queued_task = callback in verify_password_tasks;
+    if (queued_task is null)
+        return;
+
+    atomicStore(*queued_task.cancel, true);
 }
 
 
@@ -177,20 +212,20 @@ private struct TaskResult
 }
 
 TaskResult hash_password_task(string password, string salt, uint iterations,
-                              shared(bool)* disconnecting)
+                              shared(bool)* cancel)
 {
-    if (atomicLoad(*disconnecting))
-        return TaskResult();  // Registration abandoned
+    if (atomicLoad(*cancel))
+        return TaskResult();  // Registration cancelled after timeout
 
     const hash = hash_password(password, salt, iterations);
     return TaskResult(hash, password);
 }
 
 TaskResult verify_password_task(string hash, string password,
-                                shared(bool)* disconnecting)
+                                shared(bool)* cancel)
 {
-    if (atomicLoad(*disconnecting))
-        return TaskResult();  // Login abandoned
+    if (atomicLoad(*cancel))
+        return TaskResult();  // Login cancelled after timeout
 
     const result = verify_password(hash, password);
     return TaskResult(hash, password, result.matches, result.iterations);

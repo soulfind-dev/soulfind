@@ -6,7 +6,6 @@
 module soulfind.server.user;
 @safe:
 
-import core.atomic : atomicStore;
 import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           max_room_name_length, max_user_interests,
                           max_username_length, norm,
@@ -14,8 +13,8 @@ import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           server_username, speed_weight, user_check_interval,
                           UserStats, VERSION, wish_interval,
                           wish_interval_privileged;
-import soulfind.pwhash : create_salt, hash_password_async,
-                         verify_password_async;
+import soulfind.pwhash : cancel_password_task, create_salt,
+                         hash_password_async, verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
 import soulfind.server.messages;
 import soulfind.server.msghandler : MessageHandler;
@@ -43,7 +42,6 @@ final class User
     UserStatus              status;
     bool                    hashing_password;
     bool                    authenticated;
-    shared bool             disconnecting;      // shared due to pwhash threads
 
     uint                    upload_speed;       // in B/s
     uint                    upload_slots_full;  // unused in clients
@@ -56,6 +54,7 @@ final class User
     private UserConnection  conn;
     private LoginRejection  login_rejection;
     private MonoTime        last_state_refresh;
+    private bool            disconnecting;
 
     private bool[string]    liked_items;
     private bool[string]    hated_items;
@@ -144,25 +143,18 @@ final class User
         if (!server.db.user_exists(username)) {
             const salt = create_salt();
             hash_password_async(
-                password, salt, pbkdf2_iterations,
-                &password_hashed, &disconnecting
+                password, salt, pbkdf2_iterations, &password_hashed
             );
             return;
         }
 
         const stored_hash = server.db.user_password_hash(username);
-        verify_password_async(
-            stored_hash, password,
-            &password_verified, &disconnecting
-        );
+        verify_password_async(stored_hash, password, &password_verified);
     }
 
     void password_hashed(string password, string hash)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
 
         if (authenticated) {
             enum notify_user = true;
@@ -187,19 +179,12 @@ final class User
     void password_upgraded(string password, string hash)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
-
         change_password(password, hash);
     }
 
     void password_verified(string password, bool matches, uint iterations)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
 
         if (!matches) {
             if (server.db.server_private_mode)
@@ -216,8 +201,7 @@ final class User
             hashing_password = true;
             const salt = create_salt();
             hash_password_async(
-                password, salt, pbkdf2_iterations,
-                &password_upgraded, &disconnecting
+                password, salt, pbkdf2_iterations, &password_upgraded
             );
         }
     }
@@ -225,6 +209,10 @@ final class User
     void disconnect(bool relogged = false)
     {
         if (!disconnecting) {
+            cancel_password_task(&password_hashed);
+            cancel_password_task(&password_upgraded);
+            cancel_password_task(&password_verified);
+
             unwatch(username);
             server.del_user(username);
 
@@ -242,7 +230,7 @@ final class User
                 writeln("User ", red, username, norm, " logged out");
             }
         }
-        atomicStore(disconnecting, true);  // atomic due to pwhash threads
+        disconnecting = true;
 
         if (relogged) {
             scope relogged_msg = new SRelogged();
@@ -366,7 +354,7 @@ final class User
             server.db.admin_until(username) > Clock.currTime ?
             "Admin " : "User ", blue, username, norm,
             " logged in with client version ", bold, client_version.toString,
-            norm, " (", MonoTime.currTime - conn.created_monotime, ")"
+            norm
         );
 
         server.add_user(this);
