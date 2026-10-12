@@ -695,8 +695,7 @@ final class MessageHandler
             user.hashing_password = true;
             const salt = create_salt();
             hash_password_async(
-                msg.password, salt, pbkdf2_iterations,
-                &user.password_hashed, &user.disconnecting
+                msg.password, salt, pbkdf2_iterations, &user.password_hashed
             );
             break;
 
