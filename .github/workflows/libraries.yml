@@ -13,7 +13,7 @@ permissions: {}
 jobs:
   update-libraries:
     if: github.event.repository.fork == false
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 15
     strategy:
       matrix:

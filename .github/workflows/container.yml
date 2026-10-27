@@ -15,10 +15,10 @@ jobs:
         arch: [amd64, arm64]
         include:
           - arch: amd64
-            image: ubuntu-latest
+            image: ubuntu-26.04
 
           - arch: arm64
-            image: ubuntu-24.04-arm
+            image: ubuntu-26.04-arm
     runs-on: ${{ matrix.image }}
     steps:
       - name: Checkout code
@@ -44,7 +44,7 @@ jobs:
   publish:
     if: github.event.repository.fork == false && github.ref_name == github.event.repository.default_branch
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       id-token: write

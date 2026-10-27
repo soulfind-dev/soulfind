@@ -24,20 +24,20 @@ jobs:
             package: gcc-gdc
 
           - os: linux-x86_64
-            image: ubuntu-latest
+            image: ubuntu-26.04
             container: alpine:edge
 
           - os: linux-arm64
-            image: ubuntu-24.04-arm
+            image: ubuntu-26.04-arm
             container: alpine:edge
 
           - os: freebsd-x86_64
-            image: ubuntu-latest
+            image: ubuntu-26.04
             vm_os: freebsd
             vm_version: '15.1'
 
           - os: openbsd-x86_64
-            image: ubuntu-latest
+            image: ubuntu-26.04
             vm_os: openbsd
             vm_version: '7.7'
 
@@ -46,14 +46,14 @@ jobs:
             target: 10.12
 
           - os: macos-arm64
-            image: macos-latest
+            image: macos-26
             target: 11
 
           - os: windows-x86_64
-            image: windows-latest
+            image: windows-2025
 
           - os: windows-arm64
-            image: windows-latest
+            image: windows-2025
 
         exclude:
           - os: linux-arm64
