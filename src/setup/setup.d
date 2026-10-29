@@ -543,14 +543,14 @@ final class Setup
 
         const now = Clock.currTime;
         const admin_until = db.admin_until(username);
-        auto admin = (admin_until > now)
+        const admin = (admin_until > now)
             ? text("until ", admin_until.toSimpleString) : "no";
         const banned_until = db.user_banned_until(username);
         auto banned = "no";
         const privileged_until = db.user_privileged_until(username);
-        auto privileged = (privileged_until > now)
+        const privileged = (privileged_until > now)
             ? text("until ", privileged_until.toSimpleString) : "no";
-        const supporter = (privileged_until > SysTime()) ? "yes" : "no";
+        const supporter = (privileged_until > SysTime.init) ? "yes" : "no";
         const searchable = db.is_user_unsearchable(username) ? "no" : "yes";
         const rooms_owner = db.owned_rooms(username).join(", ");
         const rooms_member = db.member_rooms!(RoomMemberType.any)(
@@ -611,21 +611,21 @@ final class Setup
         enum j_quot = "\", \"";
 
         const admin_until = db.admin_until(username);
-        auto admin = (admin_until > SysTime())
+        const admin = (admin_until > SysTime.init)
             ? text(quot, admin_until.toISOExtString, quot)
             : "null";
 
         const banned_until = db.user_banned_until(username);
-        auto banned = (banned_until > SysTime())
+        const banned = (banned_until > SysTime.init)
             ? text(quot, banned_until.toISOExtString, quot)
             : "null";
 
         const privileged_until = db.user_privileged_until(username);
-        auto privileged = (privileged_until > SysTime())
+        const privileged = (privileged_until > SysTime.init)
             ? text(quot, privileged_until.toISOExtString, quot)
             : "null";
 
-        const supporter = (privileged_until > SysTime()) ? "true" : "false";
+        const supporter = (privileged_until > SysTime.init) ? "true" : "false";
         const searchable = (
             db.is_user_unsearchable(username) ? "false" : "true"
         );

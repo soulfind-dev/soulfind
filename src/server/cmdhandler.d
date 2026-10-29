@@ -572,7 +572,7 @@ final class CommandHandler
         else {
             const user_stats = server.db.user_stats(username);
             privileged_until = server.db.user_privileged_until(username);
-            if (privileged_until > SysTime()) supporter = "yes";
+            if (privileged_until > SysTime.init) supporter = "yes";
             upload_speed = user_stats.upload_speed;
             shared_files = user_stats.shared_files;
             shared_folders = user_stats.shared_folders;
@@ -642,16 +642,16 @@ final class CommandHandler
         enum j_quot = "\", \"";
 
         auto user = server.get_user(username);
-        auto client_version = user.client_version.toString;
+        const client_version = user.client_version.toString;
         const status = (user.status == UserStatus.away) ? "away" : "online";
 
         const admin_until = server.db.admin_until(username);
-        auto admin = (admin_until > SysTime())
+        const admin = (admin_until > SysTime.init)
             ? text(quot, admin_until.toISOExtString, quot)
             : "null";
 
         const privileged_until = user.privileged_until;
-        auto privileged = (privileged_until > SysTime())
+        const privileged = (privileged_until > SysTime.init)
             ? text(quot, privileged_until.toISOExtString, quot)
             : "null";
 

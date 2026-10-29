@@ -131,7 +131,7 @@ final class User
             // server.
             return;
 
-        if (banned_until > SysTime()) server.db.unban_user(username);
+        if (banned_until > SysTime.init) server.db.unban_user(username);
 
         if (server.num_connected_users >= server.db.server_max_users) {
             reject_login(LoginRejectionReason.SVRFULL);
@@ -438,7 +438,7 @@ final class User
         );
         server.send_to_watching(username, msg);
 
-        auto stats = UserStats();
+        UserStats stats;
         stats.upload_speed = upload_speed;
         stats.updating_speed = true;
 
@@ -450,7 +450,7 @@ final class User
         shared_files = new_files;
         shared_folders = new_folders;
 
-        auto stats = UserStats();
+        UserStats stats;
         stats.shared_files = new_files;
         stats.shared_folders = new_folders;
         stats.updating_shared = true;
@@ -495,7 +495,7 @@ final class User
 
     bool supporter()
     {
-        return privileged_until > SysTime();
+        return privileged_until > SysTime.init;
     }
 
     Duration privileges()
