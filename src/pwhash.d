@@ -92,7 +92,7 @@ void hash_password_async(string password, string salt, uint iterations,
 
 VerifyPasswordResult verify_password(string hash, string password)
 {
-    auto result = VerifyPasswordResult();
+    VerifyPasswordResult result;
     auto hash_parts = hash.splitter("$");
 
     if (hash_parts.empty || hash_parts.front.length != 0)
@@ -166,7 +166,7 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
-        auto result = task.yieldForce;
+        const result = task.yieldForce;
         hash_password_tasks_to_remove ~= callback;
 
         if (result.password !is null)
@@ -179,7 +179,7 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
-        auto result = task.yieldForce;
+        const result = task.yieldForce;
         verify_password_tasks_to_remove ~= callback;
 
         if (result.password !is null)

@@ -682,7 +682,7 @@ final class Database
         }
 
         if (admin_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (admin_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -757,7 +757,7 @@ final class Database
         }
 
         if (privileged_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (privileged_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -816,7 +816,7 @@ final class Database
         }
 
         if (banned_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (banned_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -832,7 +832,7 @@ final class Database
             " WHERE username = ?;"
         );
         const res = query(sql, [username]);
-        auto user_stats = UserStats();
+        UserStats user_stats;
 
         if (res.length > 0) {
             const record                   = res[0];
