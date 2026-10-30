@@ -166,10 +166,11 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
+        const cancel = task.args[0];
         const result = task.yieldForce;
         hash_password_tasks_to_remove ~= callback;
 
-        if (result.password !is null)
+        if (!atomicLoad(*cancel))
             callback(result.password, result.hash);
     }
     foreach (ref callback ; hash_password_tasks_to_remove)
@@ -179,10 +180,11 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
+        const cancel = task.args[0];
         const result = task.yieldForce;
         verify_password_tasks_to_remove ~= callback;
 
-        if (result.password !is null)
+        if (!atomicLoad(*cancel))
             callback(result.password, result.matches, result.iterations);
     }
     foreach (ref callback ; verify_password_tasks_to_remove)
