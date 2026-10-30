@@ -13,8 +13,8 @@ import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           server_username, speed_weight, user_check_interval,
                           UserStats, VERSION, wish_interval,
                           wish_interval_privileged;
-import soulfind.pwhash : create_salt, hash_password_async,
-                         verify_password_async;
+import soulfind.pwhash : cancel_password_task, create_salt,
+                         hash_password_async, verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
 import soulfind.server.messages;
 import soulfind.server.msghandler : MessageHandler;
@@ -156,9 +156,6 @@ final class User
     {
         hashing_password = false;
 
-        if (disconnecting)
-            return;
-
         if (authenticated) {
             enum notify_user = true;
             change_password(password, hash, notify_user);
@@ -182,19 +179,12 @@ final class User
     void password_upgraded(string password, string hash)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
-
         change_password(password, hash);
     }
 
     void password_verified(string password, bool matches, uint iterations)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
 
         if (!matches) {
             if (server.db.server_private_mode)
@@ -219,6 +209,10 @@ final class User
     void disconnect(bool relogged = false)
     {
         if (!disconnecting) {
+            cancel_password_task(&password_hashed);
+            cancel_password_task(&password_upgraded);
+            cancel_password_task(&password_verified);
+
             unwatch(username);
             server.del_user(username);
 

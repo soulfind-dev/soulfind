@@ -5,6 +5,7 @@
 module soulfind.pwhash;
 @safe:
 
+import core.atomic : atomicLoad, atomicStore;
 import std.algorithm.iteration : splitter;
 import std.array : Appender;
 import std.bitmanip : nativeToBigEndian;
@@ -16,8 +17,10 @@ import std.parallelism : Task, task, TaskPool, totalCPUs;
 import std.random : unpredictableSeed;
 import std.string : split;
 
-private alias HashTask    = Task!(hash_password_task, string, string, uint)*;
-private alias VerifyTask  = Task!(verify_password_task, string, string)*;
+private alias HashTask    = Task!(hash_password_task, shared(bool)*, string,
+                                  string, uint)*;
+private alias VerifyTask  = Task!(verify_password_task, shared(bool)*, string,
+                                  string)*;
 
 private alias HashCallback    = void delegate(string, string);
 private alias VerifyCallback  = void delegate(string, bool, uint);
@@ -81,7 +84,8 @@ string hash_password(string password, string salt, uint iterations)
 void hash_password_async(string password, string salt, uint iterations,
                          HashCallback callback)
 {
-    auto task = task!hash_password_task(password, salt, iterations);
+    auto cancel = new shared bool;
+    auto task = task!hash_password_task(cancel, password, salt, iterations);
     pool.put(task);
     hash_password_tasks[callback] = task;
 }
@@ -129,9 +133,28 @@ VerifyPasswordResult verify_password(string hash, string password)
 void verify_password_async(string hash, string password,
                            VerifyCallback callback)
 {
-    auto task = task!verify_password_task(hash, password);
+    auto cancel = new shared bool;
+    auto task = task!verify_password_task(cancel, hash, password);
     pool.put(task);
     verify_password_tasks[callback] = task;
+}
+
+void cancel_password_task(HashCallback callback)
+{
+    if (callback !in hash_password_tasks)
+        return;
+
+    auto cancel = hash_password_tasks[callback].args[0];
+    atomicStore(*cancel, true);
+}
+
+void cancel_password_task(VerifyCallback callback)
+{
+    if (callback !in verify_password_tasks)
+        return;
+
+    auto cancel = verify_password_tasks[callback].args[0];
+    atomicStore(*cancel, true);
 }
 
 void process_password_tasks()
@@ -143,9 +166,12 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
+        const cancel = task.args[0];
         const result = task.yieldForce;
-        callback(result.password, result.hash);
         hash_password_tasks_to_remove ~= callback;
+
+        if (!atomicLoad(*cancel))
+            callback(result.password, result.hash);
     }
     foreach (ref callback ; hash_password_tasks_to_remove)
         hash_password_tasks.remove(callback);
@@ -154,9 +180,12 @@ void process_password_tasks()
         if (!task.done)
             continue;
 
+        const cancel = task.args[0];
         const result = task.yieldForce;
-        callback(result.password, result.matches, result.iterations);
         verify_password_tasks_to_remove ~= callback;
+
+        if (!atomicLoad(*cancel))
+            callback(result.password, result.matches, result.iterations);
     }
     foreach (ref callback ; verify_password_tasks_to_remove)
         verify_password_tasks.remove(callback);
@@ -173,14 +202,22 @@ private struct TaskResult
     uint    iterations;
 }
 
-TaskResult hash_password_task(string password, string salt, uint iterations)
+TaskResult hash_password_task(shared(bool)* cancel, string password,
+                              string salt, uint iterations)
 {
+    if (atomicLoad(*cancel))
+        return TaskResult.init;
+
     const hash = hash_password(password, salt, iterations);
     return TaskResult(hash, password);
 }
 
-TaskResult verify_password_task(string hash, string password)
+TaskResult verify_password_task(shared(bool)* cancel, string hash,
+                                string password)
 {
+    if (atomicLoad(*cancel))
+        return TaskResult.init;
+
     const result = verify_password(hash, password);
     return TaskResult(hash, password, result.matches, result.iterations);
 }
