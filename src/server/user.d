@@ -45,8 +45,8 @@ final class User
 
     uint                    upload_speed;       // in B/s
     uint                    upload_slots_full;  // unused in clients
-    uint                    shared_files;
-    uint                    shared_folders;
+    uint                    num_files;
+    uint                    num_folders;
     SysTime                 privileged_until;
     bool                    accept_room_invitations;
 
@@ -345,8 +345,8 @@ final class User
 
         const user_stats = server.db.user_stats(username);
         upload_speed = user_stats.upload_speed;
-        shared_files = user_stats.shared_files;
-        shared_folders = user_stats.shared_folders;
+        num_files = user_stats.num_files;
+        num_folders = user_stats.num_folders;
 
         refresh_privileges(false);
 
@@ -428,7 +428,7 @@ final class User
             upload_speed = new_speed;
 
         scope msg = new SGetUserStats(
-            username, upload_speed, shared_files, shared_folders
+            username, upload_speed, num_files, num_folders
         );
         server.send_to_watching(username, msg);
 
@@ -441,12 +441,12 @@ final class User
 
     void update_shared_stats(uint new_files, uint new_folders)
     {
-        shared_files = new_files;
-        shared_folders = new_folders;
+        num_files = new_files;
+        num_folders = new_folders;
 
         UserStats stats;
-        stats.shared_files = new_files;
-        stats.shared_folders = new_folders;
+        stats.num_files = new_files;
+        stats.num_folders = new_folders;
         stats.updating_shared = true;
 
         server.db.user_update_stats(username, stats);

@@ -537,7 +537,7 @@ final class CommandHandler
         auto supporter = "no";
         auto searchable = "yes";
         uint upload_speed;
-        uint shared_files, shared_folders;
+        uint num_files, num_folders;
         const tickers = server.db.user_tickers!(RoomType._public)(username);
 
         user = server.get_user(username);
@@ -560,8 +560,8 @@ final class CommandHandler
             privileged_until = user.privileged_until;
             if (user.supporter) supporter = "yes";
             upload_speed = user.upload_speed;
-            shared_files = user.shared_files;
-            shared_folders = user.shared_folders;
+            num_files = user.num_files;
+            num_folders = user.num_folders;
 
             if (user.obfuscation_type == ObfuscationType.rotated)
                 obfuscation_type = "rotated";
@@ -574,8 +574,8 @@ final class CommandHandler
             privileged_until = server.db.user_privileged_until(username);
             if (privileged_until > SysTime.init) supporter = "yes";
             upload_speed = user_stats.upload_speed;
-            shared_files = user_stats.shared_files;
-            shared_folders = user_stats.shared_folders;
+            num_files = user_stats.num_files;
+            num_folders = user_stats.num_folders;
         }
 
         const admin_until = server.db.admin_until(username);
@@ -620,8 +620,8 @@ final class CommandHandler
             "\n    supporter: ", supporter,
             "\n    searchable: ", searchable,
             "\n    upload speed: ", upload_speed,
-            "\n    files: ", shared_files,
-            "\n    folders: ", shared_folders,
+            "\n    files: ", num_files,
+            "\n    folders: ", num_folders,
             "\n    public tickers: ",
         );
 
@@ -804,8 +804,8 @@ final class CommandHandler
             "\n        \"privileged_until\": ", privileged, ",",
             "\n        \"supporter\": ", supporter, ",",
             "\n        \"searchable\": ", searchable, ",",
-            "\n        \"num_files\": ", user.shared_files, ",",
-            "\n        \"num_folders\": ", user.shared_folders, ",",
+            "\n        \"num_files\": ", user.num_files, ",",
+            "\n        \"num_folders\": ", user.num_folders, ",",
             "\n        \"upload_speed\": ", user.upload_speed, ",",
             "\n        \"private_rooms_owner\": {", rooms, "}",
             "\n        \"private_rooms_member\": {", rooms(false), "}",

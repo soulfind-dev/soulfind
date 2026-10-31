@@ -51,7 +51,7 @@ final class Room
 
         scope joined_room_msg = new SUserJoinedRoom(
             name, user.username, user.status, user.upload_speed,
-            user.upload_slots_full, user.shared_files, user.shared_folders
+            user.upload_slots_full, user.num_files, user.num_folders
         );
         scope join_room_msg = new SJoinRoom(
             name, users,

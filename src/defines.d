@@ -80,8 +80,8 @@ struct UserStats
 {
     bool  exists;
     uint  upload_speed;
-    uint  shared_files;
-    uint  shared_folders;
+    uint  num_files;
+    uint  num_folders;
 
     bool  updating_speed;
     bool  updating_shared;

@@ -547,15 +547,15 @@ final class USendUploadSpeed : UMessage
 
 final class USharedFoldersFiles : UMessage
 {
-    uint  shared_folders;
-    uint  shared_files;
+    uint  num_folders;
+    uint  num_files;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        shared_folders = read!uint();
-        shared_files   = read!uint();
+        num_folders = read!uint();
+        num_files   = read!uint();
     }
 }
 
@@ -1157,7 +1157,7 @@ final class SGetPeerAddress : SMessage
 final class SWatchUser : SMessage
 {
     this(string username, bool exists, uint status, uint upload_speed,
-         uint shared_files, uint shared_folders) scope
+         uint num_files, uint num_folders) scope
     {
         super(WatchUser);
 
@@ -1170,8 +1170,8 @@ final class SWatchUser : SMessage
         write!uint(upload_speed);
         write!uint(0);  // upload_number, obsolete
         write!uint(0);  // unknown, obsolete
-        write!uint(shared_files);
-        write!uint(shared_folders);
+        write!uint(num_files);
+        write!uint(num_folders);
         if (status > 0) write!string("");  // country_code, obsolete
     }
 }
@@ -1261,8 +1261,8 @@ final class SJoinRoom : SMessage
             write!uint(user.upload_speed);
             write!uint(0);  // upload_number, obsolete
             write!uint(0);  // unknown, obsolete
-            write!uint(user.shared_files);
-            write!uint(user.shared_folders);
+            write!uint(user.num_files);
+            write!uint(user.num_folders);
         }
 
         write!uint(n);
@@ -1294,8 +1294,8 @@ final class SLeaveRoom : SMessage
 final class SUserJoinedRoom : SMessage
 {
     this(string room_name, string username, uint status,
-         uint upload_speed, uint upload_slots_full, uint shared_files,
-         uint shared_folders) scope
+         uint upload_speed, uint upload_slots_full, uint num_files,
+         uint num_folders) scope
     {
         super(UserJoinedRoom);
 
@@ -1305,8 +1305,8 @@ final class SUserJoinedRoom : SMessage
         write!uint(upload_speed);
         write!uint(0);     // upload_number, obsolete
         write!uint(0);     // unknown, obsolete
-        write!uint(shared_files);
-        write!uint(shared_folders);
+        write!uint(num_files);
+        write!uint(num_folders);
         write!uint(upload_slots_full);
         write!string("");  // country_code, obsolete
     }
@@ -1393,8 +1393,8 @@ final class SSendConnectToken : SMessage
 
 final class SGetUserStats : SMessage
 {
-    this(string username, uint upload_speed, uint shared_files,
-         uint shared_folders) scope
+    this(string username, uint upload_speed, uint num_files,
+         uint num_folders) scope
     {
         super(GetUserStats);
 
@@ -1402,8 +1402,8 @@ final class SGetUserStats : SMessage
         write!uint(upload_speed);
         write!uint(0);  // upload_number, obsolete
         write!uint(0);  // unknown, obsolete
-        write!uint(shared_files);
-        write!uint(shared_folders);
+        write!uint(num_files);
+        write!uint(num_folders);
     }
 }
 

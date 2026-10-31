@@ -98,15 +98,15 @@ final class MessageHandler
             bool user_exists;
             uint user_status = UserStatus.offline;
             uint user_upload_speed;
-            uint user_shared_files, user_shared_folders;
+            uint user_num_files, user_num_folders;
 
             if (target_user !is null)
             {
                 user_exists = true;
                 user_status = target_user.status;
                 user_upload_speed = target_user.upload_speed;
-                user_shared_files = target_user.shared_files;
-                user_shared_folders = target_user.shared_folders;
+                user_num_files = target_user.num_files;
+                user_num_folders = target_user.num_folders;
             }
             else if (msg.username == server_username) {
                 // Allow clients that check user existence to add the
@@ -118,15 +118,15 @@ final class MessageHandler
                 const user_stats = server.db.user_stats(msg.username);
                 user_exists = user_stats.exists;
                 user_upload_speed = user_stats.upload_speed;
-                user_shared_files = user_stats.shared_files;
-                user_shared_folders = user_stats.shared_folders;
+                user_num_files = user_stats.num_files;
+                user_num_folders = user_stats.num_folders;
             }
 
             if (user_exists) user.watch(msg.username);
 
             scope response_msg = new SWatchUser(
                 msg.username, user_exists, user_status, user_upload_speed,
-                user_shared_files, user_shared_folders
+                user_num_files, user_num_folders
             );
             user.send_message(response_msg);
             break;
@@ -277,11 +277,11 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            user.update_shared_stats(msg.shared_files, msg.shared_folders);
+            user.update_shared_stats(msg.num_files, msg.num_folders);
 
             scope response_msg = new SGetUserStats(
-                user.username, user.upload_speed, user.shared_files,
-                user.shared_folders
+                user.username, user.upload_speed, user.num_files,
+                user.num_folders
             );
             server.send_to_watching(user.username, response_msg);
             break;
@@ -294,23 +294,23 @@ final class MessageHandler
             auto target_user = server.get_user(msg.username);
 
             uint user_upload_speed;
-            uint user_shared_files, user_shared_folders;
+            uint user_num_files, user_num_folders;
 
             if (target_user !is null) {
                 user_upload_speed = target_user.upload_speed;
-                user_shared_files = target_user.shared_files;
-                user_shared_folders = target_user.shared_folders;
+                user_num_files = target_user.num_files;
+                user_num_folders = target_user.num_folders;
             }
             else if (msg.username != server_username) {
                 const user_stats = server.db.user_stats(msg.username);
                 user_upload_speed = user_stats.upload_speed;
-                user_shared_files = user_stats.shared_files;
-                user_shared_folders = user_stats.shared_folders;
+                user_num_files = user_stats.num_files;
+                user_num_folders = user_stats.num_folders;
             }
 
             scope response_msg = new SGetUserStats(
-                msg.username, user_upload_speed, user_shared_files,
-                user_shared_folders
+                msg.username, user_upload_speed, user_num_files,
+                user_num_folders
             );
             user.send_message(response_msg);
             break;

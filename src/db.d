@@ -841,10 +841,10 @@ final class Database
             try user_stats.upload_speed    = record[0].to!uint;
             catch (ConvException) {}
 
-            try user_stats.shared_files    = record[1].to!uint;
+            try user_stats.num_files       = record[1].to!uint;
             catch (ConvException) {}
 
-            try user_stats.shared_folders  = record[2].to!uint;
+            try user_stats.num_folders     = record[2].to!uint;
             catch (ConvException) {}
         }
         return user_stats;
@@ -862,13 +862,13 @@ final class Database
         }
 
         if (stats.updating_shared) {
-            const shared_files = stats.shared_files;
+            const num_files = stats.num_files;
             fields ~= "files = ?";
-            parameters ~= shared_files > 0 ? shared_files.text : null;
+            parameters ~= num_files > 0 ? num_files.text : null;
 
-            const shared_folders = stats.shared_folders;
+            const num_folders = stats.num_folders;
             fields ~= "folders = ?";
-            parameters ~= shared_folders > 0 ? shared_folders.text : null;
+            parameters ~= num_folders > 0 ? num_folders.text : null;
         }
 
         if (fields[].length == 0)
