@@ -466,28 +466,28 @@ final class UMessageAcked : UMessage
 final class UFileSearch : UMessage
 {
     uint    token;
-    string  query;
+    string  search_term;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         token = read!uint();
-        query = read!string();
+        search_term = read!string();
     }
 }
 
 final class UWishlistSearch : UMessage
 {
     uint    token;
-    string  query;
+    string  search_term;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         token = read!uint();
-        query = read!string();
+        search_term = read!string();
     }
 }
 
@@ -587,15 +587,15 @@ final class UUserSearch : UMessage
 {
     string  username;
     uint    token;
-    string  query;
+    string  search_term;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        username = read!string();
-        token    = read!uint();
-        query    = read!string();
+        username    = read!string();
+        token       = read!uint();
+        search_term = read!string();
     }
 }
 
@@ -811,15 +811,15 @@ final class URoomSearch : UMessage
 {
     string  room_name;
     uint    token;
-    string  query;
+    string  search_term;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        room_name = read!string();
-        token     = read!uint();
-        query     = read!string();
+        room_name   = read!string();
+        token       = read!uint();
+        search_term = read!string();
     }
 }
 
@@ -1047,13 +1047,13 @@ final class ULeaveGlobalRoom : UMessage
 
 final class URelatedSearch : UMessage
 {
-    string query;
+    string search_term;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        query = read!string();
+        search_term = read!string();
     }
 }
 
@@ -1366,8 +1366,8 @@ final class SFileSearch : SMessage
     User  receiving_user;
     Room  receiving_room;
 
-    this(string username, uint token, string query, User receiving_user = null,
-         Room receiving_room = null) scope
+    this(string username, uint token, string search_term,
+         User receiving_user = null, Room receiving_room = null) scope
     {
         super(FileSearch);
 
@@ -1376,7 +1376,7 @@ final class SFileSearch : SMessage
 
         write!string(username);
         write!uint(token);
-        write!string(query);
+        write!string(search_term);
     }
 }
 
@@ -1869,13 +1869,13 @@ final class SGlobalRoomMessage : SMessage
 
 final class SRelatedSearch : SMessage
 {
-    this(string query, RelatedSearchTerm[] terms) scope
+    this(string search_term, RelatedSearchTerm[] related_terms) scope
     {
         super(RelatedSearch);
 
-        write!string(query);
-        write!uint(cast(uint) terms.length);
-        foreach (ref search ; terms)
+        write!string(search_term);
+        write!uint(cast(uint) related_terms.length);
+        foreach (ref search ; related_terms)
         {
             write!string(search.term);
             write!uint(search.score);
@@ -1916,13 +1916,13 @@ final class SCantCreateRoom : SMessage
 
 final class SDistribSearch : SMessage
 {
-    this(string username, uint token, string query) scope
+    this(string username, uint token, string search_term) scope
     {
         super(DistribSearch);
 
         write!uint('1');  // Identifier
         write!string(username);
         write!uint(token);
-        write!string(query);
+        write!string(search_term);
     }
 }

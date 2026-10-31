@@ -9,7 +9,7 @@ module soulfind.server.server;
 import soulfind.db : Database;
 import soulfind.defines : blue, default_port, kick_duration, log_msg,
                           max_chat_message_length, max_global_recommendations,
-                          max_search_query_length, max_user_recommendations,
+                          max_search_term_length, max_user_recommendations,
                           norm, red, RoomMemberType, RoomType,
                           search_dist_interval, SearchFilterType,
                           server_username;
@@ -72,22 +72,22 @@ final class Server
 
     // File Searches
 
-    void search_files(uint token, string query, string username)
+    void search_files(uint token, string search_term, string username)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(username, token, query);
+        queued_searches ~= new SFileSearch(username, token, search_term);
     }
 
-    void search_user_files(uint token, string query, string from_username,
-                           string to_username)
+    void search_user_files(uint token, string search_term,
+                           string from_username, string to_username)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
         if (is_user_unsearchable(to_username))
@@ -97,17 +97,19 @@ final class Server
         if (user is null)
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(from_username, token, query, user);
+        queued_searches ~= new SFileSearch(
+            from_username, token, search_term, user
+        );
     }
 
-    void search_room_files(uint token, string query, string username,
+    void search_room_files(uint token, string search_term, string username,
                            string room_name)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
         auto room = get_room(room_name);
@@ -117,11 +119,13 @@ final class Server
         if (!room.can_access(username))
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(username, token, query, null, room);
+        queued_searches ~= new SFileSearch(
+            username, token, search_term, null, room
+        );
     }
 
     void send_queued_searches(MonoTime current_time)

@@ -241,7 +241,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.search_files(msg.token, msg.query, user.username);
+            server.search_files(msg.token, msg.search_term, user.username);
             break;
 
         case SetStatus:
@@ -334,7 +334,7 @@ final class MessageHandler
                 break;
 
             server.search_user_files(
-                msg.token, msg.query, user.username, msg.username
+                msg.token, msg.search_term, user.username, msg.username
             );
             break;
 
@@ -497,7 +497,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.search_files(msg.token, msg.query, user.username);
+            server.search_files(msg.token, msg.search_term, user.username);
             break;
 
         case ItemRecommendations:
@@ -537,7 +537,7 @@ final class MessageHandler
                 break;
 
             server.search_room_files(
-                msg.token, msg.query, user.username, msg.room_name
+                msg.token, msg.search_term, user.username, msg.room_name
             );
             break;
 
@@ -757,9 +757,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            RelatedSearchTerm[] terms;
+            RelatedSearchTerm[] related_terms;
             scope response_msg = new SRelatedSearch(
-                msg.query, terms
+                msg.search_term, related_terms
             );
             user.send_message(response_msg);
             break;
