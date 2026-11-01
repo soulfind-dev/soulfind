@@ -10,7 +10,7 @@ import soulfind.db : Database;
 import soulfind.defines : blue, default_port, dim, kick_duration,
                           log_msg_codes, log_msg_out, log_msg_tx,
                           max_chat_message_length, max_global_recommendations,
-                          max_search_query_length, max_user_recommendations,
+                          max_search_term_length, max_user_recommendations,
                           norm, red, RoomMemberType, RoomType,
                           search_dist_interval, SearchFilterType,
                           server_username;
@@ -73,22 +73,22 @@ final class Server
 
     // File Searches
 
-    void search_files(uint token, string query, string username)
+    void search_files(uint token, string search_term, string username)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(username, token, query);
+        queued_searches ~= new SFileSearch(username, token, search_term);
     }
 
-    void search_user_files(uint token, string query, string from_username,
-                           string to_username)
+    void search_user_files(uint token, string search_term,
+                           string from_username, string to_username)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
         if (is_user_unsearchable(to_username))
@@ -98,17 +98,19 @@ final class Server
         if (user is null)
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(from_username, token, query, user);
+        queued_searches ~= new SFileSearch(
+            from_username, token, search_term, user
+        );
     }
 
-    void search_room_files(uint token, string query, string username,
+    void search_room_files(uint token, string search_term, string username,
                            string room_name)
     {
-        if (query.length > max_search_query_length)
+        if (search_term.length > max_search_term_length)
             return;
 
         auto room = get_room(room_name);
@@ -118,11 +120,13 @@ final class Server
         if (!room.can_access(username))
             return;
 
-        if (db.is_search_query_filtered(query))
+        if (db.is_search_term_filtered(search_term))
             return;
 
         // Batch outgoing messages to reduce bandwidth overhead of TCP packets
-        queued_searches ~= new SFileSearch(username, token, query, null, room);
+        queued_searches ~= new SFileSearch(
+            username, token, search_term, null, room
+        );
     }
 
     void send_queued_searches(MonoTime current_time)
@@ -506,7 +510,7 @@ final class Server
             return false;
         }
 
-        if (!target_user.accept_room_invitations) {
+        if (!target_user.room_invitations_enabled) {
             send_pm(
                 server_username, actor,
                 text(
@@ -734,19 +738,19 @@ final class Server
         if (user is null)
             return;
 
-        RoomInfo[] public_room_stats()
+        RoomStats[] public_room_stats()
         {
-            Appender!(RoomInfo[]) stats;
+            Appender!(RoomStats[]) stats;
             foreach (ref room_name ; db.public_rooms) {
                 auto room = get_room(room_name);
 
                 if (room !is null)
-                    stats ~= RoomInfo(room_name, cast(uint) room.num_users);
+                    stats ~= RoomStats(room_name, cast(uint) room.num_users);
             }
             return stats[];
         }
 
-        RoomInfo[] private_room_stats(string username, bool is_owner = false)
+        RoomStats[] private_room_stats(string username, bool is_owner = false)
         {
             string[] stored_rooms;
             if (is_owner)
@@ -755,7 +759,7 @@ final class Server
                 stored_rooms = db.member_rooms!(RoomMemberType.any)(username);
 
             Room room;  // Satisfy linter
-            Appender!(RoomInfo[]) stats;
+            Appender!(RoomStats[]) stats;
             foreach (ref room_name ; stored_rooms) {
                 uint num_users;
                 room = get_room(room_name);
@@ -763,7 +767,7 @@ final class Server
                 if (room !is null)
                     num_users = cast(uint) room.num_users;
 
-                stats ~= RoomInfo(room_name, num_users);
+                stats ~= RoomStats(room_name, num_users);
             }
             return stats[];
         }
@@ -789,8 +793,8 @@ final class Server
             );
             user.send_message(users_msg);
         }
-        foreach (ref room ; owned_rooms)  send_users_msg(room.room_name);
-        foreach (ref room ; member_rooms) send_users_msg(room.room_name);
+        foreach (ref room ; owned_rooms)  send_users_msg(room.name);
+        foreach (ref room ; member_rooms) send_users_msg(room.name);
 
         void send_operators_msg(string room_name) {
             scope operators_msg = new SRoomOperators(
@@ -799,8 +803,8 @@ final class Server
             );
             user.send_message(operators_msg);
         }
-        foreach (ref room ; owned_rooms)  send_operators_msg(room.room_name);
-        foreach (ref room ; member_rooms) send_operators_msg(room.room_name);
+        foreach (ref room ; owned_rooms)  send_operators_msg(room.name);
+        foreach (ref room ; member_rooms) send_operators_msg(room.name);
     }
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)

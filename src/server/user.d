@@ -13,8 +13,8 @@ import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           server_username, speed_weight, user_check_interval,
                           UserStats, VERSION, wish_interval,
                           wish_interval_privileged;
-import soulfind.pwhash : create_salt, hash_password_async,
-                         verify_password_async;
+import soulfind.pwhash : cancel_password_task, create_salt,
+                         hash_password_async, verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
 import soulfind.server.messages;
 import soulfind.server.msghandler : MessageHandler;
@@ -45,10 +45,10 @@ final class User
 
     uint                    upload_speed;       // in B/s
     uint                    upload_slots_full;  // unused in clients
-    uint                    shared_files;
-    uint                    shared_folders;
+    uint                    num_files;
+    uint                    num_folders;
     SysTime                 privileged_until;
-    bool                    accept_room_invitations;
+    bool                    room_invitations_enabled;
 
     private Server          server;
     private UserConnection  conn;
@@ -131,7 +131,7 @@ final class User
             // server.
             return;
 
-        if (banned_until > SysTime()) server.db.unban_user(username);
+        if (banned_until > SysTime.init) server.db.unban_user(username);
 
         if (server.num_connected_users >= server.db.server_max_users) {
             reject_login(LoginRejectionReason.SVRFULL);
@@ -156,9 +156,6 @@ final class User
     {
         hashing_password = false;
 
-        if (disconnecting)
-            return;
-
         if (authenticated) {
             enum notify_user = true;
             change_password(password, hash, notify_user);
@@ -182,19 +179,12 @@ final class User
     void password_upgraded(string password, string hash)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
-
         change_password(password, hash);
     }
 
     void password_verified(string password, bool matches, uint iterations)
     {
         hashing_password = false;
-
-        if (disconnecting)
-            return;
 
         if (!matches) {
             if (server.db.server_private_mode)
@@ -219,6 +209,10 @@ final class User
     void disconnect(bool relogged = false)
     {
         if (!disconnecting) {
+            cancel_password_task(&password_hashed);
+            cancel_password_task(&password_upgraded);
+            cancel_password_task(&password_verified);
+
             unwatch(username);
             server.del_user(username);
 
@@ -351,8 +345,8 @@ final class User
 
         const user_stats = server.db.user_stats(username);
         upload_speed = user_stats.upload_speed;
-        shared_files = user_stats.shared_files;
-        shared_folders = user_stats.shared_folders;
+        num_files = user_stats.num_files;
+        num_folders = user_stats.num_folders;
 
         refresh_privileges(false);
 
@@ -366,12 +360,11 @@ final class User
         server.add_user(this);
         watch(username);
 
-        const md5_hash = digest!MD5(password)
+        const checksum = digest!MD5(password)
             .toHexString!(LetterCase.lower)
             .idup;
         scope response_msg = new SLogin(
-            true, login_rejection, motd, address.addr, md5_hash,
-            supporter
+            true, login_rejection, motd, address.addr, checksum, supporter
         );
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? wish_interval_privileged : wish_interval
@@ -434,11 +427,11 @@ final class User
             upload_speed = new_speed;
 
         scope msg = new SGetUserStats(
-            username, upload_speed, shared_files, shared_folders
+            username, upload_speed, num_files, num_folders
         );
         server.send_to_watching(username, msg);
 
-        auto stats = UserStats();
+        UserStats stats;
         stats.upload_speed = upload_speed;
         stats.updating_speed = true;
 
@@ -447,12 +440,12 @@ final class User
 
     void update_shared_stats(uint new_files, uint new_folders)
     {
-        shared_files = new_files;
-        shared_folders = new_folders;
+        num_files = new_files;
+        num_folders = new_folders;
 
-        auto stats = UserStats();
-        stats.shared_files = new_files;
-        stats.shared_folders = new_folders;
+        UserStats stats;
+        stats.num_files = new_files;
+        stats.num_folders = new_folders;
         stats.updating_shared = true;
 
         server.db.user_update_stats(username, stats);
@@ -495,7 +488,7 @@ final class User
 
     bool supporter()
     {
-        return privileged_until > SysTime();
+        return privileged_until > SysTime.init;
     }
 
     Duration privileges()

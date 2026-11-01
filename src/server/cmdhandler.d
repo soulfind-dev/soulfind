@@ -525,11 +525,11 @@ final class CommandHandler
         ushort listening_port;
         ushort obfuscated_port;
         auto obfuscation_type = "none";
-        auto accept_room_invitations = "no";
+        auto room_invitations_enabled = "no";
+        auto joined_global_room = "no";
         size_t watched_users;
         string liked_items, hated_items;
         string joined_rooms;
-        auto joined_global_room = "no";
         auto admin = "no";
         auto banned = "no";
         auto privileged = "no";
@@ -537,7 +537,7 @@ final class CommandHandler
         auto supporter = "no";
         auto searchable = "yes";
         uint upload_speed;
-        uint shared_files, shared_folders;
+        uint num_files, num_folders;
         const tickers = server.db.user_tickers!(RoomType._public)(username);
 
         user = server.get_user(username);
@@ -547,12 +547,14 @@ final class CommandHandler
             ip_address = user.address.toAddrString;
             listening_port = user.address.port;
             obfuscated_port = user.obfuscated_port;
-            if (user.accept_room_invitations) accept_room_invitations = "yes";
             watched_users = user.num_watched_users;
             liked_items = user.liked_item_names.join(", ");
             hated_items = user.hated_item_names.join(", ");
             joined_rooms = user.joined_room_names!(RoomType._public)
                 .join(", ");
+
+            if (user.room_invitations_enabled)
+                room_invitations_enabled = "yes";
 
             if (server.is_global_room_joined(username))
                 joined_global_room = "yes";
@@ -560,8 +562,8 @@ final class CommandHandler
             privileged_until = user.privileged_until;
             if (user.supporter) supporter = "yes";
             upload_speed = user.upload_speed;
-            shared_files = user.shared_files;
-            shared_folders = user.shared_folders;
+            num_files = user.num_files;
+            num_folders = user.num_folders;
 
             if (user.obfuscation_type == ObfuscationType.rotated)
                 obfuscation_type = "rotated";
@@ -572,10 +574,10 @@ final class CommandHandler
         else {
             const user_stats = server.db.user_stats(username);
             privileged_until = server.db.user_privileged_until(username);
-            if (privileged_until > SysTime()) supporter = "yes";
+            if (privileged_until > SysTime.init) supporter = "yes";
             upload_speed = user_stats.upload_speed;
-            shared_files = user_stats.shared_files;
-            shared_folders = user_stats.shared_folders;
+            num_files = user_stats.num_files;
+            num_folders = user_stats.num_folders;
         }
 
         const admin_until = server.db.admin_until(username);
@@ -606,12 +608,12 @@ final class CommandHandler
             "\n    port: ", listening_port,
             "\n    obfuscated port: ", obfuscated_port,
             "\n    obfuscation type: ", obfuscation_type,
-            "\n    accepts room invitations: ", accept_room_invitations,
+            "\n    room invitations enabled: ", room_invitations_enabled,
+            "\n    joined global room: ", joined_global_room,
             "\n    watched users: ", watched_users,
             "\n    liked items: ", liked_items,
             "\n    hated items: ", hated_items,
             "\n    joined public rooms: ", joined_rooms,
-            "\n    joined global room: ", joined_global_room,
             "\n",
             "\nPresistent info:",
             "\n    admin: ", admin,
@@ -620,8 +622,8 @@ final class CommandHandler
             "\n    supporter: ", supporter,
             "\n    searchable: ", searchable,
             "\n    upload speed: ", upload_speed,
-            "\n    files: ", shared_files,
-            "\n    folders: ", shared_folders,
+            "\n    files: ", num_files,
+            "\n    folders: ", num_folders,
             "\n    public tickers: ",
         );
 
@@ -642,21 +644,21 @@ final class CommandHandler
         enum j_quot = "\", \"";
 
         auto user = server.get_user(username);
-        auto client_version = user.client_version.toString;
+        const client_version = user.client_version.toString;
         const status = (user.status == UserStatus.away) ? "away" : "online";
 
         const admin_until = server.db.admin_until(username);
-        auto admin = (admin_until > SysTime())
+        const admin = (admin_until > SysTime.init)
             ? text(quot, admin_until.toISOExtString, quot)
             : "null";
 
         const privileged_until = user.privileged_until;
-        auto privileged = (privileged_until > SysTime())
+        const privileged = (privileged_until > SysTime.init)
             ? text(quot, privileged_until.toISOExtString, quot)
             : "null";
 
-        const accept_invitations = (
-            user.accept_room_invitations ? "true" : "false"
+        const invite_enabled = (
+            user.room_invitations_enabled ? "true" : "false"
         );
         const joined_global_room = (
             server.is_global_room_joined(username) ? "true" : "false"
@@ -792,7 +794,7 @@ final class CommandHandler
             "\n        \"port\": ", user.address.port, ",",
             "\n        \"obfuscated_port\": ", user.obfuscated_port, ",",
             "\n        \"obfuscation_type\": ", obfuscation_type, ",",
-            "\n        \"accept_room_invitations\": ", accept_invitations, ",",
+            "\n        \"room_invitations_enabled\": ", invite_enabled, ",",
             "\n        \"joined_global_room\": ", joined_global_room, ",",
             "\n        \"liked_items\": [", liked_items, "],",
             "\n        \"hated_items\": [", hated_items, "],",
@@ -804,8 +806,8 @@ final class CommandHandler
             "\n        \"privileged_until\": ", privileged, ",",
             "\n        \"supporter\": ", supporter, ",",
             "\n        \"searchable\": ", searchable, ",",
-            "\n        \"num_files\": ", user.shared_files, ",",
-            "\n        \"num_folders\": ", user.shared_folders, ",",
+            "\n        \"num_files\": ", user.num_files, ",",
+            "\n        \"num_folders\": ", user.num_folders, ",",
             "\n        \"upload_speed\": ", user.upload_speed, ",",
             "\n        \"private_rooms_owner\": {", rooms, "}",
             "\n        \"private_rooms_member\": {", rooms(false), "}",

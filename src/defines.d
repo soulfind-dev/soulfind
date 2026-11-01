@@ -30,7 +30,7 @@ enum max_chat_message_length     = 2048;
 enum max_interest_length         = 64;
 enum max_room_name_length        = 24;
 enum max_room_ticker_length      = 1024;
-enum max_search_query_length     = 256;
+enum max_search_term_length      = 256;
 enum max_username_length         = 30;
 enum max_global_recommendations  = 200;
 enum max_user_recommendations    = 100;
@@ -80,8 +80,8 @@ struct UserStats
 {
     bool  exists;
     uint  upload_speed;
-    uint  shared_files;
-    uint  shared_folders;
+    uint  num_files;
+    uint  num_folders;
 
     bool  updating_speed;
     bool  updating_shared;

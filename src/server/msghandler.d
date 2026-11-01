@@ -101,15 +101,15 @@ final class MessageHandler
             bool user_exists;
             uint user_status = UserStatus.offline;
             uint user_upload_speed;
-            uint user_shared_files, user_shared_folders;
+            uint user_num_files, user_num_folders;
 
             if (target_user !is null)
             {
                 user_exists = true;
                 user_status = target_user.status;
                 user_upload_speed = target_user.upload_speed;
-                user_shared_files = target_user.shared_files;
-                user_shared_folders = target_user.shared_folders;
+                user_num_files = target_user.num_files;
+                user_num_folders = target_user.num_folders;
             }
             else if (msg.username == server_username) {
                 // Allow clients that check user existence to add the
@@ -121,15 +121,15 @@ final class MessageHandler
                 const user_stats = server.db.user_stats(msg.username);
                 user_exists = user_stats.exists;
                 user_upload_speed = user_stats.upload_speed;
-                user_shared_files = user_stats.shared_files;
-                user_shared_folders = user_stats.shared_folders;
+                user_num_files = user_stats.num_files;
+                user_num_folders = user_stats.num_folders;
             }
 
             if (user_exists) user.watch(msg.username);
 
             scope response_msg = new SWatchUser(
                 msg.username, user_exists, user_status, user_upload_speed,
-                user_shared_files, user_shared_folders
+                user_num_files, user_num_folders
             );
             user.send_message(response_msg);
             break;
@@ -211,7 +211,7 @@ final class MessageHandler
             }
 
             scope response_msg = new SConnectToPeer(
-                user.username, msg.type, user.address.addr,
+                user.username, msg.conn_type, user.address.addr,
                 user.address.port, msg.token, user.privileged,
                 user.obfuscation_type, user.obfuscated_port
             );
@@ -236,7 +236,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.del_pm(msg.id, user.username);
+            server.del_pm(msg.message_id, user.username);
             break;
 
         case FileSearch:
@@ -244,7 +244,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.search_files(msg.token, msg.query, user.username);
+            server.search_files(msg.token, msg.search_term, user.username);
             break;
 
         case SetStatus:
@@ -280,11 +280,11 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            user.update_shared_stats(msg.shared_files, msg.shared_folders);
+            user.update_shared_stats(msg.num_files, msg.num_folders);
 
             scope response_msg = new SGetUserStats(
-                user.username, user.upload_speed, user.shared_files,
-                user.shared_folders
+                user.username, user.upload_speed, user.num_files,
+                user.num_folders
             );
             server.send_to_watching(user.username, response_msg);
             break;
@@ -297,23 +297,23 @@ final class MessageHandler
             auto target_user = server.get_user(msg.username);
 
             uint user_upload_speed;
-            uint user_shared_files, user_shared_folders;
+            uint user_num_files, user_num_folders;
 
             if (target_user !is null) {
                 user_upload_speed = target_user.upload_speed;
-                user_shared_files = target_user.shared_files;
-                user_shared_folders = target_user.shared_folders;
+                user_num_files = target_user.num_files;
+                user_num_folders = target_user.num_folders;
             }
             else if (msg.username != server_username) {
                 const user_stats = server.db.user_stats(msg.username);
                 user_upload_speed = user_stats.upload_speed;
-                user_shared_files = user_stats.shared_files;
-                user_shared_folders = user_stats.shared_folders;
+                user_num_files = user_stats.num_files;
+                user_num_folders = user_stats.num_folders;
             }
 
             scope response_msg = new SGetUserStats(
-                msg.username, user_upload_speed, user_shared_files,
-                user_shared_folders
+                msg.username, user_upload_speed, user_num_files,
+                user_num_folders
             );
             user.send_message(response_msg);
             break;
@@ -337,7 +337,7 @@ final class MessageHandler
                 break;
 
             server.search_user_files(
-                msg.token, msg.query, user.username, msg.username
+                msg.token, msg.search_term, user.username, msg.username
             );
             break;
 
@@ -347,9 +347,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            string[] recommendations;
+            string[] similar_recommendations;
             scope response_msg = new SSimilarRecommendations(
-                msg.recommendation, recommendations
+                msg.recommendation, similar_recommendations
             );
             user.send_message(response_msg);
             break;
@@ -386,9 +386,9 @@ final class MessageHandler
             user.del_hated_item(msg.item);
             break;
 
-        case GetRecommendations:
-            scope msg = new UGetRecommendations(msg_buf, user.username);
-            scope response_msg = new SGetRecommendations(
+        case Recommendations:
+            scope msg = new URecommendations(msg_buf, user.username);
+            scope response_msg = new SRecommendations(
                 server.user_recommendations(user.username)
             );
             user.send_message(response_msg);
@@ -500,7 +500,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.search_files(msg.token, msg.query, user.username);
+            server.search_files(msg.token, msg.search_term, user.username);
             break;
 
         case ItemRecommendations:
@@ -531,7 +531,7 @@ final class MessageHandler
                 break;
 
             auto room = server.get_room(msg.room_name);
-            if (room !is null) room.add_ticker(user.username, msg.ticker);
+            if (room !is null) room.add_ticker(user.username, msg.content);
             break;
 
         case RoomSearch:
@@ -540,7 +540,7 @@ final class MessageHandler
                 break;
 
             server.search_room_files(
-                msg.token, msg.query, user.username, msg.room_name
+                msg.token, msg.search_term, user.username, msg.room_name
             );
             break;
 
@@ -681,9 +681,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            user.accept_room_invitations = msg.enabled;
+            user.room_invitations_enabled = msg.enable;
 
-            scope response_msg = new SEnableRoomInvitations(msg.enabled);
+            scope response_msg = new SEnableRoomInvitations(msg.enable);
             user.send_message(response_msg);
             break;
 
@@ -760,9 +760,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            RelatedSearchTerm[] terms;
+            RelatedSearchTerm[] related_terms;
             scope response_msg = new SRelatedSearch(
-                msg.query, terms
+                msg.search_term, related_terms
             );
             user.send_message(response_msg);
             break;

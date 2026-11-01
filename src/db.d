@@ -79,7 +79,7 @@ enum rooms_table           = "rooms";
 enum room_members_table    = "room_members";
 enum tickers_table         = "tickers";
 enum search_filters_table  = "search_filters";
-enum search_query_table    = "temp.search_query";
+enum search_term_table     = "temp.search_term";
 
 final class DatabaseException : Exception
 {
@@ -185,9 +185,9 @@ final class Database
             ") WITHOUT ROWID;"
         );
 
-        enum search_query_table_sql = text(
-            "CREATE VIRTUAL TABLE ", search_query_table,
-            " USING fts5(query);"
+        enum search_term_table_sql = text(
+            "CREATE VIRTUAL TABLE ", search_term_table,
+            " USING fts5(term);"
         );
 
         enum rooms_type_index_sql = text(
@@ -205,7 +205,7 @@ final class Database
         query(room_members_sql);
         query(tickers_table_sql);
         query(search_filters_table_sql);
-        query(search_query_table_sql);
+        query(search_term_table_sql);
         query(rooms_type_index_sql);
         query(rooms_owner_type_index_sql);
         add_new_columns();
@@ -528,21 +528,21 @@ final class Database
         return query(sql, [(cast(uint) type).text])[0][0].to!size_t;
     }
 
-    bool is_search_query_filtered(string search_query)
+    bool is_search_term_filtered(string search_term)
     {
         // For each filtered phrase, check if its words are present anywhere
-        // in the search query
+        // in the search term
         enum insert_sql = text(
-            "REPLACE INTO ", search_query_table,
-            "(rowid, query) VALUES (1, ?);"
+            "REPLACE INTO ", search_term_table,
+            "(rowid, term) VALUES (1, ?);"
         );
         enum query_sql = text(
             "SELECT 1",
             " FROM ", search_filters_table,
             " WHERE type = ? AND phrase NOT LIKE '%  %' AND EXISTS(",
             "  SELECT 1",
-            "  FROM ", search_query_table,
-            "  WHERE query MATCH",
+            "  FROM ", search_term_table,
+            "  WHERE term MATCH",
             "  '\"' ||",
             "   REPLACE(",
             "    REPLACE(", search_filters_table, ".phrase, '\"', '\"\"'),",
@@ -553,7 +553,7 @@ final class Database
             " );"
         );
 
-        query(insert_sql, [search_query]);
+        query(insert_sql, [search_term]);
         return query(query_sql, [text(cast(uint) SearchFilterType.server)])
             .length > 0;
     }
@@ -682,7 +682,7 @@ final class Database
         }
 
         if (admin_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (admin_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -757,7 +757,7 @@ final class Database
         }
 
         if (privileged_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (privileged_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -816,7 +816,7 @@ final class Database
         }
 
         if (banned_until == 0)
-            return SysTime();
+            return SysTime.init;
 
         if (banned_until >= SysTime.max.toUnixTime)
             return SysTime.max;
@@ -832,7 +832,7 @@ final class Database
             " WHERE username = ?;"
         );
         const res = query(sql, [username]);
-        auto user_stats = UserStats();
+        UserStats user_stats;
 
         if (res.length > 0) {
             const record                   = res[0];
@@ -841,10 +841,10 @@ final class Database
             try user_stats.upload_speed    = record[0].to!uint;
             catch (ConvException) {}
 
-            try user_stats.shared_files    = record[1].to!uint;
+            try user_stats.num_files       = record[1].to!uint;
             catch (ConvException) {}
 
-            try user_stats.shared_folders  = record[2].to!uint;
+            try user_stats.num_folders     = record[2].to!uint;
             catch (ConvException) {}
         }
         return user_stats;
@@ -862,13 +862,13 @@ final class Database
         }
 
         if (stats.updating_shared) {
-            const shared_files = stats.shared_files;
+            const num_files = stats.num_files;
             fields ~= "files = ?";
-            parameters ~= shared_files > 0 ? shared_files.text : null;
+            parameters ~= num_files > 0 ? num_files.text : null;
 
-            const shared_folders = stats.shared_folders;
+            const num_folders = stats.num_folders;
             fields ~= "folders = ?";
-            parameters ~= shared_folders > 0 ? shared_folders.text : null;
+            parameters ~= num_folders > 0 ? num_folders.text : null;
         }
 
         if (fields[].length == 0)
