@@ -7,9 +7,9 @@ module soulfind.server.room;
 @safe:
 
 import soulfind.db : Database;
-import soulfind.defines : blue, log_msg, max_chat_message_length,
-                          max_room_ticker_length, norm, RoomMemberType,
-                          RoomTicker, RoomType;
+import soulfind.defines : blue, dim, log_msg_codes, log_msg_out, log_msg_tx,
+                          max_chat_message_length, max_room_ticker_length,
+                          norm, RoomMemberType, RoomTicker, RoomType;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.user : User;
@@ -99,10 +99,14 @@ final class Room
 
     void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
-            ") to joined room members..."
-        );
+        if (log_msg_out && msg.code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit => ", blue, msg.name, norm, " (code ",
+                msg.code, ") to members in room ", blue, name, norm, "..."
+            );
+            if (log_msg_tx) writeln(dim, msg.hexadecimal, norm);
+        }
+
         foreach (ref user ; users)
             if (user.username !in excluded_users)
                 user.send_message!(Logging.disabled)(msg);
