@@ -14,7 +14,8 @@ import soulfind.defines : blue, bold, login_timeout, max_interest_length,
                           UserStats, VERSION, wish_interval,
                           wish_interval_privileged;
 import soulfind.pwhash : cancel_password_task, create_salt,
-                         hash_password_async, verify_password_async;
+                         hash_password_async, HashCallback, HashResult,
+                         verify_password_async;
 import soulfind.server.conns : Logging, UserConnection;
 import soulfind.server.messages;
 import soulfind.server.msghandler : MessageHandler;
@@ -40,7 +41,6 @@ final class User
     ushort                  obfuscated_port;
 
     UserStatus              status;
-    bool                    hashing_password;
     bool                    authenticated;
 
     uint                    upload_speed;       // in B/s
@@ -53,6 +53,7 @@ final class User
     private Server          server;
     private UserConnection  conn;
     private LoginRejection  login_rejection;
+    private HashCallback    hash_callback;
     private MonoTime        last_state_refresh;
     private bool            disconnecting;
 
@@ -101,8 +102,20 @@ final class User
         );
     }
 
-    void authenticate(string password)
+    bool hashing_password()
     {
+        return hash_callback !is null;
+    }
+
+    void authenticate(string username, string password, uint major_version,
+                      uint minor_version)
+    {
+        if (hashing_password)
+            return;
+
+        this.username = username;
+        client_version = ClientVersion(major_version, minor_version);
+
         if (client_version.major == 0 || client_version.minor == 0) {
             reject_login(LoginRejectionReason.INVALIDVERSION);
             return;
@@ -138,80 +151,35 @@ final class User
             return;
         }
 
-        hashing_password = true;
-
         if (!server.db.user_exists(username)) {
-            const salt = create_salt();
-            hash_password_async(
-                password, salt, pbkdf2_iterations, &password_hashed
-            );
+            hash_password(password);
             return;
         }
 
+        hash_callback = &password_verified;
         const stored_hash = server.db.user_password_hash(username);
-        verify_password_async(stored_hash, password, &password_verified);
+        verify_password_async(stored_hash, password, hash_callback);
     }
 
-    void password_hashed(string password, string hash)
+    void hash_password(string password, bool is_upgrade = false)
     {
-        hashing_password = false;
-
-        if (authenticated) {
-            enum notify_user = true;
-            change_password(password, hash, notify_user);
+        if (hashing_password)
             return;
-        }
 
-        if (server.db.server_private_mode) {
-            reject_login(LoginRejectionReason.SVRPRIVATE);
-            return;
-        }
-
-        if (!server.db.add_user(username, hash)) {
-            // User was added externally while registering, reauthenticate
-            authenticate(password);
-            return;
-        }
-
-        finish_login(password);
-    }
-
-    void password_upgraded(string password, string hash)
-    {
-        hashing_password = false;
-        change_password(password, hash);
-    }
-
-    void password_verified(string password, bool matches, uint iterations)
-    {
-        hashing_password = false;
-
-        if (!matches) {
-            if (server.db.server_private_mode)
-                reject_login(LoginRejectionReason.SVRPRIVATE);
-            else
-                reject_login(LoginRejectionReason.INVALIDPASS);
-            return;
-        }
-
-        finish_login(password);
-
-        // Upgrade password strength
-        if (iterations < pbkdf2_iterations) {
-            hashing_password = true;
-            const salt = create_salt();
-            hash_password_async(
-                password, salt, pbkdf2_iterations, &password_upgraded
-            );
-        }
+        hash_callback = is_upgrade ? &password_upgraded : &password_hashed;
+        const salt = create_salt();
+        hash_password_async(
+            password, salt, pbkdf2_iterations, hash_callback
+        );
     }
 
     void disconnect(bool relogged = false)
     {
         if (!disconnecting) {
-            cancel_password_task(&password_hashed);
-            cancel_password_task(&password_upgraded);
-            cancel_password_task(&password_verified);
+            if (hash_callback !is null) {
+                cancel_password_task(hash_callback);
+                hash_callback = null;
+            }
 
             unwatch(username);
             server.del_user(username);
@@ -318,6 +286,60 @@ final class User
             return "";
 
         return null;
+    }
+
+    private void password_hashed(HashResult result)
+    {
+        hash_callback = null;
+
+        if (authenticated) {
+            enum notify_user = true;
+            change_password(result.password, result.hash, notify_user);
+            return;
+        }
+
+        if (server.db.server_private_mode) {
+            reject_login(LoginRejectionReason.SVRPRIVATE);
+            return;
+        }
+
+        if (!server.db.add_user(username, result.hash)) {
+            // User was added externally while registering, reauthenticate
+            authenticate(
+                username, result.password, client_version.major,
+                client_version.minor
+            );
+            return;
+        }
+
+        finish_login(result.password);
+    }
+
+    private void password_upgraded(HashResult result)
+    {
+        hash_callback = null;
+        change_password(result.password, result.hash);
+    }
+
+    private void password_verified(HashResult result)
+    {
+        hash_callback = null;
+
+        if (!result.matches) {
+            if (server.db.server_private_mode)
+                reject_login(LoginRejectionReason.SVRPRIVATE);
+            else
+                reject_login(LoginRejectionReason.INVALIDPASS);
+            return;
+        }
+
+        finish_login(result.password);
+
+        // Upgrade password strength
+        if (result.iterations < pbkdf2_iterations) {
+            const is_upgrade = true;
+            hash_password(result.password, is_upgrade);
+        }
     }
 
     private void reject_login(LoginRejectionReason reason,
