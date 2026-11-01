@@ -48,7 +48,7 @@ final class User
     uint                    num_files;
     uint                    num_folders;
     SysTime                 privileged_until;
-    bool                    accept_room_invitations;
+    bool                    room_invitations_enabled;
 
     private Server          server;
     private UserConnection  conn;
@@ -360,12 +360,11 @@ final class User
         server.add_user(this);
         watch(username);
 
-        const md5_hash = digest!MD5(password)
+        const checksum = digest!MD5(password)
             .toHexString!(LetterCase.lower)
             .idup;
         scope response_msg = new SLogin(
-            true, login_rejection, motd, address.addr, md5_hash,
-            supporter
+            true, login_rejection, motd, address.addr, checksum, supporter
         );
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? wish_interval_privileged : wish_interval

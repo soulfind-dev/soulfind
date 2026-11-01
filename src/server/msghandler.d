@@ -208,7 +208,7 @@ final class MessageHandler
             }
 
             scope response_msg = new SConnectToPeer(
-                user.username, msg.type, user.address.addr,
+                user.username, msg.conn_type, user.address.addr,
                 user.address.port, msg.token, user.privileged,
                 user.obfuscation_type, user.obfuscated_port
             );
@@ -233,7 +233,7 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            server.del_pm(msg.id, user.username);
+            server.del_pm(msg.message_id, user.username);
             break;
 
         case FileSearch:
@@ -344,9 +344,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            string[] recommendations;
+            string[] similar_recommendations;
             scope response_msg = new SSimilarRecommendations(
-                msg.recommendation, recommendations
+                msg.recommendation, similar_recommendations
             );
             user.send_message(response_msg);
             break;
@@ -383,9 +383,9 @@ final class MessageHandler
             user.del_hated_item(msg.item);
             break;
 
-        case GetRecommendations:
-            scope msg = new UGetRecommendations(msg_buf, user.username);
-            scope response_msg = new SGetRecommendations(
+        case Recommendations:
+            scope msg = new URecommendations(msg_buf, user.username);
+            scope response_msg = new SRecommendations(
                 server.user_recommendations(user.username)
             );
             user.send_message(response_msg);
@@ -528,7 +528,7 @@ final class MessageHandler
                 break;
 
             auto room = server.get_room(msg.room_name);
-            if (room !is null) room.add_ticker(user.username, msg.ticker);
+            if (room !is null) room.add_ticker(user.username, msg.content);
             break;
 
         case RoomSearch:
@@ -678,9 +678,9 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            user.accept_room_invitations = msg.enabled;
+            user.room_invitations_enabled = msg.enable;
 
-            scope response_msg = new SEnableRoomInvitations(msg.enabled);
+            scope response_msg = new SEnableRoomInvitations(msg.enable);
             user.send_message(response_msg);
             break;
 

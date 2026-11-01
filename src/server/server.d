@@ -509,7 +509,7 @@ final class Server
             return false;
         }
 
-        if (!target_user.accept_room_invitations) {
+        if (!target_user.room_invitations_enabled) {
             send_pm(
                 server_username, actor,
                 text(
@@ -737,19 +737,19 @@ final class Server
         if (user is null)
             return;
 
-        RoomInfo[] public_room_stats()
+        RoomStats[] public_room_stats()
         {
-            Appender!(RoomInfo[]) stats;
+            Appender!(RoomStats[]) stats;
             foreach (ref room_name ; db.public_rooms) {
                 auto room = get_room(room_name);
 
                 if (room !is null)
-                    stats ~= RoomInfo(room_name, cast(uint) room.num_users);
+                    stats ~= RoomStats(room_name, cast(uint) room.num_users);
             }
             return stats[];
         }
 
-        RoomInfo[] private_room_stats(string username, bool is_owner = false)
+        RoomStats[] private_room_stats(string username, bool is_owner = false)
         {
             string[] stored_rooms;
             if (is_owner)
@@ -758,7 +758,7 @@ final class Server
                 stored_rooms = db.member_rooms!(RoomMemberType.any)(username);
 
             Room room;  // Satisfy linter
-            Appender!(RoomInfo[]) stats;
+            Appender!(RoomStats[]) stats;
             foreach (ref room_name ; stored_rooms) {
                 uint num_users;
                 room = get_room(room_name);
@@ -766,7 +766,7 @@ final class Server
                 if (room !is null)
                     num_users = cast(uint) room.num_users;
 
-                stats ~= RoomInfo(room_name, num_users);
+                stats ~= RoomStats(room_name, num_users);
             }
             return stats[];
         }
@@ -792,8 +792,8 @@ final class Server
             );
             user.send_message(users_msg);
         }
-        foreach (ref room ; owned_rooms)  send_users_msg(room.room_name);
-        foreach (ref room ; member_rooms) send_users_msg(room.room_name);
+        foreach (ref room ; owned_rooms)  send_users_msg(room.name);
+        foreach (ref room ; member_rooms) send_users_msg(room.name);
 
         void send_operators_msg(string room_name) {
             scope operators_msg = new SRoomOperators(
@@ -802,8 +802,8 @@ final class Server
             );
             user.send_message(operators_msg);
         }
-        foreach (ref room ; owned_rooms)  send_operators_msg(room.room_name);
-        foreach (ref room ; member_rooms) send_operators_msg(room.room_name);
+        foreach (ref room ; owned_rooms)  send_operators_msg(room.name);
+        foreach (ref room ; member_rooms) send_operators_msg(room.name);
     }
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)

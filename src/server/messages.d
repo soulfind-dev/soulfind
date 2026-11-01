@@ -62,9 +62,9 @@ struct LoginRejection
     string  detail;
 }
 
-struct RoomInfo
+struct RoomStats
 {
-    string  room_name;
+    string  name;
     uint    num_users;
 }
 
@@ -121,7 +121,7 @@ enum UserSearch                     = 42;
 enum SimilarRecommendations         = 50;    // Obsolete
 enum AddThingILike                  = 51;
 enum RemoveThingILike               = 52;
-enum GetRecommendations             = 54;
+enum Recommendations                = 54;
 enum MyRecommendations              = 55;    // Obsolete
 enum GlobalRecommendations          = 56;
 enum UserInterests                  = 57;
@@ -273,7 +273,7 @@ final class ULogin : UMessage
     string  username;
     string  password;
     uint    major_version;
-    string  hash;            // MD5 hash of username + password
+    string  checksum;        // MD5 checksum of username + password
     uint    minor_version;
 
     this(const(ubyte)[] in_buf) scope
@@ -293,7 +293,7 @@ final class ULogin : UMessage
         if (!has_unread_data)
             return;
 
-        hash = read!string();
+        checksum = read!string();
 
         if (!has_unread_data)
             return;
@@ -425,15 +425,15 @@ final class UConnectToPeer : UMessage
 {
     uint    token;
     string  username;
-    string  type;
+    string  conn_type;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        token    = read!uint();
-        username = read!string();
-        type     = read!string();
+        token     = read!uint();
+        username  = read!string();
+        conn_type = read!string();
     }
 }
 
@@ -453,13 +453,13 @@ final class UMessageUser : UMessage
 
 final class UMessageAcked : UMessage
 {
-    uint id;
+    uint message_id;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        id = read!uint();
+        message_id = read!uint();
     }
 }
 
@@ -635,7 +635,7 @@ final class URemoveThingILike : UMessage
     }
 }
 
-final class UGetRecommendations : UMessage
+final class URecommendations : UMessage
 {
     this(const(ubyte)[] in_buf, string in_username) scope
     {
@@ -735,13 +735,13 @@ final class UCheckPrivileges : UMessage
 
 final class UAcceptChildren : UMessage
 {
-    bool accept_children;
+    bool accept;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        accept_children = read!bool();
+        accept = read!bool();
     }
 }
 
@@ -796,14 +796,14 @@ final class UItemSimilarUsers : UMessage
 final class USetRoomTicker : UMessage
 {
     string  room_name;
-    string  ticker;
+    string  content;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
         room_name = read!string();
-        ticker    = read!string();
+        content   = read!string();
     }
 }
 
@@ -953,13 +953,13 @@ final class UCancelRoomOwnership : UMessage
 
 final class UEnableRoomInvitations : UMessage
 {
-    bool enabled;
+    bool enable;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
         super(in_buf, in_username);
 
-        enabled = read!bool();
+        enable = read!bool();
     }
 }
 
@@ -1059,8 +1059,8 @@ final class URelatedSearch : UMessage
 
 final class UCantConnectToPeer : UMessage
 {
-    uint token;
-    string username;
+    uint    token;
+    string  username;
 
     this(const(ubyte)[] in_buf, string in_username) scope
     {
@@ -1116,8 +1116,8 @@ class SMessage
 final class SLogin : SMessage
 {
     this(bool success, LoginRejection rejection = LoginRejection(),
-         string motd = null, uint ip_address = 0, string md5_hash = null,
-         bool supporter = false) scope
+         string motd = null, uint ip_address = 0, string checksum = null,
+         bool is_supporter = false) scope
     {
         super(Login);
 
@@ -1134,8 +1134,8 @@ final class SLogin : SMessage
 
         write!string(motd);
         write!uint(ip_address);
-        write!string(md5_hash);
-        write!bool(supporter);
+        write!string(checksum);
+        write!bool(is_supporter);
     }
 }
 
@@ -1202,16 +1202,16 @@ final class SSayChatroom : SMessage
 
 final class SRoomList : SMessage
 {
-    this(RoomInfo[] rooms,
-         RoomInfo[] rooms_owner,
-         RoomInfo[] rooms_member,
+    this(RoomStats[] rooms,
+         RoomStats[] rooms_owner,
+         RoomStats[] rooms_member,
          string[] rooms_operator) scope
     {
         super(RoomList);
 
         write!uint(cast(uint) rooms.length);
         foreach (ref room ; rooms)
-            write!string(room.room_name);
+            write!string(room.name);
 
         write!uint(cast(uint) rooms.length);
         foreach (ref room ; rooms)
@@ -1219,7 +1219,7 @@ final class SRoomList : SMessage
 
         write!uint(cast(uint) rooms_owner.length);
         foreach (ref room ; rooms_owner)
-            write!string(room.room_name);
+            write!string(room.name);
 
         write!uint(cast(uint) rooms_owner.length);
         foreach (ref room ; rooms_owner)
@@ -1227,7 +1227,7 @@ final class SRoomList : SMessage
 
         write!uint(cast(uint) rooms_member.length);
         foreach (ref room ; rooms_member)
-            write!string(room.room_name);
+            write!string(room.name);
 
         write!uint(cast(uint) rooms_member.length);
         foreach (ref room ; rooms_member)
@@ -1325,14 +1325,14 @@ final class SUserLeftRoom : SMessage
 
 final class SConnectToPeer : SMessage
 {
-    this(string username, string type, uint ip_address, uint port,
+    this(string username, string conn_type, uint ip_address, uint port,
          uint token, bool privileged, uint obfuscation_type,
          uint obfuscated_port) scope
     {
         super(ConnectToPeer);
 
         write!string(username);
-        write!string(type);
+        write!string(conn_type);
         write!uint(ip_address);
         write!uint(port);
         write!uint(token);
@@ -1344,20 +1344,20 @@ final class SConnectToPeer : SMessage
 
 final class SMessageUser : SMessage
 {
-    this(uint id, const SysTime timestamp, string username, string message,
-         bool new_message) scope
+    this(uint message_id, const SysTime timestamp, string username,
+         string message, bool is_new_message) scope
     {
         super(MessageUser);
 
         const unix_timestamp = timestamp.toUnixTime;
 
-        write!uint(id);
+        write!uint(message_id);
         write!uint(
             cast(uint) (unix_timestamp > uint.max ? uint.max : unix_timestamp)
         );
         write!string(username);
         write!string(message);
-        write!bool(new_message);
+        write!bool(is_new_message);
     }
 }
 
@@ -1418,11 +1418,11 @@ final class SUploadSlotsFull : SMessage
     }
 }
 
-final class SGetRecommendations : SMessage
+final class SRecommendations : SMessage
 {
     this(LimitedRecommendations recommendations) scope
     {
-        super(GetRecommendations);
+        super(Recommendations);
 
         write!uint(cast(uint) recommendations.descending_items.length);
         foreach (ref recommendation ; recommendations.descending_items)
@@ -1500,14 +1500,14 @@ final class SRelogged : SMessage
 
 final class SSimilarRecommendations : SMessage
 {
-    this(string recommendation, string[] recommendations) scope
+    this(string recommendation, string[] similar_recommendations) scope
     {
         super(SimilarRecommendations);
 
         write!string(recommendation);
-        write!uint(cast(uint) recommendations.length);
-        foreach (ref srecommendation ; recommendations)
-            write!string(srecommendation);
+        write!uint(cast(uint) similar_recommendations.length);
+        foreach (ref similar_recommendation ; similar_recommendations)
+            write!string(similar_recommendation);
     }
 }
 
@@ -1677,13 +1677,13 @@ final class SRoomTickers : SMessage
 
 final class SRoomTickerAdded : SMessage
 {
-    this(string room_name, string username, string ticker) scope
+    this(string room_name, string username, string content) scope
     {
         super(RoomTickerAdded);
 
         write!string(room_name);
         write!string(username);
-        write!string(ticker);
+        write!string(content);
     }
 }
 
@@ -1783,11 +1783,11 @@ final class SRoomMembershipRevoked : SMessage
 
 final class SEnableRoomInvitations : SMessage
 {
-    this(bool enabled) scope
+    this(bool enable) scope
     {
         super(EnableRoomInvitations);
 
-        write!bool(enabled);
+        write!bool(enable);
     }
 }
 
