@@ -51,7 +51,7 @@ int run(string[] args)
     }
     catch (Exception e) {
         writeln(e.msg);
-        return 1;
+        return 2;
     }
 
     if (show_version) {
