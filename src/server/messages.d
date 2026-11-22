@@ -58,8 +58,8 @@ struct ClientVersion
 
 struct LoginRejection
 {
-    string  reason;
-    string  detail;
+    LoginRejectionReason  reason;
+    string                detail;
 }
 
 struct RoomStats
