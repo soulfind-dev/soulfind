@@ -1113,29 +1113,36 @@ class SMessage
     }
 }
 
-final class SLogin : SMessage
+final class SLoginAccepted : SMessage
 {
-    this(bool success, LoginRejection rejection = LoginRejection(),
-         string motd = null, uint ip_address = 0, string checksum = null,
-         bool is_supporter = false) scope
+    this(string motd, uint ip_address, string checksum,
+         bool is_supporter) scope
     {
         super(Login);
 
+        const success = true;
+
         write!bool(success);
-
-        if (!success) {
-            write!string(rejection.reason);
-
-            if (rejection.detail !is null)
-                write!string(rejection.detail);
-
-            return;
-        }
-
         write!string(motd);
         write!uint(ip_address);
         write!string(checksum);
         write!bool(is_supporter);
+    }
+}
+
+final class SLoginRejected : SMessage
+{
+    this(LoginRejection rejection) scope
+    {
+        super(Login);
+
+        const success = false;
+
+        write!bool(success);
+        write!string(rejection.reason);
+
+        if (rejection.detail !is null)
+            write!string(rejection.detail);
     }
 }
 

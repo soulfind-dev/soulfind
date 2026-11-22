@@ -324,7 +324,7 @@ final class User
                               string detail = null)
     {
         login_rejection = LoginRejection(reason, detail);
-        scope response_msg = new SLogin(false, login_rejection);
+        scope response_msg = new SLoginRejected(login_rejection);
         send_message(response_msg);
     }
 
@@ -363,8 +363,8 @@ final class User
         const checksum = digest!MD5(password)
             .toHexString!(LetterCase.lower)
             .idup;
-        scope response_msg = new SLogin(
-            true, login_rejection, motd, address.addr, checksum, supporter
+        scope response_msg = new SLoginAccepted(
+            motd, address.addr, checksum, supporter
         );
         scope wish_interval_msg = new SWishlistInterval(
             privileged ? wish_interval_privileged : wish_interval
