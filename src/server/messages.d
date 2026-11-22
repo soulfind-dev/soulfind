@@ -1453,7 +1453,7 @@ final class SMyRecommendations : SMessage
     }
 }
 
-final class SGetGlobalRecommendations : SMessage
+final class SGlobalRecommendations : SMessage
 {
     this(LimitedRecommendations recommendations) scope
     {

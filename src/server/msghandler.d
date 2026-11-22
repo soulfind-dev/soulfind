@@ -402,7 +402,7 @@ final class MessageHandler
 
         case GlobalRecommendations:
             scope msg = new UGlobalRecommendations(msg_buf, user.username);
-            scope response_msg = new SGetGlobalRecommendations(
+            scope response_msg = new SGlobalRecommendations(
                 server.global_recommendations
             );
             user.send_message(response_msg);
