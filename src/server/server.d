@@ -304,26 +304,26 @@ final class Server
             if (other_user.username == username)
                 continue;
 
-            int weight;
+            int rating;
             foreach (ref item ; liked_item_names) {
-                if (other_user.likes(item)) weight++;
-                if (other_user.hates(item)) weight--;
+                if (other_user.likes(item)) rating++;
+                if (other_user.hates(item)) rating--;
             }
             foreach (ref item ; hated_item_names) {
-                if (other_user.hates(item)) weight++;
-                if (other_user.likes(item)) weight--;
+                if (other_user.hates(item)) rating++;
+                if (other_user.likes(item)) rating--;
             }
 
-            if (weight == 0)
+            if (rating == 0)
                 continue;
 
             foreach (ref item ; other_user.liked_item_names)
                 if (!user.likes(item) && !user.hates(item))
-                    recommendations[item] += weight;
+                    recommendations[item] += rating;
 
             foreach (ref item ; other_user.hated_item_names)
                 if (!user.likes(item) && !user.hates(item))
-                    recommendations[item] -= weight;
+                    recommendations[item] -= rating;
         }
         return LimitedRecommendations(
             filter_recommendations(
@@ -339,20 +339,20 @@ final class Server
     {
         int[string] recommendations;
         foreach (ref user ; users) {
-            int weight;
-            if (user.likes(item)) weight++;
-            if (user.hates(item)) weight--;
+            int rating;
+            if (user.likes(item)) rating++;
+            if (user.hates(item)) rating--;
 
-            if (weight == 0)
+            if (rating == 0)
                 continue;
 
             foreach (ref recommendation ; user.liked_item_names)
                 if (recommendation != item)
-                    recommendations[recommendation] += weight;
+                    recommendations[recommendation] += rating;
 
             foreach (ref recommendation ; user.hated_item_names)
                 if (recommendation != item)
-                    recommendations[recommendation] -= weight;
+                    recommendations[recommendation] -= rating;
         }
         return filter_recommendations(recommendations, size_t.max);
     }
@@ -371,18 +371,18 @@ final class Server
             if (other_user.username == username)
                 continue;
 
-            int weight;
+            int rating;
             foreach (ref item ; liked_item_names) {
-                if (other_user.likes(item)) weight++;
-                if (other_user.hates(item)) weight--;
+                if (other_user.likes(item)) rating++;
+                if (other_user.hates(item)) rating--;
             }
             foreach (ref item ; hated_item_names) {
-                if (other_user.hates(item)) weight++;
-                if (other_user.likes(item)) weight--;
+                if (other_user.hates(item)) rating++;
+                if (other_user.likes(item)) rating--;
             }
-            if (weight > 0)
+            if (rating > 0)
                 usernames ~= SimilarUser(
-                    other_user.username, cast(uint) weight
+                    other_user.username, cast(uint) rating
                 );
         }
         return usernames[];

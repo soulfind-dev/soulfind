@@ -77,7 +77,7 @@ struct Recommendation
 struct SimilarUser
 {
     string  username;
-    uint    weight;
+    uint    rating;
 }
 
 struct LimitedRecommendations
@@ -1626,7 +1626,7 @@ final class SSimilarUsers : SMessage
         foreach (ref user ; users)
         {
             write!string(user.username);
-            write!uint(user.weight);
+            write!uint(user.rating);
         }
     }
 }
