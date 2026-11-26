@@ -116,7 +116,7 @@ jobs:
 
       - name: Set up VM (BSD)
         if: startsWith(matrix.os, 'freebsd') || startsWith(matrix.os, 'openbsd')
-        uses: cross-platform-actions/action@82668f1fbd89d9c99487604f822cbf6716f124d3 # v1.7.0
+        uses: cross-platform-actions/action@30cde56b87a128507bebea9531205087890ee360 # v1.8.0
         with:
           operating_system: ${{ matrix.vm_os }}
           version: ${{ matrix.vm_version }}
