@@ -7,7 +7,8 @@ module soulfind.server.server;
 @safe:
 
 import soulfind.db : Database;
-import soulfind.defines : blue, default_port, kick_duration, log_msg,
+import soulfind.defines : blue, default_port, dim, kick_duration,
+                          log_msg_codes, log_msg_out, log_msg_tx,
                           max_chat_message_length, max_global_recommendations,
                           max_search_term_length, max_user_recommendations,
                           norm, red, RoomMemberType, RoomType,
@@ -808,10 +809,15 @@ final class Server
 
     void send_to_joined_rooms(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
-            ") to user ", blue, sender_username, norm, "'s joined rooms..."
-        );
+        if (log_msg_out && msg.code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit => ", blue, msg.name, norm, " (code ",
+                msg.code, ") to rooms joined by user ", blue, sender_username,
+                norm, "..."
+            );
+            if (log_msg_tx) writeln(dim, msg.hexadecimal, norm);
+        }
+
         foreach (ref user ; users)
             if (user.joined_same_room(sender_username))
                 user.send_message!(Logging.disabled)(msg);
@@ -850,10 +856,14 @@ final class Server
 
     void send_to_all(scope SMessage msg, bool[string] excluded_users = null)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
-            ") to all users..."
-        );
+        if (log_msg_out && msg.code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit => ", blue, msg.name, norm, " (code ",
+                msg.code, ") to all users..."
+            );
+            if (log_msg_tx) writeln(dim, msg.hexadecimal, norm);
+        }
+
         foreach (ref user ; users)
             if (user.username !in excluded_users)
                 user.send_message!(Logging.disabled)(msg);
@@ -861,10 +871,15 @@ final class Server
 
     void send_to_watching(string sender_username, scope SMessage msg)
     {
-        if (log_msg) writeln(
-            "[Msg] Transmit=> ", blue, msg.name, norm, " (code ", msg.code,
-            ") to users watching user ", blue, sender_username, norm, "..."
-        );
+        if (log_msg_out && msg.code in log_msg_codes) {
+            writeln(
+                "[MSG] Transmit => ", blue, msg.name, norm, " (code ",
+                msg.code, ") to users watching user ", blue, sender_username,
+                norm, "..."
+            );
+            if (log_msg_tx) writeln(dim, msg.hexadecimal, norm);
+        }
+
         foreach (ref user ; users)
             if (user.is_watching(sender_username)
                     || user.joined_same_room(sender_username))

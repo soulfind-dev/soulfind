@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2025 Soulfind Contributors
+// SPDX-FileCopyrightText: 2024-2026 Soulfind Contributors
 // SPDX-FileCopyrightText: 2005-2017 SeeSchloss <seeschloss@seeschloss.org>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -92,12 +92,17 @@ struct UserStats
 
 enum norm                        = "\033[0m";        // reset to normal
 enum bold                        = "\033[1m";        // bold intensity
+enum dim                         = "\033[2m";        // dim intensity
 enum blue                        = "\033[01;94m";    // foreground blue
 enum red                         = "\033[01;91m";    // foreground red
 
 
 // Logging
 
-bool log_db;
-bool log_conn;
-bool log_msg;
+bool        log_conn;
+bool        log_db;
+bool        log_msg_in;
+bool        log_msg_out;
+bool        log_msg_rx;
+bool        log_msg_tx;
+bool[int]   log_msg_codes;
