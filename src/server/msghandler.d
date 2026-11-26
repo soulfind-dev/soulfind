@@ -6,9 +6,8 @@
 module soulfind.server.msghandler;
 @safe:
 
-import soulfind.defines : blue, bold, log_msg, norm, pbkdf2_iterations, red,
-                          RoomMemberType, RoomType, server_username;
-import soulfind.pwhash : create_salt, hash_password_async;
+import soulfind.defines : blue, bold, log_msg, norm, red, RoomMemberType,
+                          RoomType, server_username;
 import soulfind.server.conns : Logging;
 import soulfind.server.messages;
 import soulfind.server.server : Server;
@@ -40,14 +39,13 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (user.authenticated || user.hashing_password)
+            if (user.authenticated)
                 break;
 
-            user.username = msg.username;
-            user.client_version = ClientVersion(
-                msg.major_version, msg.minor_version
+            user.authenticate(
+                msg.username, msg.password, msg.major_version,
+                msg.minor_version
             );
-            user.authenticate(msg.password);
             break;
 
         case SetWaitPort:
@@ -689,14 +687,10 @@ final class MessageHandler
             if (!msg.is_valid)
                 break;
 
-            if (msg.password.length == 0 || user.hashing_password)
+            if (msg.password.length == 0)
                 break;
 
-            user.hashing_password = true;
-            const salt = create_salt();
-            hash_password_async(
-                msg.password, salt, pbkdf2_iterations, &user.password_hashed
-            );
+            user.hash_password(msg.password);
             break;
 
         case AddRoomOperator:
