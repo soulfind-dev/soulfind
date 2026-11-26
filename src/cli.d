@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Soulfind Contributors
+// SPDX-FileCopyrightText: 2025-2026 Soulfind Contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 
@@ -6,6 +6,7 @@ module soulfind.cli;
 @safe:
 
 import soulfind.defines : VERSION;
+import std.algorithm.mutation : remove;
 import std.array : Appender;
 import std.compiler : name, version_major, version_minor;
 import std.stdio : writeln;
@@ -16,11 +17,12 @@ enum l_prefix        = "--";
 enum column_spacing  = 2;
 
 struct CommandOption {
-    string                 s_parameter;
-    string                 l_parameter;
-    string                 description;
-    string                 arg_name;
-    void delegate(string)  callback;
+    string                  s_parameter;
+    string                  l_parameter;
+    string                  description;
+    string                  choice_name;
+    string[]                defaults;
+    void delegate(string[]) callback;
 }
 
 final class CommandException : Exception
@@ -36,15 +38,13 @@ void parse_args(string[] args, CommandOption[] options)
     while (i < args.length) {
         string arg = args[i];
         string name;
-        string value;
-        bool found_equals;
+        string[] values;
 
         if (arg.startsWith(l_prefix)) {
             foreach (j, ref c; arg) {
                 if (c == '=') {
                     name = arg[l_prefix.length .. j];
-                    value = arg[j + 1 .. $];
-                    found_equals = true;
+                    values ~= arg[j + 1 .. $];
                     break;
                 }
             }
@@ -55,7 +55,7 @@ void parse_args(string[] args, CommandOption[] options)
         }
         else {
             throw new CommandException(
-                "Unexpected positional argument: " ~ arg
+                args[0] ~ ": Unexpected positional argument '" ~ arg ~ "'"
             );
         }
 
@@ -69,29 +69,33 @@ void parse_args(string[] args, CommandOption[] options)
                 break;
             }
         }
+        if (!found_option) throw new CommandException(
+            args[0] ~ ": Unknown option '" ~ arg ~ "'"
+        );
 
-        if (!found_option)
-            throw new CommandException("Unknown option: " ~ arg);
+        while (args.length > i + 1
+               && !args[i + 1].startsWith(s_prefix)
+               && !args[i + 1].startsWith(l_prefix)) {
+            values ~= args[i + 1];
+            args = args.remove(i + 1);
+        }
+        if (option.defaults.length == 0) {
+            auto max_i = (option.choice_name is null ? 0 : 1);
+            if (values.length > max_i) throw new CommandException(
+                name ~ ": Unexpected value '" ~ values[max_i] ~ "'"
+            );
+        }
+        if (option.choice_name !is null && values.length == 0) {
+            if (option.defaults.length == 0) throw new CommandException(
+                name ~ ": Missing value for <" ~ option.choice_name ~ ">"
+            );
+            values = option.defaults;
+        }
 
-        if (option.arg_name.length > 0) {
-            if (found_equals && value.length > 0) {
-                option.callback(value);
-                i++;
-            }
-            else if (!found_equals
-                     && args.length > i + 1
-                     && !args[i + 1].startsWith(s_prefix)) {
-                option.callback(args[i + 1]);
-                i += 2;
-            }
-            else {
-                throw new CommandException("Missing value for option: " ~ arg);
-            }
-        }
-        else {
-            option.callback(null);
-            i++;
-        }
+        try option.callback(values);
+        catch (Exception e) throw new CommandException(name ~ ": " ~ e.msg);
+
+        args = args.remove(i);
     }
 }
 
@@ -113,9 +117,9 @@ void print_help(string description, CommandOption[] options)
     foreach (option; options) {
         const s_length = option.s_parameter.length;
         auto l_length = option.l_parameter.length;
-        const argument_len = option.arg_name.length;
+        const choice_len = option.choice_name.length;
 
-        if (argument_len > 0)  l_length += argument_len + 3;
+        if (choice_len > 0)  l_length += choice_len + 3;
         if (s_length > s_max)  s_max = s_length;
         if (l_length > l_max)  l_max = l_length;
     }
@@ -128,11 +132,16 @@ void print_help(string description, CommandOption[] options)
 
         auto s_parameter = option.s_parameter;
         auto l_parameter = option.l_parameter;
-        auto arg_name    = option.arg_name;
+        auto choice_name = option.choice_name;
 
         if (s_parameter.length > 0)  s_parameter = s_prefix ~ s_parameter;
         if (l_parameter.length > 0)  l_parameter = l_prefix ~ l_parameter;
-        if (arg_name.length > 0)     l_parameter ~= " <" ~ arg_name ~ ">";
+        if (choice_name.length > 0) {
+            if (option.defaults.length > 0)
+                l_parameter ~= " [" ~ choice_name ~ "]";
+            else
+                l_parameter ~= " <" ~ choice_name ~ ">";
+        }
 
         output ~= s_parameter;
         output ~= spacing(s_max - s_parameter.length);
