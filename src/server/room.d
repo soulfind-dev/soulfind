@@ -195,6 +195,6 @@ final class GlobalRoom
     void say(string room_name, string username, string message)
     {
         scope msg = new SGlobalRoomMessage(room_name, username, message);
-        foreach (ref user ; users) user.send_message(msg);
+        foreach (ref user ; users) user.send_message!(Logging.disabled)(msg);
     }
 }
